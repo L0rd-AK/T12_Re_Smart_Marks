@@ -6,8 +6,8 @@ const Home = () => {
             {/* Background decorative elements */}
             <div className="absolute inset-0 bg-white opacity-50"></div>
             
-            <div className="relative z-10 flex items-center justify-center min-h-screen px-4 py-12">
-                <section className="bg-white/80 backdrop-blur-sm shadow-2xl rounded-3xl p-12 max-w-4xl w-full border border-white/20">
+            <div className="relative z-10 flex items-center justify-center min-h-screen">
+                <section className="bg-white w-full p-12">
                     {/* Header Section */}
                     <div className="text-center mb-12">
                         <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl mb-8 shadow-lg">
