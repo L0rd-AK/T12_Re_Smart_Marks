@@ -1,4 +1,6 @@
-import { NavLink } from "react-router";
+import { NavLink, useNavigate } from "react-router";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { logoutUser } from "../../redux/features/authSlice";
 
 const links = (
     <>
@@ -15,8 +17,14 @@ const links = (
 );
 
 const Navbar = () => {
-    // TODO: Replace with actual authentication state
-    const isAuthenticated = false; // This should come from your auth context/store
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+
+    const handleLogout = async () => {
+        await dispatch(logoutUser());
+        navigate("/");
+    };
 
     return (
         <div className="navbar bg-base-200 shadow-sm">
@@ -63,7 +71,13 @@ const Navbar = () => {
                         <div tabIndex={0} role="button" className="m-1">
                             <div className="avatar w-7 h-7">
                                 <div className="ring-primary ring-offset-base-100 w-24 rounded-full ring-2 ring-offset-2">
-                                    <img src="https://img.daisyui.com/images/profile/demo/spiderperson@192.webp" />
+                                    {user?.avatar ? (
+                                        <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
+                                    ) : (
+                                        <div className="bg-neutral text-neutral-content w-full h-full flex items-center justify-center text-sm font-semibold">
+                                            {user?.firstName?.[0]}{user?.lastName?.[0]}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -72,10 +86,17 @@ const Navbar = () => {
                             className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"
                         >
                             <li>
-                                <a>Sadib</a>
+                                <a className="pointer-events-none">
+                                    {user?.firstName} {user?.lastName}
+                                </a>
                             </li>
                             <li>
-                                <NavLink to="#">Logout</NavLink>
+                                <NavLink to="/profile">Profile</NavLink>
+                            </li>
+                            <li>
+                                <button onClick={handleLogout} className="text-left">
+                                    Logout
+                                </button>
                             </li>
                         </ul>
                     </div>
