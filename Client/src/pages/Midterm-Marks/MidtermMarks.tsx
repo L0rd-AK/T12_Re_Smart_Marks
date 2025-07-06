@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import toast, { Toaster } from 'react-hot-toast';
 import { type QuestionFormat, type Question, type StudentMarks } from '../../types/types';
 
 const MidtermMarks: React.FC = () => {
@@ -41,6 +42,7 @@ const MidtermMarks: React.FC = () => {
     setQuestionFormats(prev => [...prev, format]);
     setSelectedFormat(format);
     setIsSetupMode(false);
+    toast.success('Simple format created successfully!');
   };
 
   const createSubQuestionFormat = () => {
@@ -60,11 +62,12 @@ const MidtermMarks: React.FC = () => {
     setQuestionFormats(prev => [...prev, format]);
     setSelectedFormat(format);
     setIsSetupMode(false);
+    toast.success('Sub-question format created successfully!');
   };
 
   const addCustomFormat = () => {
     if (!newFormatName.trim() || newQuestions.length === 0) {
-      alert('Please provide a format name and at least one question');
+      toast.error('Please provide a format name and at least one question');
       return;
     }
 
@@ -78,6 +81,7 @@ const MidtermMarks: React.FC = () => {
     setIsSetupMode(false);
     setNewFormatName('');
     setNewQuestions([]);
+    toast.success('Custom format created successfully!');
   };
 
   const addQuestion = () => {
@@ -122,7 +126,7 @@ const MidtermMarks: React.FC = () => {
 
   const addStudentMarks = () => {
     if (!selectedFormat || !currentStudentName.trim() || !currentMarksInput.trim()) {
-      alert('Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
@@ -130,7 +134,7 @@ const MidtermMarks: React.FC = () => {
     const validationError = validateMarks(marks, selectedFormat);
     
     if (validationError) {
-      alert(validationError);
+      toast.error(validationError);
       return;
     }
 
@@ -145,6 +149,7 @@ const MidtermMarks: React.FC = () => {
     setStudents(prev => [...prev, student]);
     setCurrentStudentName('');
     setCurrentMarksInput('');
+    toast.success(`Student ${currentStudentName} added successfully!`);
   };
 
   const removeStudent = (studentId: string) => {
@@ -153,7 +158,7 @@ const MidtermMarks: React.FC = () => {
 
   const exportToExcel = () => {
     if (!selectedFormat || students.length === 0) {
-      alert('No data to export');
+      toast.error('No data to export');
       return;
     }
 
@@ -191,19 +196,33 @@ const MidtermMarks: React.FC = () => {
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(data, `midterm-marks-${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Excel file exported successfully!');
   };
 
   const clearAllData = () => {
-    if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-      setStudents([]);
-      setSelectedFormat(null);
-      setIsSetupMode(true);
-    }
+    const promise = new Promise((resolve, reject) => {
+      const confirmed = window.confirm('Are you sure you want to clear all data? This action cannot be undone.');
+      if (confirmed) {
+        setStudents([]);
+        setSelectedFormat(null);
+        setIsSetupMode(true);
+        resolve('Data cleared successfully');
+      } else {
+        reject('Operation cancelled');
+      }
+    });
+
+    toast.promise(promise, {
+      loading: 'Clearing data...',
+      success: 'All data cleared successfully!',
+      error: 'Operation cancelled'
+    });
   };
 
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
+        <Toaster position="top-right" />
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Midterm Marks Setup</h1>
@@ -328,6 +347,7 @@ const MidtermMarks: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 text-black">
+      <Toaster position="top-right" />
       <div className="max-w-6xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-lg p-6 text-black">
           {/* Header */}
