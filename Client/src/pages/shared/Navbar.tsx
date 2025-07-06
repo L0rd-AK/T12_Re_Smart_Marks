@@ -15,6 +15,9 @@ const links = (
 );
 
 const Navbar = () => {
+    // TODO: Replace with actual authentication state
+    const isAuthenticated = false; // This should come from your auth context/store
+
     return (
         <div className="navbar bg-base-200 shadow-sm">
             <div className="navbar-start">
@@ -44,35 +47,48 @@ const Navbar = () => {
                         tabIndex={0}
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
                     >
-                        {links}
+                        {isAuthenticated && links}
                     </ul>
                 </div>
-                <a className="btn btn-ghost text-xl">Portal</a>
+                <NavLink to="/" className="btn btn-ghost text-xl">Portal</NavLink>
             </div>
             <div className="navbar-center hidden lg:flex">
-                <ul className="menu menu-horizontal px-1">{links}</ul>
+                {isAuthenticated && (
+                    <ul className="menu menu-horizontal px-1">{links}</ul>
+                )}
             </div>
             <div className="navbar-end">
-                <div className="dropdown dropdown-end">
-                    <div tabIndex={0} role="button" className="m-1">
-                        <div className="avatar w-7 h-7">
-                            <div className="ring-primary ring-offset-base-100 w-24 rounded-full ring-2 ring-offset-2">
-                                <img src="https://img.daisyui.com/images/profile/demo/spiderperson@192.webp" />
+                {isAuthenticated ? (
+                    <div className="dropdown dropdown-end">
+                        <div tabIndex={0} role="button" className="m-1">
+                            <div className="avatar w-7 h-7">
+                                <div className="ring-primary ring-offset-base-100 w-24 rounded-full ring-2 ring-offset-2">
+                                    <img src="https://img.daisyui.com/images/profile/demo/spiderperson@192.webp" />
+                                </div>
                             </div>
                         </div>
+                        <ul
+                            tabIndex={0}
+                            className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"
+                        >
+                            <li>
+                                <a>Sadib</a>
+                            </li>
+                            <li>
+                                <NavLink to="#">Logout</NavLink>
+                            </li>
+                        </ul>
                     </div>
-                    <ul
-                        tabIndex={0}
-                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"
-                    >
-                        <li>
-                            <a>Sadib</a>
-                        </li>
-                        <li>
-                            <NavLink to="#">Logout</NavLink>
-                        </li>
-                    </ul>
-                </div>
+                ) : (
+                    <div className="space-x-2">
+                        <NavLink to="/login" className="btn btn-ghost">
+                            Login
+                        </NavLink>
+                        <NavLink to="/register" className="btn btn-primary">
+                            Register
+                        </NavLink>
+                    </div>
+                )}
             </div>
         </div>
     );
