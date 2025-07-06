@@ -8,7 +8,7 @@ const links = (
             <NavLink to="#">Assign Quiz Marks</NavLink>
         </li>
         <li>
-            <NavLink to="#">Assign Midterm Marks</NavLink>
+            <NavLink to="/midterm-marks">Assign Midterm Marks</NavLink>
         </li>
         <li>
             <NavLink to="#">Assign Final Marks</NavLink>
