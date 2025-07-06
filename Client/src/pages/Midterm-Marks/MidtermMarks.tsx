@@ -222,7 +222,7 @@ const MidtermMarks: React.FC = () => {
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
-        <Toaster position="top-right" />
+        <Toaster position="bottom-right" />
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Midterm Marks Setup</h1>
@@ -333,7 +333,7 @@ const MidtermMarks: React.FC = () => {
 
                 <button
                   onClick={addCustomFormat}
-                  className="w-full p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-600 transition-colors"
                 >
                   Create Custom Format
                 </button>
@@ -347,7 +347,7 @@ const MidtermMarks: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 text-black">
-      <Toaster position="top-right" />
+      <Toaster position="bottom-right" />
       <div className="max-w-6xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-lg p-6 text-black">
           {/* Header */}
