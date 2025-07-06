@@ -31,6 +31,7 @@ const Navbar = () => {
             <div className="navbar-start">
                 <div className="dropdown">
                     <div
+                        title="navigation"
                         tabIndex={0}
                         role="button"
                         className="btn btn-ghost lg:hidden"
