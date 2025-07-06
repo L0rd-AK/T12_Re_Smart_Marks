@@ -6,6 +6,7 @@ import Register from "../pages/Auth/Register";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import VerifyEmail from "../pages/Auth/VerifyEmail";
+import MidtermMarks from "../pages/Midterm-Marks/MidtermMarks";
 
 export const router = createBrowserRouter([
     {
@@ -14,27 +15,32 @@ export const router = createBrowserRouter([
         children: [
             {
                 index: true,
-                element: <Home></Home>,
+                path: "home",
+                element: <Home/>,
+            },
+            {
+                path: "midterm-marks",
+                element: <MidtermMarks/>,
             },
             {
                 path: "login",
-                element: <Login></Login>,
+                element: <Login/>,
             },
             {
                 path: "register",
-                element: <Register></Register>,
+                element: <Register/>,
             },
             {
                 path: "forgot-password",
-                element: <ForgotPassword></ForgotPassword>,
+                element: <ForgotPassword/>,
             },
             {
                 path: "reset-password",
-                element: <ResetPassword></ResetPassword>,
+                element: <ResetPassword/>,
             },
             {
                 path: "verify-email",
-                element: <VerifyEmail></VerifyEmail>,
+                element: <VerifyEmail/>,
             },
         ],
     },
