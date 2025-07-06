@@ -1,25 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-
-interface QuestionFormat {
-  id: string;
-  name: string;
-  questions: Question[];
-}
-
-interface Question {
-  id: string;
-  label: string;
-  maxMark: number;
-}
-
-interface StudentMarks {
-  id: string;
-  name: string;
-  marks: number[];
-  total: number;
-}
+import { type QuestionFormat, type Question, type StudentMarks } from '../../types/types';
 
 const MidtermMarks: React.FC = () => {
   const [questionFormats, setQuestionFormats] = useState<QuestionFormat[]>([]);
