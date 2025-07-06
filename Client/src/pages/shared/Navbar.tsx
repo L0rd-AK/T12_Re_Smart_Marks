@@ -59,7 +59,7 @@ const Navbar = () => {
                         {isAuthenticated && links}
                     </ul>
                 </div>
-                <NavLink to="/" className="btn btn-ghost text-xl">Portal</NavLink>
+                <NavLink to="/" className="btn btn-ghost text-xl">Smat Marks</NavLink>
             </div>
             <div className="navbar-center hidden lg:flex">
                 {isAuthenticated && (
