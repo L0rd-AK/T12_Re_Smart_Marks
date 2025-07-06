@@ -297,7 +297,7 @@ const MidtermMarks: React.FC = () => {
                     </label>
                     <button
                       onClick={addQuestion}
-                      className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                      className="px-3 py-1 bg-blue-800 text-white rounded-md hover:bg-blue-900 transition-colors"
                     >
                       Add Question
                     </button>
@@ -418,7 +418,7 @@ const MidtermMarks: React.FC = () => {
               <div className="flex items-end">
                 <button
                   onClick={addStudentMarks}
-                  className="w-full p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="w-full p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Add Student
                 </button>
