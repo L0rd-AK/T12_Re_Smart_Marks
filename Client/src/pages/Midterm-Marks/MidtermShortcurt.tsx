@@ -104,8 +104,6 @@ const MidtermShortcurt: React.FC = () => {
       }
       setEntryList(prev => [...prev, { q: qLabel, mark: num }]);
       setMarkInput('');
-      setStep('question');
-      setQuestionInput('');
     }
   };
 
