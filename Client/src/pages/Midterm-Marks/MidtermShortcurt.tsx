@@ -297,8 +297,8 @@ const MidtermShortcurt: React.FC = () => {
                 return (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg flex justify-between">
                     <div><b>Average:</b> {average}</div>
-                    <div><b>Highest:</b> {highest} ({highestStudents.join(', ')})</div>
-                    <div><b>Lowest:</b> {lowest} ({lowestStudents.join(', ')})</div>
+                    <div><b className='text-green-500'>Highest:</b> {highest} ({highestStudents.join(', ')})</div>
+                    <div><b className='text-red-500'>Lowest:</b> {lowest} ({lowestStudents.join(', ')})</div>
                   </div>
                 );
               })()}
