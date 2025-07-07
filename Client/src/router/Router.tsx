@@ -7,6 +7,7 @@ import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import VerifyEmail from "../pages/Auth/VerifyEmail";
 import MidtermMarks from "../pages/Midterm-Marks/MidtermMarks";
+import MidtermShortcurt from "../pages/Midterm-Marks/MidtermShortcurt";
 
 export const router = createBrowserRouter([
     {
@@ -20,6 +21,10 @@ export const router = createBrowserRouter([
             {
                 path: "midterm-marks",
                 element: <MidtermMarks/>,
+            },
+            {
+                path: "midterm-shortcut",
+                element: <MidtermShortcurt/>,
             },
             {
                 path: "login",
