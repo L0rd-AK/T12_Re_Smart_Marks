@@ -42,6 +42,7 @@ const MidtermMarks: React.FC = () => {
     };
     setQuestionFormats(prev => [...prev, format]);
     setSelectedFormat(format);
+    localStorage.setItem('selectedFormat', JSON.stringify(format));
     setIsSetupMode(false);
     toast.success('Simple format created successfully!');
   };
@@ -62,6 +63,7 @@ const MidtermMarks: React.FC = () => {
     };
     setQuestionFormats(prev => [...prev, format]);
     setSelectedFormat(format);
+    localStorage.setItem('selectedFormat', JSON.stringify(format));
     setIsSetupMode(false);
     toast.success('Sub-question format created successfully!');
   };
@@ -79,6 +81,7 @@ const MidtermMarks: React.FC = () => {
     };
     setQuestionFormats(prev => [...prev, format]);
     setSelectedFormat(format);
+    localStorage.setItem('selectedFormat', JSON.stringify(format));
     setIsSetupMode(false);
     setNewFormatName('');
     setNewQuestions([]);
@@ -282,6 +285,7 @@ const MidtermMarks: React.FC = () => {
                       key={format.id}
                       onClick={() => {
                         setSelectedFormat(format);
+                        localStorage.setItem('selectedFormat', JSON.stringify(format));
                         setIsSetupMode(false);
                       }}
                       className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
