@@ -22,6 +22,9 @@ const NavbarRTK = () => {
     const { user, isAuthenticated } = useAppSelector((state) => state.auth);
     const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
+    // Ensure user object has required properties before rendering user UI
+    const isUserDataComplete = user && user.firstName && user.lastName && user.email;
+
     const handleLogout = async () => {
         try {
             await logout().unwrap();
@@ -77,7 +80,7 @@ const NavbarRTK = () => {
             </div>
             
             <div className="navbar-end">
-                {isAuthenticated && user ? (
+                {isAuthenticated && isUserDataComplete ? (
                     <div className="dropdown dropdown-end">
                         <div
                             tabIndex={0}
@@ -94,7 +97,7 @@ const NavbarRTK = () => {
                                 ) : (
                                     <div className="bg-neutral text-neutral-content rounded-full w-full h-full flex items-center justify-center">
                                         <span className="text-sm font-semibold">
-                                            {user.firstName.charAt(0).toUpperCase()}{user.lastName.charAt(0).toUpperCase()}
+                                            {user.firstName?.charAt(0)?.toUpperCase() || 'U'}{user.lastName?.charAt(0)?.toUpperCase() || 'U'}
                                         </span>
                                     </div>
                                 )}
@@ -106,7 +109,7 @@ const NavbarRTK = () => {
                         >
                             <li className="menu-title">
                                 <span>
-                                    {user.firstName} {user.lastName}
+                                    {user.firstName || 'User'} {user.lastName || ''}
                                     {!user.isEmailVerified && (
                                         <div className="badge badge-warning badge-xs ml-1">
                                             Unverified

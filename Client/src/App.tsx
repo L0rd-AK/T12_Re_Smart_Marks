@@ -9,9 +9,9 @@ function App() {
         // Wrap the entire app with AuthInitializer to handle authentication state
         <AuthInitializer>
             <div>
-                <Navbar/>
-                <Outlet/>
-                <Footer/>
+                <Navbar />
+                <Outlet />
+                <Footer />
             </div>
         </AuthInitializer>
     );
