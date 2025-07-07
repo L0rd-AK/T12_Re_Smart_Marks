@@ -1,12 +1,25 @@
 import { createBrowserRouter } from "react-router";
+import { lazy, Suspense } from "react";
 import App from "../App";
-import Home from "../pages/Home/Home";
-import Login from "../pages/Auth/Login";
-import Register from "../pages/Auth/Register";
-import ForgotPassword from "../pages/Auth/ForgotPassword";
-import ResetPassword from "../pages/Auth/ResetPassword";
-import VerifyEmail from "../pages/Auth/VerifyEmail";
-import MidtermMarks from "../pages/Midterm-Marks/MidtermMarks";
+import PageLoader from "../components/PageLoader";
+
+// Lazy load components for code splitting
+const Home = lazy(() => import("../pages/Home/Home"));
+const Login = lazy(() => import("../pages/Auth/Login"));
+const Register = lazy(() => import("../pages/Auth/Register"));
+const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
+const VerifyEmail = lazy(() => import("../pages/Auth/VerifyEmail"));
+const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
+
+// Wrapper component for Suspense - returns a component, not JSX
+const withSuspense = (Component: React.ComponentType) => {
+    return () => (
+        <Suspense fallback={<PageLoader />}>
+            <Component />
+        </Suspense>
+    );
+};
 
 export const router = createBrowserRouter([
     {
@@ -15,31 +28,31 @@ export const router = createBrowserRouter([
         children: [
             {
                 index: true,
-                element: <Home/>,
+                Component: withSuspense(Home),
             },
             {
                 path: "midterm-marks",
-                element: <MidtermMarks/>,
+                Component: withSuspense(MidtermMarks),
             },
             {
                 path: "login",
-                element: <Login/>,
+                Component: withSuspense(Login),
             },
             {
                 path: "register",
-                element: <Register/>,
+                Component: withSuspense(Register),
             },
             {
                 path: "forgot-password",
-                element: <ForgotPassword/>,
+                Component: withSuspense(ForgotPassword),
             },
             {
                 path: "reset-password",
-                element: <ResetPassword/>,
+                Component: withSuspense(ResetPassword),
             },
             {
                 path: "verify-email",
-                element: <VerifyEmail/>,
+                Component: withSuspense(VerifyEmail),
             },
         ],
     },
