@@ -118,42 +118,17 @@ const MidtermShortcurt: React.FC = () => {
     // Prepare data rows
     const excelData = results.map(student => {
       const row: Record<string, string | number> = {
-        'Student ID': student.id,
+        'ID': student.id,
       };
-      // Sum per question
-      const questionSums: Record<string, number> = {};
-      student.summary.forEach(entry => {
-        questionSums[entry.q] = (questionSums[entry.q] || 0) + entry.mark;
-      });
+      // For each question, join all marks as comma-separated string
+      let total = 0;
       allQuestions.forEach(q => {
-        row[`Q${q}`] = questionSums[q] || 0;
+        const marks = student.summary.filter(e => e.q === q).map(e => e.mark);
+        row[`Q${q}`] = marks.length > 0 ? marks.join(', ') : '';
+        total += marks.reduce((a, b) => a + b, 0);
       });
-      const marksArr = Object.values(questionSums);
-      row['Total'] = marksArr.reduce((a, b) => a + b, 0);
+      row['Total'] = total;
       return row;
-    });
-    // Calculate summary stats
-    const totals = excelData.map(row => row['Total'] as number);
-    const average = totals.length ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(2) : 0;
-    const highest = Math.max(...totals);
-    const lowest = Math.min(...totals);
-    const highestStudents = excelData.filter(row => row['Total'] === highest).map(row => row['Student ID']);
-    const lowestStudents = excelData.filter(row => row['Total'] === lowest).map(row => row['Student ID']);
-    // Add summary row(s)
-    excelData.push({
-      'Student ID': 'Average',
-      ...Object.fromEntries(allQuestions.map(q => [`Q${q}`, ''])),
-      'Total': average
-    });
-    excelData.push({
-      'Student ID': `Highest (${highestStudents.join(', ')})`,
-      ...Object.fromEntries(allQuestions.map(q => [`Q${q}`, ''])),
-      'Total': highest
-    });
-    excelData.push({
-      'Student ID': `Lowest (${lowestStudents.join(', ')})`,
-      ...Object.fromEntries(allQuestions.map(q => [`Q${q}`, ''])),
-      'Total': lowest
     });
     // Write to Excel
     const wb = XLSX.utils.book_new();
