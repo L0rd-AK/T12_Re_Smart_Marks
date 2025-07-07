@@ -11,7 +11,8 @@ const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
 const VerifyEmail = lazy(() => import("../pages/Auth/VerifyEmail"));
 const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
-
+import MidtermShortcurt from "../pages/Midterm-Marks/MidtermShortcurt";
+  
 // Wrapper component for Suspense - returns a component, not JSX
 const withSuspense = (Component: React.ComponentType) => {
     return () => (
@@ -20,6 +21,7 @@ const withSuspense = (Component: React.ComponentType) => {
         </Suspense>
     );
 };
+
 
 export const router = createBrowserRouter([
     {
@@ -33,6 +35,10 @@ export const router = createBrowserRouter([
             {
                 path: "midterm-marks",
                 Component: withSuspense(MidtermMarks),
+            },
+            {
+                path: "midterm-shortcut",
+                element: withSuspense(MidtermShortcurt),
             },
             {
                 path: "login",

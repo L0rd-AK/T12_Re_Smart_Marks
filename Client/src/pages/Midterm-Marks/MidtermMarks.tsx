@@ -42,6 +42,7 @@ const MidtermMarks: React.FC = () => {
     };
     setQuestionFormats(prev => [...prev, format]);
     setSelectedFormat(format);
+    localStorage.setItem('selectedFormat', JSON.stringify(format));
     setIsSetupMode(false);
     toast.success('Simple format created successfully!');
   };
@@ -62,6 +63,7 @@ const MidtermMarks: React.FC = () => {
     };
     setQuestionFormats(prev => [...prev, format]);
     setSelectedFormat(format);
+    localStorage.setItem('selectedFormat', JSON.stringify(format));
     setIsSetupMode(false);
     toast.success('Sub-question format created successfully!');
   };
@@ -79,6 +81,7 @@ const MidtermMarks: React.FC = () => {
     };
     setQuestionFormats(prev => [...prev, format]);
     setSelectedFormat(format);
+    localStorage.setItem('selectedFormat', JSON.stringify(format));
     setIsSetupMode(false);
     setNewFormatName('');
     setNewQuestions([]);
@@ -282,6 +285,7 @@ const MidtermMarks: React.FC = () => {
                       key={format.id}
                       onClick={() => {
                         setSelectedFormat(format);
+                        localStorage.setItem('selectedFormat', JSON.stringify(format));
                         setIsSetupMode(false);
                       }}
                       className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -330,20 +334,20 @@ const MidtermMarks: React.FC = () => {
                   <div className="space-y-2">
                     {newQuestions.map((question, index) => (
                       <div key={index} className="flex gap-2 items-center">
-                                                 <input
-                           type="text"
-                           value={question.label}
-                           onChange={(e) => updateQuestion(index, 'label', e.target.value)}
-                           placeholder="Question label (e.g., 1a, 2, etc.)"
-                           className="flex-1 p-2 border border-gray-300 rounded-md text-black"
-                         />
-                         <input
-                           type="number"
-                           value={question.maxMark}
-                           onChange={(e) => updateQuestion(index, 'maxMark', parseInt(e.target.value) || 0)}
-                           placeholder="Max mark"
-                           className="w-20 p-2 border border-gray-300 rounded-md text-black"
-                         />
+                        <input
+                          type="text"
+                          value={question.label}
+                          onChange={(e) => updateQuestion(index, 'label', e.target.value)}
+                          placeholder="Question label (e.g., 1a, 2, etc.)"
+                          className="flex-1 p-2 border border-gray-300 rounded-md text-black"
+                        />
+                        <input
+                          type="number"
+                          value={question.maxMark}
+                          onChange={(e) => updateQuestion(index, 'maxMark', parseInt(e.target.value) || 0)}
+                          placeholder="Max mark"
+                          className="w-20 p-2 border border-gray-300 rounded-md text-black"
+                        />
                         <button
                           onClick={() => removeQuestion(index)}
                           className="px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
@@ -374,6 +378,9 @@ const MidtermMarks: React.FC = () => {
       <Toaster position="bottom-right" />
       <div className="max-w-6xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-lg p-6 text-black">
+          <div className="mb-4 flex justify-end">
+            <a href="/midterm-shortcut" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">Go to Shortcut Entry</a>
+          </div>
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -419,25 +426,25 @@ const MidtermMarks: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Student ID
                 </label>
-                                  <input
-                    type="text"
-                    value={currentStudentName}
-                    onChange={(e) => setCurrentStudentName(e.target.value)}
-                    placeholder="Enter student ID"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-                  />
+                <input
+                  type="text"
+                  value={currentStudentName}
+                  onChange={(e) => setCurrentStudentName(e.target.value)}
+                  placeholder="Enter student ID"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Marks (space-separated)
                 </label>
-                                  <input
-                    type="text"
-                    value={currentMarksInput}
-                    onChange={(e) => setCurrentMarksInput(e.target.value)}
-                    placeholder={`e.g., ${selectedFormat?.questions.map(q => q.maxMark).join(' ')}`}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-                  />
+                <input
+                  type="text"
+                  value={currentMarksInput}
+                  onChange={(e) => setCurrentMarksInput(e.target.value)}
+                  placeholder={`e.g., ${selectedFormat?.questions.map(q => q.maxMark).join(' ')}`}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                />
               </div>
               <div className="flex items-end">
                 <button
