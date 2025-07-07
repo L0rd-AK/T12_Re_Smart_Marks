@@ -8,7 +8,7 @@ const links = (
             <NavLink to="#">Assign Quiz Marks</NavLink>
         </li>
         <li>
-            <NavLink to="#">Assign Midterm Marks</NavLink>
+            <NavLink to="/midterm-marks">Assign Midterm Marks</NavLink>
         </li>
         <li>
             <NavLink to="#">Assign Final Marks</NavLink>
@@ -31,6 +31,7 @@ const Navbar = () => {
             <div className="navbar-start">
                 <div className="dropdown">
                     <div
+                        title="navigation"
                         tabIndex={0}
                         role="button"
                         className="btn btn-ghost lg:hidden"
@@ -58,7 +59,7 @@ const Navbar = () => {
                         {isAuthenticated && links}
                     </ul>
                 </div>
-                <NavLink to="/" className="btn btn-ghost text-xl">Portal</NavLink>
+                <NavLink to="/" className="btn btn-ghost text-xl">Smat Marks</NavLink>
             </div>
             <div className="navbar-center hidden lg:flex">
                 {isAuthenticated && (
