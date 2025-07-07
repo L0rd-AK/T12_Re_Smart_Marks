@@ -251,30 +251,25 @@ const MidtermShortcurt: React.FC = () => {
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="border border-gray-300 p-2 text-left">ID</th>
-                      {Object.keys(questionSums).map(q => (
-                        <th key={q} className="border border-gray-300 p-2 text-center">Q{q}</th>
+                      {(selectedFormat?.questions || []).map(q => (
+                        <th key={q.label} className="border border-gray-300 p-2 text-center">Q{q.label}</th>
                       ))}
                       <th className="border border-gray-300 p-2 text-center font-bold">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {results.map(student => {
-                      // Calculate per-question sums for this student
-                      const questionSumsRow: Record<string, number> = {};
-                      student.summary.forEach(entry => {
-                        questionSumsRow[entry.q] = (questionSumsRow[entry.q] || 0) + entry.mark;
-                      });
-                      const marksArr = Object.values(questionSumsRow);
-                      const total = marksArr.reduce((a, b) => a + b, 0);
+                      // Calculate total for this student
+                      let total = 0;
                       return (
                         <tr key={student.id} className="hover:bg-gray-50">
                           <td className="border border-gray-300 p-2 font-medium">{student.id}</td>
-                          {Object.keys(questionSums).map(q => {
-                            // Get all marks for this question for this student
-                            const marks = student.summary.filter(e => e.q === q).map(e => e.mark);
+                          {(selectedFormat?.questions || []).map(q => {
+                            const marks = student.summary.filter(e => e.q === q.label).map(e => e.mark);
+                            total += marks.reduce((a, b) => a + b, 0);
                             return (
-                              <td key={q} className="border border-gray-300 p-2 text-center">
-                                {marks.length > 0 ? marks.join(', ') : 0}
+                              <td key={q.label} className="border border-gray-300 p-2 text-center">
+                                {marks.length > 0 ? marks.join(', ') : ''}
                               </td>
                             );
                           })}
