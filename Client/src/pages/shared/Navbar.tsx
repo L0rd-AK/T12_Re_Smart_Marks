@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router";
-import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { logoutUser } from "../../redux/features/authSlice";
+import { useAppSelector } from "../../redux/hooks";
+import { useLogoutMutation } from "../../redux/api/authApi";
+import toast from "react-hot-toast";
 
 const links = (
     <>
@@ -16,14 +17,22 @@ const links = (
     </>
 );
 
-const Navbar = () => {
-    const dispatch = useAppDispatch();
+const NavbarRTK = () => {
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+    const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
     const handleLogout = async () => {
-        await dispatch(logoutUser());
-        navigate("/");
+        try {
+            await logout().unwrap();
+            toast.success("Logged out successfully!");
+            navigate("/");
+        } catch (error) {
+            const err = error as { data?: { message?: string } };
+            toast.error(err?.data?.message || "Logout failed");
+            // Still redirect even if logout API fails
+            navigate("/");
+        }
     };
 
     return (
@@ -43,70 +52,108 @@ const Navbar = () => {
                             viewBox="0 0 24 24"
                             stroke="currentColor"
                         >
-                            {" "}
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth="2"
                                 d="M4 6h16M4 12h8m-8 6h16"
-                            />{" "}
+                            />
                         </svg>
                     </div>
                     <ul
                         tabIndex={0}
-                        className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
+                        className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
                     >
-                        {isAuthenticated && links}
+                        {links}
                     </ul>
                 </div>
-                <NavLink to="/" className="btn btn-ghost text-xl">Smat Marks</NavLink>
+                <NavLink to="/" className="btn btn-ghost text-xl">
+                    Smart Marks
+                </NavLink>
             </div>
+            
             <div className="navbar-center hidden lg:flex">
-                {isAuthenticated && (
-                    <ul className="menu menu-horizontal px-1">{links}</ul>
-                )}
+                <ul className="menu menu-horizontal px-1">{links}</ul>
             </div>
+            
             <div className="navbar-end">
-                {isAuthenticated ? (
+                {isAuthenticated && user ? (
                     <div className="dropdown dropdown-end">
-                        <div tabIndex={0} role="button" className="m-1">
-                            <div className="avatar w-7 h-7">
-                                <div className="ring-primary ring-offset-base-100 w-24 rounded-full ring-2 ring-offset-2">
-                                    {user?.avatar ? (
-                                        <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} />
-                                    ) : (
-                                        <div className="bg-neutral text-neutral-content w-full h-full flex items-center justify-center text-sm font-semibold">
-                                            {user?.firstName?.[0]}{user?.lastName?.[0]}
-                                        </div>
-                                    )}
-                                </div>
+                        <div
+                            tabIndex={0}
+                            role="button"
+                            className="btn btn-ghost btn-circle avatar"
+                        >
+                            <div className="w-10 rounded-full">
+                                {user.avatar ? (
+                                    <img
+                                        alt="User avatar"
+                                        src={user.avatar}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="bg-neutral text-neutral-content rounded-full w-full h-full flex items-center justify-center">
+                                        <span className="text-sm font-semibold">
+                                            {user.firstName.charAt(0).toUpperCase()}{user.lastName.charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <ul
                             tabIndex={0}
-                            className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"
+                            className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
                         >
-                            <li>
-                                <a className="pointer-events-none">
-                                    {user?.firstName} {user?.lastName}
-                                </a>
+                            <li className="menu-title">
+                                <span>
+                                    {user.firstName} {user.lastName}
+                                    {!user.isEmailVerified && (
+                                        <div className="badge badge-warning badge-xs ml-1">
+                                            Unverified
+                                        </div>
+                                    )}
+                                </span>
                             </li>
                             <li>
-                                <NavLink to="/profile">Profile</NavLink>
+                                <NavLink to="/profile" className="justify-between">
+                                    Profile
+                                    <span className="badge">New</span>
+                                </NavLink>
                             </li>
                             <li>
-                                <button onClick={handleLogout} className="text-left">
-                                    Logout
+                                <NavLink to="/settings">Settings</NavLink>
+                            </li>
+                            {!user.isEmailVerified && (
+                                <li>
+                                    <NavLink to="/verify-email" className="text-warning">
+                                        Verify Email
+                                    </NavLink>
+                                </li>
+                            )}
+                            <li>
+                                <button 
+                                    onClick={handleLogout}
+                                    disabled={isLoggingOut}
+                                    className="text-error"
+                                >
+                                    {isLoggingOut ? (
+                                        <>
+                                            <span className="loading loading-spinner loading-xs"></span>
+                                            Logging out...
+                                        </>
+                                    ) : (
+                                        "Logout"
+                                    )}
                                 </button>
                             </li>
                         </ul>
                     </div>
                 ) : (
-                    <div className="space-x-2">
-                        <NavLink to="/login" className="btn btn-ghost">
+                    <div className="flex gap-2">
+                        <NavLink to="/login" className="btn btn-ghost btn-sm">
                             Login
                         </NavLink>
-                        <NavLink to="/register" className="btn btn-primary">
+                        <NavLink to="/register" className="btn btn-primary btn-sm">
                             Register
                         </NavLink>
                     </div>
@@ -116,4 +163,4 @@ const Navbar = () => {
     );
 };
 
-export default Navbar;
+export default NavbarRTK;

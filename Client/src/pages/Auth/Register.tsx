@@ -3,17 +3,20 @@ import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GoogleLogin } from "@react-oauth/google";
-import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { registerUser, googleLogin, clearMessages } from "../../redux/features/authSlice";
+import { useAppSelector } from "../../redux/hooks";
+import { useRegisterMutation, useGoogleLoginMutation } from "../../redux/api/authApi";
 import { registerSchema, type RegisterFormData } from "../../schemas/auth";
+import toast from "react-hot-toast";
 
-const Register = () => {
-    const dispatch = useAppDispatch();
+const RegisterRTK = () => {
     const navigate = useNavigate();
-    const { isLoading, error, successMessage, isAuthenticated } = useAppSelector((state) => state.auth);
+    const { isAuthenticated } = useAppSelector((state) => state.auth);
+    
+    const [register, { isLoading: isRegisterLoading }] = useRegisterMutation();
+    const [googleLogin, { isLoading: isGoogleLoading }] = useGoogleLoginMutation();
 
     const {
-        register,
+        register: registerField,
         handleSubmit,
         formState: { errors },
     } = useForm<RegisterFormData>({
@@ -26,31 +29,42 @@ const Register = () => {
         }
     }, [isAuthenticated, navigate]);
 
-    useEffect(() => {
-        return () => {
-            dispatch(clearMessages());
-        };
-    }, [dispatch]);
-
     const onSubmit = async (data: RegisterFormData) => {
-        const result = await dispatch(registerUser(data));
-        if (registerUser.fulfilled.match(result)) {
+        try {
+            await register(data).unwrap();
+            toast.success("Account created successfully!");
             navigate("/");
+        } catch (error) {
+            const err = error as { data?: { message?: string; errors?: Record<string, string> } };
+            if (err?.data?.errors) {
+                // Handle validation errors
+                Object.values(err.data.errors).forEach(message => {
+                    toast.error(message);
+                });
+            } else {
+                toast.error(err?.data?.message || "Registration failed");
+            }
         }
     };
 
     const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
         if (credentialResponse.credential) {
-            const result = await dispatch(googleLogin(credentialResponse.credential));
-            if (googleLogin.fulfilled.match(result)) {
+            try {
+                await googleLogin({ credential: credentialResponse.credential }).unwrap();
+                toast.success("Google registration successful!");
                 navigate("/");
+            } catch (error) {
+                const err = error as { data?: { message?: string } };
+                toast.error(err?.data?.message || "Google registration failed");
             }
         }
     };
 
     const handleGoogleError = () => {
-        console.error("Google login failed");
+        toast.error("Google registration failed");
     };
+
+    const isLoading = isRegisterLoading || isGoogleLoading;
 
     return (
         <div className="min-h-screen bg-base-200 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -72,24 +86,6 @@ const Register = () => {
 
                 <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
-                        {error && (
-                            <div className="alert alert-error mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>{error}</span>
-                            </div>
-                        )}
-
-                        {successMessage && (
-                            <div className="alert alert-success mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>{successMessage}</span>
-                            </div>
-                        )}
-
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -98,7 +94,7 @@ const Register = () => {
                                     </label>
                                     <input
                                         type="text"
-                                        {...register("firstName")}
+                                        {...registerField("firstName")}
                                         className={`input input-bordered w-full ${errors.firstName ? 'input-error' : ''}`}
                                         placeholder="First name"
                                     />
@@ -115,7 +111,7 @@ const Register = () => {
                                     </label>
                                     <input
                                         type="text"
-                                        {...register("lastName")}
+                                        {...registerField("lastName")}
                                         className={`input input-bordered w-full ${errors.lastName ? 'input-error' : ''}`}
                                         placeholder="Last name"
                                     />
@@ -133,7 +129,7 @@ const Register = () => {
                                 </label>
                                 <input
                                     type="email"
-                                    {...register("email")}
+                                    {...registerField("email")}
                                     className={`input input-bordered w-full ${errors.email ? 'input-error' : ''}`}
                                     placeholder="Enter your email"
                                 />
@@ -150,7 +146,7 @@ const Register = () => {
                                 </label>
                                 <input
                                     type="password"
-                                    {...register("password")}
+                                    {...registerField("password")}
                                     className={`input input-bordered w-full ${errors.password ? 'input-error' : ''}`}
                                     placeholder="Enter your password"
                                 />
@@ -167,7 +163,7 @@ const Register = () => {
                                 </label>
                                 <input
                                     type="password"
-                                    {...register("confirmPassword")}
+                                    {...registerField("confirmPassword")}
                                     className={`input input-bordered w-full ${errors.confirmPassword ? 'input-error' : ''}`}
                                     placeholder="Confirm your password"
                                 />
@@ -197,9 +193,9 @@ const Register = () => {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className={`btn btn-primary w-full ${isLoading ? 'loading' : ''}`}
+                                className="btn btn-primary w-full"
                             >
-                                {isLoading ? (
+                                {isRegisterLoading ? (
                                     <>
                                         <span className="loading loading-spinner loading-sm"></span>
                                         Creating account...
@@ -212,25 +208,16 @@ const Register = () => {
 
                         <div className="divider">OR</div>
 
-                        <div className="space-y-3 w-full">
-                            <div className="w-full">
-                                <GoogleLogin
-                                    onSuccess={handleGoogleSuccess}
-                                    onError={handleGoogleError}
-                                    theme="outline"
-                                    size="large"
-                                    width="400"
-                                    text="signup_with"
-                                    shape="rectangular"
-                                />
-                            </div>
-
-                            {/* <button className="btn btn-outline w-full">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                </svg>
-                                Continue with Facebook
-                            </button> */}
+                        <div className="flex justify-center">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                theme="outline"
+                                size="large"
+                                width="400"
+                                text="signup_with"
+                                shape="rectangular"
+                            />
                         </div>
                     </div>
                 </div>
@@ -239,4 +226,4 @@ const Register = () => {
     );
 };
 
-export default Register;
+export default RegisterRTK;
