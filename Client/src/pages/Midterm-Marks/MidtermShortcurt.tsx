@@ -135,6 +135,15 @@ const MidtermShortcurt: React.FC = () => {
     toast.success('Excel file exported successfully!');
   };
 
+  // Calculate summary only when entryList changes
+  const questionSums = React.useMemo(() => {
+    const sums: Record<string, number> = {};
+    entryList.forEach(entry => {
+      sums[entry.q] = (sums[entry.q] || 0) + entry.mark;
+    });
+    return sums;
+  }, [entryList]);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 text-black">
       <Toaster position="bottom-right" />
@@ -143,6 +152,32 @@ const MidtermShortcurt: React.FC = () => {
           <div className="mb-4 flex justify-end">
             <a href="/midterm-marks" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">Go to Standard Entry</a>
           </div>
+          {/* Live Summary Table (moved above input fields) */}
+          {Object.keys(questionSums).length > 0 && (
+            <div className="mb-6">
+              <h3 className="font-semibold text-blue-800 mb-2">Live Entry Summary</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2 text-center">Serial No</th>
+                      <th className="border border-gray-300 p-2 text-center">Question No</th>
+                      <th className="border border-gray-300 p-2 text-center">Sum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(questionSums).map(([q, sum], i) => (
+                      <tr key={q}>
+                        <td className="border border-gray-300 p-2 text-center">{String(i + 1).padStart(2, '0')}</td>
+                        <td className="border border-gray-300 p-2 text-center">{q}</td>
+                        <td className="border border-gray-300 p-2 text-center">{sum}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           <h1 className="text-3xl font-bold text-gray-800 mb-6">Midterm Marks Shortcut Entry</h1>
           <div className="space-y-4">
             {step === 'student' && (
@@ -192,32 +227,6 @@ const MidtermShortcurt: React.FC = () => {
               </div>
             )}
           </div>
-          {/* Live Summary Table */}
-          {entryList.length > 0 && (
-            <div className="mb-6 mt-6">
-              <h3 className="font-semibold text-blue-800 mb-2">Live Entry Summary</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 p-2 text-center">Serial No</th>
-                      <th className="border border-gray-300 p-2 text-center">Question No</th>
-                      <th className="border border-gray-300 p-2 text-center">Mark</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entryList.map((entry, i) => (
-                      <tr key={i}>
-                        <td className="border border-gray-300 p-2 text-center">{String(i + 1).padStart(2, '0')}</td>
-                        <td className="border border-gray-300 p-2 text-center">{entry.q}</td>
-                        <td className="border border-gray-300 p-2 text-center">{entry.mark}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
           {/* Results Table */}
           {results.length > 0 && (
             <div className="mt-8">
