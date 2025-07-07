@@ -113,19 +113,52 @@ const MidtermShortcurt: React.FC = () => {
       toast.error('No data to export');
       return;
     }
+    // Get all unique question labels from all students
+    const allQuestions = Array.from(new Set(results.flatMap(s => s.summary.map(e => e.q))));
+    // Prepare data rows
     const excelData = results.map(student => {
       const row: Record<string, string | number> = {
         'Student ID': student.id,
-        'Total': student.total
       };
-      student.summary.forEach((entry) => {
-        row[`Q${entry.q}`] = entry.mark;
+      // Sum per question
+      const questionSums: Record<string, number> = {};
+      student.summary.forEach(entry => {
+        questionSums[entry.q] = (questionSums[entry.q] || 0) + entry.mark;
       });
+      allQuestions.forEach(q => {
+        row[`Q${q}`] = questionSums[q] || 0;
+      });
+      const marksArr = Object.values(questionSums);
+      row['Total'] = marksArr.reduce((a, b) => a + b, 0);
       return row;
     });
+    // Calculate summary stats
+    const totals = excelData.map(row => row['Total'] as number);
+    const average = totals.length ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(2) : 0;
+    const highest = Math.max(...totals);
+    const lowest = Math.min(...totals);
+    const highestStudents = excelData.filter(row => row['Total'] === highest).map(row => row['Student ID']);
+    const lowestStudents = excelData.filter(row => row['Total'] === lowest).map(row => row['Student ID']);
+    // Add summary row(s)
+    excelData.push({
+      'Student ID': 'Average',
+      ...Object.fromEntries(allQuestions.map(q => [`Q${q}`, ''])),
+      'Total': average
+    });
+    excelData.push({
+      'Student ID': `Highest (${highestStudents.join(', ')})`,
+      ...Object.fromEntries(allQuestions.map(q => [`Q${q}`, ''])),
+      'Total': highest
+    });
+    excelData.push({
+      'Student ID': `Lowest (${lowestStudents.join(', ')})`,
+      ...Object.fromEntries(allQuestions.map(q => [`Q${q}`, ''])),
+      'Total': lowest
+    });
+    // Write to Excel
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(excelData);
-    ws['!cols'] = [{ wch: 20 }, { wch: 10 }, { wch: 10 }];
+    ws['!cols'] = [{ wch: 20 }, ...allQuestions.map(() => ({ wch: 10 })), { wch: 10 }];
     XLSX.utils.book_append_sheet(wb, ws, 'Midterm Shortcut');
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -242,32 +275,63 @@ const MidtermShortcurt: React.FC = () => {
                 <table className="w-full border-collapse border border-gray-300">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border border-gray-300 p-2 text-left">Student ID</th>
-                      <th className="border border-gray-300 p-2 text-center">Serial No</th>
-                      <th className="border border-gray-300 p-2 text-center">Question No</th>
-                      <th className="border border-gray-300 p-2 text-center">Mark</th>
+                      <th className="border border-gray-300 p-2 text-left">ID</th>
+                      {Object.keys(questionSums).map(q => (
+                        <th key={q} className="border border-gray-300 p-2 text-center">Q{q}</th>
+                      ))}
                       <th className="border border-gray-300 p-2 text-center font-bold">Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {results.map(student => (
-                      student.summary.map((entry, j) => (
-                        <tr key={student.id + '-' + j} className="hover:bg-gray-50">
-                          {j === 0 && (
-                            <td className="border border-gray-300 p-2 font-medium" rowSpan={student.summary.length}>{student.id}</td>
-                          )}
-                          <td className="border border-gray-300 p-2 text-center">{String(j + 1).padStart(2, '0')}</td>
-                          <td className="border border-gray-300 p-2 text-center">{entry.q}</td>
-                          <td className="border border-gray-300 p-2 text-center">{entry.mark}</td>
-                          {j === 0 && (
-                            <td className="border border-gray-300 p-2 text-center font-bold bg-blue-50" rowSpan={student.summary.length}>{student.total}</td>
-                          )}
+                    {results.map(student => {
+                      // Calculate per-question sums for this student
+                      const questionSumsRow: Record<string, number> = {};
+                      student.summary.forEach(entry => {
+                        questionSumsRow[entry.q] = (questionSumsRow[entry.q] || 0) + entry.mark;
+                      });
+                      const marksArr = Object.values(questionSumsRow);
+                      const total = marksArr.reduce((a, b) => a + b, 0);
+                      return (
+                        <tr key={student.id} className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 font-medium">{student.id}</td>
+                          {Object.keys(questionSums).map(q => {
+                            // Get all marks for this question for this student
+                            const marks = student.summary.filter(e => e.q === q).map(e => e.mark);
+                            return (
+                              <td key={q} className="border border-gray-300 p-2 text-center">
+                                {marks.length > 0 ? marks.join(', ') : 0}
+                              </td>
+                            );
+                          })}
+                          <td className="border border-gray-300 p-2 text-center font-bold bg-blue-50">{total}</td>
                         </tr>
-                      ))
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
+              {/* Summary below table */}
+              {(() => {
+                const totals = results.map(student => {
+                  const questionSumsRow: Record<string, number> = {};
+                  student.summary.forEach(entry => {
+                    questionSumsRow[entry.q] = (questionSumsRow[entry.q] || 0) + entry.mark;
+                  });
+                  return Object.values(questionSumsRow).reduce((a, b) => a + b, 0);
+                });
+                const average = totals.length ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(2) : 0;
+                const highest = Math.max(...totals);
+                const lowest = Math.min(...totals);
+                const highestStudents = results.filter((student, i) => totals[i] === highest).map(s => s.id);
+                const lowestStudents = results.filter((student, i) => totals[i] === lowest).map(s => s.id);
+                return (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg flex justify-between">
+                    <div><b>Average:</b> {average}</div>
+                    <div><b>Highest:</b> {highest} ({highestStudents.join(', ')})</div>
+                    <div><b>Lowest:</b> {lowest} ({lowestStudents.join(', ')})</div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
