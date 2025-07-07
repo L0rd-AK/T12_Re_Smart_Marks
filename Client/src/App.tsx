@@ -6,6 +6,7 @@ import { Outlet } from "react-router";
 
 function App() {
     return (
+        // Wrap the entire app with AuthInitializer to handle authentication state
         <AuthInitializer>
             <div>
                 <Navbar/>
