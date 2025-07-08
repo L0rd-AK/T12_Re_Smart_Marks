@@ -15,6 +15,14 @@ const FinalMarks: React.FC = () => {
   const [newQuestions, setNewQuestions] = useState<Question[]>([]);
   const [editingCell, setEditingCell] = useState<{ studentId: string; markIndex: number } | null>(null);
 
+// Load saved formats from localStorage on component mount
+  useEffect(() => {
+    const savedFormats = localStorage.getItem('finalQuestionFormats');
+    if (savedFormats) {
+      setQuestionFormats(JSON.parse(savedFormats));
+    }
+  }, []);
+
 
   if (isSetupMode) {
     return (
