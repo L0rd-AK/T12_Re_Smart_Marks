@@ -15,6 +15,142 @@ const FinalMarks: React.FC = () => {
   const [newQuestions, setNewQuestions] = useState<Question[]>([]);
   const [editingCell, setEditingCell] = useState<{ studentId: string; markIndex: number } | null>(null);
 
+
+  if (isSetupMode) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 text-black">
+        <Toaster position="bottom-right" />
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Final Marks Setup</h1>
+
+            {/* Quick Format Options */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">Quick Setup Options</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={createSimpleFormat}
+                  className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
+                  <h3 className="font-semibold text-lg mb-2">Simple Format</h3>
+                  <p className="text-gray-600">5 questions, 10 marks each (Total: 50)</p>
+                </button>
+                <button
+                  onClick={createSubQuestionFormat}
+                  className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
+                  <h3 className="font-semibold text-lg mb-2">Sub-question Format</h3>
+                  <p className="text-gray-600">Questions with sub-parts (Total: 50)</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Saved Formats */}
+            {questionFormats.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">Saved Formats</h2>
+                <div className="space-y-2">
+                  {questionFormats.map(format => (
+                    <div key={format.id} className="flex items-center justify-between p-3 border border-gray-300 rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">{format.name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {format.questions.length} questions, Total: {format.questions.reduce((sum, q) => sum + q.maxMark, 0)} marks
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => selectExistingFormat(format)}
+                          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        >
+                          Use
+                        </button>
+                        <button
+                          onClick={() => deleteFormat(format.id)}
+                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Custom Format Creation */}
+            <div className="border-t pt-6">
+              <h2 className="text-xl font-semibold mb-4">Create Custom Format</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Format Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newFormatName}
+                    onChange={(e) => setNewFormatName(e.target.value)}
+                    placeholder="Enter format name"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Questions
+                    </label>
+                    <button
+                      onClick={addQuestion}
+                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                    >
+                      Add Question
+                    </button>
+                  </div>
+
+                  {newQuestions.map((question, index) => (
+                    <div key={index} className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={question.label}
+                        onChange={(e) => updateQuestion(index, 'label', e.target.value)}
+                        placeholder="Question label"
+                        className="flex-1 p-2 border border-gray-300 rounded text-black"
+                      />
+                      <input
+                        type="number"
+                        value={question.maxMark}
+                        onChange={(e) => updateQuestion(index, 'maxMark', parseInt(e.target.value) || 0)}
+                        placeholder="Max marks"
+                        min="1"
+                        className="w-24 p-2 border border-gray-300 rounded text-black"
+                      />
+                      <button
+                        onClick={() => removeQuestion(index)}
+                        className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={addCustomFormat}
+                  className="w-full p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={!newFormatName.trim() || newQuestions.length === 0}
+                >
+                  Create Custom Format
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 text-black">
       <Toaster position="bottom-right" />
