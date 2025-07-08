@@ -175,6 +175,9 @@ const FinalMarks: React.FC = () => {
     setStudents(prev => prev.filter(s => s.id !== studentId));
   };
 
+  const updateStudentMark = (studentId: string, markIndex: number, newMark: number) => {
+    if (!selectedFormat) return;
+
 
   if (isSetupMode) {
     return (
