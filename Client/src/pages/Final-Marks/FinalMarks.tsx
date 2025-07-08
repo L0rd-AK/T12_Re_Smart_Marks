@@ -72,6 +72,29 @@ const FinalMarks: React.FC = () => {
   };
 
 
+  const addCustomFormat = () => {
+    if (!newFormatName.trim() || newQuestions.length === 0) {
+      toast.error('Please provide a format name and at least one question');
+      return;
+    }
+
+    const format: QuestionFormat = {
+      id: Date.now().toString(),
+      name: newFormatName,
+      questions: newQuestions
+    };
+    setQuestionFormats(prev => [...prev, format]);
+    setSelectedFormat(format);
+    localStorage.setItem('selectedFinalFormat', JSON.stringify(format));
+    setIsSetupMode(false);
+    setNewFormatName('');
+    setNewQuestions([]);
+    toast.success('Custom format created successfully!');
+  };
+
+
+
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
