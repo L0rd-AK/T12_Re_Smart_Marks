@@ -245,6 +245,26 @@ const FinalMarks: React.FC = () => {
   };
 
 
+  const clearAllData = () => {
+    const promise = new Promise((resolve, reject) => {
+      const confirmed = window.confirm('Are you sure you want to clear all data? This action cannot be undone.');
+      if (confirmed) {
+        setStudents([]);
+        setSelectedFormat(null);
+        setIsSetupMode(true);
+        resolve('Data cleared successfully');
+      } else {
+        reject('Operation cancelled');
+      }
+    });
+
+    toast.promise(promise, {
+      loading: 'Clearing data...',
+      success: 'All data cleared successfully!',
+      error: 'Operation cancelled'
+    });
+  };
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
