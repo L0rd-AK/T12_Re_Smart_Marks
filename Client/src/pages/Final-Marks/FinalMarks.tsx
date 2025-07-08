@@ -95,6 +95,15 @@ const FinalMarks: React.FC = () => {
 
 
 
+  const addQuestion = () => {
+    const question: Question = {
+      id: `q${newQuestions.length + 1}`,
+      label: `Q${newQuestions.length + 1}`,
+      maxMark: 10
+    };
+    setNewQuestions(prev => [...prev, question]);
+  };
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
