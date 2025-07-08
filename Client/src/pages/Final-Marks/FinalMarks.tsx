@@ -265,6 +265,15 @@ const FinalMarks: React.FC = () => {
     });
   };
 
+
+  const selectExistingFormat = (format: QuestionFormat) => {
+    setSelectedFormat(format);
+    localStorage.setItem('selectedFinalFormat', JSON.stringify(format));
+    setIsSetupMode(false);
+    toast.success(`Format "${format.name}" selected!`);
+  };
+
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
