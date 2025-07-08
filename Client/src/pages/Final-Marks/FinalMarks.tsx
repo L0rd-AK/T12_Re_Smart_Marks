@@ -104,6 +104,14 @@ const FinalMarks: React.FC = () => {
     setNewQuestions(prev => [...prev, question]);
   };
 
+
+
+  const updateQuestion = (index: number, field: keyof Question, value: string | number) => {
+    setNewQuestions(prev => prev.map((q, i) =>
+      i === index ? { ...q, [field]: value } : q
+    ));
+  };
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
