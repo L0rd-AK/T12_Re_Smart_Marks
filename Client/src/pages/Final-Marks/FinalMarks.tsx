@@ -199,6 +199,27 @@ const FinalMarks: React.FC = () => {
   };
 
 
+  const exportToExcel = () => {
+    if (!selectedFormat || students.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    // Prepare data for Excel
+    const excelData = students.map(student => {
+      const row: Record<string, string | number> = {
+        'Student Name': student.name,
+        'Total': student.total
+      };
+
+      // Add individual question marks
+      selectedFormat.questions.forEach((question, index) => {
+        row[`Q${question.label}`] = student.marks[index];
+      });
+
+      return row;
+    });
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
