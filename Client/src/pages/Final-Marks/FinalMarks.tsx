@@ -48,6 +48,30 @@ const FinalMarks: React.FC = () => {
     toast.success('Simple format created successfully!');
   };
 
+
+
+  const createSubQuestionFormat = () => {
+    const format: QuestionFormat = {
+      id: Date.now().toString(),
+      name: 'Sub-question Format',
+      questions: [
+        { id: '1a', label: '1a', maxMark: 6 },
+        { id: '1b', label: '1b', maxMark: 4 },
+        { id: '2a', label: '2a', maxMark: 6 },
+        { id: '2b', label: '2b', maxMark: 4 },
+        { id: '3', label: '3', maxMark: 10 },
+        { id: '4', label: '4', maxMark: 10 },
+        { id: '5', label: '5', maxMark: 10 },
+      ]
+    };
+    setQuestionFormats(prev => [...prev, format]);
+    setSelectedFormat(format);
+    localStorage.setItem('selectedFinalFormat', JSON.stringify(format));
+    setIsSetupMode(false);
+    toast.success('Sub-question format created successfully!');
+  };
+
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
