@@ -220,6 +220,31 @@ const FinalMarks: React.FC = () => {
       return row;
     });
 
+
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    const colWidths = [
+      { wch: 20 }, // Student Name
+      ...selectedFormat.questions.map(() => ({ wch: 10 })), // Question columns
+      { wch: 10 } // Total column
+    ];
+    ws['!cols'] = colWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Final Marks');
+
+    // Generate and download file
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(data, `final-marks-${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Excel file exported successfully!');
+  };
+
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
