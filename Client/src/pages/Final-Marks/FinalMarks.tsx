@@ -142,6 +142,36 @@ const FinalMarks: React.FC = () => {
   };
 
 
+  const addStudentMarks = () => {
+    if (!selectedFormat || !currentStudentName.trim() || !currentMarksInput.trim()) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    const marks = parseMarksInput(currentMarksInput);
+    const validationError = validateMarks(marks, selectedFormat);
+
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    const total = marks.reduce((sum, mark) => sum + mark, 0);
+    const student: StudentMarks = {
+      id: Date.now().toString(),
+      name: currentStudentName,
+      marks,
+      total
+    };
+
+    setStudents(prev => [...prev, student]);
+    setCurrentStudentName('');
+    setCurrentMarksInput('');
+    toast.success(`Student ${currentStudentName} added successfully!`);
+  };
+
+
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
