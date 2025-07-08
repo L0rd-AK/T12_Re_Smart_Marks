@@ -8,7 +8,7 @@ import {
     type StudentMarks,
 } from "../../types/types";
 
-const MidtermMarks: React.FC = () => {
+const QuizMarks: React.FC = () => {
     const [questionFormats, setQuestionFormats] = useState<QuestionFormat[]>(
         []
     );
@@ -25,6 +25,7 @@ const MidtermMarks: React.FC = () => {
         studentId: string;
         markIndex: number;
     } | null>(null);
+    const [selectedQuiz, setSelectedQuiz] = useState<string>("Quiz-1");
 
     // Load saved formats from localStorage on component mount
     useEffect(() => {
@@ -45,13 +46,11 @@ const MidtermMarks: React.FC = () => {
     const createSimpleFormat = () => {
         const format: QuestionFormat = {
             id: Date.now().toString(),
-            name: "Simple Format (5 questions, 5 marks each)",
+            name: `Simple Format - ${selectedQuiz.toUpperCase()} (3 questions, 5 marks each)`,
             questions: [
                 { id: "1", label: "1", maxMark: 5 },
                 { id: "2", label: "2", maxMark: 5 },
                 { id: "3", label: "3", maxMark: 5 },
-                { id: "4", label: "4", maxMark: 5 },
-                { id: "5", label: "5", maxMark: 5 },
             ],
         };
         setQuestionFormats((prev) => [...prev, format]);
@@ -64,7 +63,7 @@ const MidtermMarks: React.FC = () => {
     const createSubQuestionFormat = () => {
         const format: QuestionFormat = {
             id: Date.now().toString(),
-            name: "Sub-question Format",
+            name: `Sub-question Format - ${selectedQuiz.toUpperCase()}`,
             questions: [
                 { id: "1a", label: "1a", maxMark: 3 },
                 { id: "1b", label: "1b", maxMark: 2 },
@@ -92,7 +91,7 @@ const MidtermMarks: React.FC = () => {
 
         const format: QuestionFormat = {
             id: Date.now().toString(),
-            name: newFormatName,
+            name: `${newFormatName} - ${selectedQuiz.toUpperCase()}`,
             questions: newQuestions,
         };
         setQuestionFormats((prev) => [...prev, format]);
@@ -256,7 +255,7 @@ const MidtermMarks: React.FC = () => {
         ws["!cols"] = colWidths;
 
         // Add worksheet to workbook
-        XLSX.utils.book_append_sheet(wb, ws, "Midterm Marks");
+        XLSX.utils.book_append_sheet(wb, ws, "Quiz Marks");
 
         // Generate and download file
         const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -265,7 +264,11 @@ const MidtermMarks: React.FC = () => {
         });
         saveAs(
             data,
-            `midterm-marks-${new Date().toISOString().split("T")[0]}.xlsx`
+            `quiz-marks-${
+                selectedFormat.name.includes("-")
+                    ? selectedFormat.name.split("-")[1].trim().toLowerCase()
+                    : "q1"
+            }-${new Date().toISOString().split("T")[0]}.xlsx`
         );
         toast.success("Excel file exported successfully!");
     };
@@ -299,8 +302,63 @@ const MidtermMarks: React.FC = () => {
                 <div className="max-w-4xl mx-auto px-4">
                     <div className="bg-white rounded-lg shadow-lg p-6">
                         <h1 className="text-3xl font-bold text-gray-800 mb-6">
-                            Midterm Marks Setup
+                            Quiz Marks Setup
                         </h1>
+
+                        {/* Quiz Selection Dropdown */}
+                        <div className="mb-8 w-1/2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Select Quiz Number
+                            </label>
+                            <div className="dropdown w-full">
+                                <div
+                                    tabIndex={0}
+                                    role="button"
+                                    className="btn btn-outline border-2 border-blue-200 bg-white w-full justify-between text-blue-800"
+                                >
+                                    {selectedQuiz.toUpperCase()}
+                                    <svg
+                                        className="w-4 h-4 ml-2"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </div>
+                                <ul
+                                    tabIndex={0}
+                                    className="dropdown-content z-[1] menu p-2 shadow bg-white rounded-box w-full border border-gray-200"
+                                >
+                                    {Array.from(
+                                        { length: 3 },
+                                        (_, i) => i + 1
+                                    ).map((num) => (
+                                        <li key={num}>
+                                            <a
+                                                onClick={() =>
+                                                    setSelectedQuiz(
+                                                        `quiz-${num}`
+                                                    )
+                                                }
+                                                className={`text-black hover:bg-gray-100 ${
+                                                    selectedQuiz === `quiz-${num}`
+                                                        ? "bg-blue-100 text-blue-800"
+                                                        : ""
+                                                }`}
+                                            >
+                                                Quiz-{num}
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
 
                         {/* Quick Format Options */}
                         <div className="mb-8">
@@ -313,10 +371,11 @@ const MidtermMarks: React.FC = () => {
                                     className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors"
                                 >
                                     <h3 className="font-semibold text-blue-800">
-                                        Simple Format
+                                        Simple Format -{" "}
+                                        {selectedQuiz.toUpperCase()}
                                     </h3>
                                     <p className="text-sm text-gray-600">
-                                        5 questions, 5 marks each
+                                        3 questions, 5 marks each
                                     </p>
                                 </button>
                                 <button
@@ -324,7 +383,8 @@ const MidtermMarks: React.FC = () => {
                                     className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors"
                                 >
                                     <h3 className="font-semibold text-green-800">
-                                        Sub-question Format
+                                        Sub-question Format -{" "}
+                                        {selectedQuiz.toUpperCase()}
                                     </h3>
                                     <p className="text-sm text-gray-600">
                                         1a, 1b, 2a, 2b, 3, 4, 5
@@ -474,7 +534,7 @@ const MidtermMarks: React.FC = () => {
                 <div className="bg-white rounded-lg shadow-lg p-6 text-black">
                     <div className="mb-4 flex justify-end">
                         <a
-                            href="/midterm-shortcut"
+                            href="/quiz-shortcut"
                             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                         >
                             Go to Shortcut Entry
@@ -484,7 +544,7 @@ const MidtermMarks: React.FC = () => {
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-800">
-                                Midterm Marks Entry
+                                Quiz Marks Entry
                             </h1>
                             <p className="text-gray-600">
                                 Format: {selectedFormat?.name}
@@ -807,4 +867,4 @@ const MidtermMarks: React.FC = () => {
     );
 };
 
-export default MidtermMarks;
+export default QuizMarks;
