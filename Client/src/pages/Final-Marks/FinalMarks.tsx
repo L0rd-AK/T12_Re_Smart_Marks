@@ -178,6 +178,26 @@ const FinalMarks: React.FC = () => {
   const updateStudentMark = (studentId: string, markIndex: number, newMark: number) => {
     if (!selectedFormat) return;
 
+    const maxMark = selectedFormat.questions[markIndex].maxMark;
+    if (newMark < 0 || newMark > maxMark) {
+      toast.error(`Mark should be between 0 and ${maxMark}`);
+      return;
+    }
+
+    setStudents(prev => prev.map(student => {
+      if (student.id === studentId) {
+        const updatedMarks = [...student.marks];
+        updatedMarks[markIndex] = newMark;
+        const newTotal = updatedMarks.reduce((sum, mark) => sum + mark, 0);
+        return { ...student, marks: updatedMarks, total: newTotal };
+      }
+      return student;
+    }));
+
+    setEditingCell(null);
+    toast.success('Mark updated successfully!');
+  };
+
 
   if (isSetupMode) {
     return (
