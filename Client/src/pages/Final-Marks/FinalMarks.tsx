@@ -171,6 +171,10 @@ const FinalMarks: React.FC = () => {
   };
 
 
+  const removeStudent = (studentId: string) => {
+    setStudents(prev => prev.filter(s => s.id !== studentId));
+  };
+
 
   if (isSetupMode) {
     return (
