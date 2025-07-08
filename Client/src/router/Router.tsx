@@ -11,6 +11,10 @@ const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
 const VerifyEmail = lazy(() => import("../pages/Auth/VerifyEmail"));
 const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
+const MidtermShortcurt = lazy(() => import("../pages/Midterm-Marks/MidtermShortcurt"));
+const FinalMarks = lazy(() => import("../pages/Final-Marks/FinalMarks"));
+const FinalMarksShortcut = lazy(() => import("../pages/Final-Marks/FinalMarksShortcut"));
+
 const MidtermShortcurt = lazy(
     () => import("../pages/Midterm-Marks/MidtermShortcurt")
 );
@@ -50,6 +54,14 @@ export const router = createBrowserRouter([
             {
                 path: "quiz-shortcut",
                 Component: withSuspense(QuizShortcut),
+            },
+            {
+                path: "final-marks",
+                Component: withSuspense(FinalMarks),
+            },
+            {
+                path: "final-shortcut",
+                Component: withSuspense(FinalMarksShortcut),
             },
             {
                 path: "login",

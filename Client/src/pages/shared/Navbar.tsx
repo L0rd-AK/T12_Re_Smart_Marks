@@ -12,7 +12,7 @@ const links = (
             <NavLink to="/midterm-marks">Assign Midterm Marks</NavLink>
         </li>
         <li>
-            <NavLink to="#">Assign Final Marks</NavLink>
+            <NavLink to="/final-marks">Assign Final Marks</NavLink>
         </li>
     </>
 );
