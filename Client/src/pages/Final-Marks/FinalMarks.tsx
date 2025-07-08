@@ -24,6 +24,30 @@ const FinalMarks: React.FC = () => {
   }, []);
 
 
+  // Save formats to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('finalQuestionFormats', JSON.stringify(questionFormats));
+  }, [questionFormats]);
+
+  const createSimpleFormat = () => {
+    const format: QuestionFormat = {
+      id: Date.now().toString(),
+      name: 'Simple Format (5 questions, 10 marks each)',
+      questions: [
+        { id: '1', label: '1', maxMark: 10 },
+        { id: '2', label: '2', maxMark: 10 },
+        { id: '3', label: '3', maxMark: 10 },
+        { id: '4', label: '4', maxMark: 10 },
+        { id: '5', label: '5', maxMark: 10 },
+      ]
+    };
+    setQuestionFormats(prev => [...prev, format]);
+    setSelectedFormat(format);
+    localStorage.setItem('selectedFinalFormat', JSON.stringify(format));
+    setIsSetupMode(false);
+    toast.success('Simple format created successfully!');
+  };
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
