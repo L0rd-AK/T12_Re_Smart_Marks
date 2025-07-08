@@ -273,6 +273,23 @@ const FinalMarks: React.FC = () => {
     toast.success(`Format "${format.name}" selected!`);
   };
 
+  const deleteFormat = (formatId: string) => {
+    const confirmed = window.confirm('Are you sure you want to delete this format?');
+    if (confirmed) {
+      setQuestionFormats(prev => prev.filter(f => f.id !== formatId));
+      toast.success('Format deleted successfully!');
+    }
+  };
+
+  // Load selected format from localStorage on mount
+  useEffect(() => {
+    const savedFormat = localStorage.getItem('selectedFinalFormat');
+    if (savedFormat) {
+      const format = JSON.parse(savedFormat);
+      setSelectedFormat(format);
+      setIsSetupMode(false);
+    }
+  }, []);
 
   if (isSetupMode) {
     return (
