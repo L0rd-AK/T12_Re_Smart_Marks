@@ -120,6 +120,28 @@ const FinalMarks: React.FC = () => {
   };
 
 
+  const parseMarksInput = (input: string): number[] => {
+    return input.trim().split(/\s+/).map(mark => {
+      const num = parseFloat(mark);
+      return isNaN(num) ? 0 : num;
+    });
+  };
+
+  const validateMarks = (marks: number[], format: QuestionFormat): string | null => {
+    if (marks.length !== format.questions.length) {
+      return `Expected ${format.questions.length} marks, got ${marks.length}`;
+    }
+
+    for (let i = 0; i < marks.length; i++) {
+      if (marks[i] < 0 || marks[i] > format.questions[i].maxMark) {
+        return `Mark for question ${format.questions[i].label} should be between 0 and ${format.questions[i].maxMark}`;
+      }
+    }
+
+    return null;
+  };
+
+
   if (isSetupMode) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 text-black">
