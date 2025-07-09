@@ -189,6 +189,32 @@ const FinalMarksShortcut: React.FC = () => {
   }, [entryList]);
 
 
+  if (!selectedFormat) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 text-black">
+        <Toaster position="bottom-right" />
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">
+              Final Marks Shortcut Entry
+            </h1>
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">
+                No question format selected. Please set up a format first.
+              </p>
+              <a
+                href="/final-marks"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                Go to Final Marks Setup
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 text-black">
       <Toaster position="bottom-right" />
