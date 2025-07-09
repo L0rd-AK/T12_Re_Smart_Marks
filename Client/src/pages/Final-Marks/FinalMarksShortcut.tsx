@@ -178,6 +178,17 @@ const FinalMarksShortcut: React.FC = () => {
   };
 
 
+
+  // Calculate summary only when entryList changes
+  const questionSums = React.useMemo(() => {
+    const sums: Record<string, number> = {};
+    entryList.forEach((entry) => {
+      sums[entry.q] = (sums[entry.q] || 0) + entry.mark;
+    });
+    return sums;
+  }, [entryList]);
+
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 text-black">
       <Toaster position="bottom-right" />
