@@ -14,10 +14,6 @@ const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
 const MidtermShortcurt = lazy(() => import("../pages/Midterm-Marks/MidtermShortcurt"));
 const FinalMarks = lazy(() => import("../pages/Final-Marks/FinalMarks"));
 const FinalMarksShortcut = lazy(() => import("../pages/Final-Marks/FinalMarksShortcut"));
-
-const MidtermShortcurt = lazy(
-    () => import("../pages/Midterm-Marks/MidtermShortcurt")
-);
 const QuizMarks = lazy(() => import("../pages/Quiz-Marks/QuizMarks"));
 const QuizShortcut = lazy(() => import("../pages/Quiz-Marks/QuizShortcurt"));
 
