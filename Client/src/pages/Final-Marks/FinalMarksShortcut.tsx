@@ -28,7 +28,25 @@ const FinalMarksShortcut: React.FC = () => {
   const questionInputRef = useRef<HTMLInputElement>(null);
   const markInputRef = useRef<HTMLInputElement>(null);
 
+ // Focus management
+  useEffect(() => {
+    if (step === "student" && studentIdRef.current)
+      studentIdRef.current.focus();
+    if (step === "question" && questionInputRef.current)
+      questionInputRef.current.focus();
+    if (step === "mark" && markInputRef.current) markInputRef.current.focus();
+  }, [step]);
 
+  // Load selected format from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("selectedFinalFormat");
+    if (saved) {
+      setSelectedFormat(JSON.parse(saved));
+    }
+  }, []);
+
+
+  
 
 
 
