@@ -130,6 +130,52 @@ const FinalMarksShortcut: React.FC = () => {
     }
   };
 
+  // Export to Excel
+  const exportToExcel = () => {
+    if (results.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+    // Get all unique question labels from all students
+    const allQuestions = Array.from(
+      new Set(results.flatMap((s) => s.summary.map((e) => e.q)))
+    );
+    // Prepare data rows
+    const excelData = results.map((student) => {
+      const row: Record<string, string | number> = {
+        ID: student.id,
+      };
+      // For each question, join all marks as comma-separated string
+      let total = 0;
+      allQuestions.forEach((q) => {
+        const marks = student.summary
+          .filter((e) => e.q === q)
+          .map((e) => e.mark);
+        row[`Q${q}`] = marks.length > 0 ? marks.join(", ") : "";
+        total += marks.reduce((a, b) => a + b, 0);
+      });
+      row["Total"] = total;
+      return row;
+    });
+    // Write to Excel
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    ws["!cols"] = [
+      { wch: 20 },
+      ...allQuestions.map(() => ({ wch: 10 })),
+      { wch: 10 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, "Final Shortcut");
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const data = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(
+      data,
+      `final-shortcut-${new Date().toISOString().split("T")[0]}.xlsx`
+    );
+    toast.success("Excel file exported successfully!");
+  };
 
 
   return (
