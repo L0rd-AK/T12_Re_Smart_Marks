@@ -46,7 +46,22 @@ const FinalMarksShortcut: React.FC = () => {
   }, []);
 
 
-  
+
+  // Handle student ID input
+  const handleStudentId = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      if (!studentId.trim()) {
+        toast.error("Student ID required");
+        return;
+      }
+      if (results.some((r) => r.id === studentId.trim())) {
+        toast.error("Duplicate Student ID!");
+        return;
+      }
+      setStep("question");
+    }
+  };
+
 
 
 
