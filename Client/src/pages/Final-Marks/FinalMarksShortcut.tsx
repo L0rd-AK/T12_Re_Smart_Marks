@@ -64,6 +64,46 @@ const FinalMarksShortcut: React.FC = () => {
 
 
 
+  // Handle question input
+  const handleQuestionInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const qLabel = questionInput.trim();
+      if (qLabel === "0") {
+        // Finish student entry
+        if (entryList.length === 0) {
+          toast.error("No marks entered");
+          return;
+        }
+        const total = entryList.reduce((sum, entry) => sum + entry.mark, 0);
+        setResults((prev) => [
+          ...prev,
+          {
+            id: studentId.trim(),
+            summary: entryList.map((e) => ({ q: e.q, mark: e.mark })),
+            total,
+          },
+        ]);
+        setStudentId("");
+        setEntryList([]);
+        setQuestionInput("");
+        setMarkInput("");
+        setStep("student");
+        toast.success("Student saved!");
+        return;
+      }
+      // Fix: allow numeric input if format label is a string number
+      const valid = selectedFormat?.questions.some(
+        (q) => String(q.label) === qLabel
+      );
+      if (!valid) {
+        toast.error("Invalid question label");
+        return;
+      }
+      setStep("mark");
+    }
+  };
+
+
 
 
   return (
