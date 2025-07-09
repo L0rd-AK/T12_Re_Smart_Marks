@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import toast, { Toaster } from 'react-hot-toast';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
-import type { QuestionFormat } from '../../types/types';
+import React, { useState, useEffect, useRef } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import type { QuestionFormat } from "../../types/types";
 
 const FinalMarksShortcut: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<QuestionFormat | null>(
@@ -28,7 +28,7 @@ const FinalMarksShortcut: React.FC = () => {
   const questionInputRef = useRef<HTMLInputElement>(null);
   const markInputRef = useRef<HTMLInputElement>(null);
 
- // Focus management
+  // Focus management
   useEffect(() => {
     if (step === "student" && studentIdRef.current)
       studentIdRef.current.focus();
@@ -45,8 +45,6 @@ const FinalMarksShortcut: React.FC = () => {
     }
   }, []);
 
-
-
   // Handle student ID input
   const handleStudentId = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -61,8 +59,6 @@ const FinalMarksShortcut: React.FC = () => {
       setStep("question");
     }
   };
-
-
 
   // Handle question input
   const handleQuestionInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -102,7 +98,6 @@ const FinalMarksShortcut: React.FC = () => {
       setStep("mark");
     }
   };
-
 
   // Handle mark input
   const handleMarkInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -177,8 +172,6 @@ const FinalMarksShortcut: React.FC = () => {
     toast.success("Excel file exported successfully!");
   };
 
-
-
   // Calculate summary only when entryList changes
   const questionSums = React.useMemo(() => {
     const sums: Record<string, number> = {};
@@ -187,7 +180,6 @@ const FinalMarksShortcut: React.FC = () => {
     });
     return sums;
   }, [entryList]);
-
 
   if (!selectedFormat) {
     return (
@@ -298,11 +290,18 @@ const FinalMarksShortcut: React.FC = () => {
 
           {/* Instructions */}
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h3 className="font-semibold text-yellow-800 mb-2">Instructions:</h3>
+            <h3 className="font-semibold text-yellow-800 mb-2">
+              Instructions:
+            </h3>
             <ul className="text-sm text-yellow-700 space-y-1">
               <li>• Enter Student ID and press Enter</li>
-              <li>• Enter question number (e.g., 1, 2a, etc.) and press Enter</li>
-              <li>• Enter mark for that question and press Enter (can enter multiple marks for same question)</li>
+              <li>
+                • Enter question number (e.g., 1, 2a, etc.) and press Enter
+              </li>
+              <li>
+                • Enter mark for that question and press Enter (can enter
+                multiple marks for same question)
+              </li>
               <li>• Enter 0 as question number to finish current student</li>
               <li>• Enter -1 as mark to go back to question input</li>
             </ul>
@@ -329,7 +328,8 @@ const FinalMarksShortcut: React.FC = () => {
             {step === "question" && (
               <div>
                 <div className="mb-2 text-blue-800 font-semibold">
-                  Current Student: <span className="font-bold">{studentId}</span>
+                  Current Student:{" "}
+                  <span className="font-bold">{studentId}</span>
                 </div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Question Number
@@ -435,7 +435,8 @@ const FinalMarksShortcut: React.FC = () => {
                           })}
                           <td className="border border-gray-300 p-2 text-center font-bold bg-blue-50">
                             {(() => {
-                              const questionSumsRow: Record<string, number> = {};
+                              const questionSumsRow: Record<string, number> =
+                                {};
                               student.summary.forEach((entry) => {
                                 questionSumsRow[entry.q] =
                                   (questionSumsRow[entry.q] || 0) + entry.mark;
@@ -485,21 +486,31 @@ const FinalMarksShortcut: React.FC = () => {
                     <h4 className="font-semibold mb-2">Summary Statistics</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <div className="text-sm text-gray-600">Total Students</div>
-                        <div className="text-xl font-bold">{results.length}</div>
+                        <div className="text-sm text-gray-600">
+                          Total Students
+                        </div>
+                        <div className="text-xl font-bold">
+                          {results.length}
+                        </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600">Average Score</div>
+                        <div className="text-sm text-gray-600">
+                          Average Score
+                        </div>
                         <div className="text-xl font-bold">{average}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600">Highest Score</div>
+                        <div className="text-sm text-gray-600">
+                          Highest Score
+                        </div>
                         <div className="text-xl font-bold text-green-600">
                           {highest} ({highestStudents.join(", ")})
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-600">Lowest Score</div>
+                        <div className="text-sm text-gray-600">
+                          Lowest Score
+                        </div>
                         <div className="text-xl font-bold text-red-600">
                           {lowest} ({lowestStudents.join(", ")})
                         </div>
