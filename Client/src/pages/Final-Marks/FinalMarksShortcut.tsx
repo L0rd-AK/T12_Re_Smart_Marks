@@ -104,6 +104,32 @@ const FinalMarksShortcut: React.FC = () => {
   };
 
 
+  // Handle mark input
+  const handleMarkInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const markVal = markInput.trim();
+      if (markVal === "-1") {
+        setStep("question");
+        setQuestionInput("");
+        setMarkInput("");
+        return;
+      }
+      const num = parseFloat(markVal);
+      const qLabel = questionInput.trim();
+      const qObj = selectedFormat?.questions.find((q) => q.label === qLabel);
+      if (!qObj) {
+        toast.error("Invalid question label");
+        return;
+      }
+      if (isNaN(num) || num < 0 || num > qObj.maxMark) {
+        toast.error(`Mark should be between 0 and ${qObj.maxMark}`);
+        return;
+      }
+      setEntryList((prev) => [...prev, { q: qLabel, mark: num }]);
+      setMarkInput("");
+    }
+  };
+
 
 
   return (
