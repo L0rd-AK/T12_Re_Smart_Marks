@@ -14,21 +14,128 @@ export interface UpdateQuestionFormatRequest extends CreateQuestionFormatRequest
 }
 
 export interface CreateStudentMarksRequest {
-  formatId: string;
-  name: string;
-  marks: number[];
+  formatId?: string; // Optional for simple marks (quiz, assignment, presentation)
+  name?: string;
+  studentId: string;
+  marks: number[]; // For detailed: array of question marks; For simple: single mark in array
+  examType: 'quiz' | 'midterm' | 'final' | 'assignment' | 'presentation' | 'attendance';
+  maxMark?: number; // For simple marks - the maximum possible mark
 }
 
 export interface UpdateStudentMarksRequest extends CreateStudentMarksRequest {
   id: string;
 }
 
+export interface CreateSimpleMarkRequest {
+  name: string;
+  studentId: string;
+  mark: number;
+  maxMark: number;
+  examType: 'quiz' | 'assignment' | 'presentation' | 'attendance';
+}
+
+export interface UpdateSimpleMarkRequest extends CreateSimpleMarkRequest {
+  id: string;
+}
+
 export interface BulkImportMarksRequest {
-  formatId: string;
+  formatId?: string; // Optional for simple marks
+  examType: 'quiz' | 'midterm' | 'final' | 'assignment' | 'presentation' | 'attendance';
   studentsData: Array<{
     name: string;
+    studentId: string;
     marks: number[];
   }>;
+}
+
+export interface StudentMarksSummary {
+  studentId: string;
+  name: string;
+  quizzes: {
+    count: number;
+    marks: Array<{
+      id: string;
+      formatName: string;
+      total: number;
+      createdAt: string;
+    }>;
+    average: number;
+    weight: number;
+    weightedScore: number;
+  };
+  midterms: {
+    count: number;
+    marks: Array<{
+      id: string;
+      formatName: string;
+      total: number;
+      createdAt: string;
+    }>;
+    average: number;
+    weight: number;
+    weightedScore: number;
+  };
+  finals: {
+    count: number;
+    marks: Array<{
+      id: string;
+      formatName: string;
+      total: number;
+      createdAt: string;
+    }>;
+    average: number;
+    weight: number;
+    weightedScore: number;
+  };
+  assignments?: {
+    count: number;
+    marks: Array<{
+      id: string;
+      formatName: string;
+      total: number;
+      createdAt: string;
+    }>;
+    average: number;
+    weight: number;
+    weightedScore: number;
+  };
+  presentations?: {
+    count: number;
+    marks: Array<{
+      id: string;
+      formatName: string;
+      total: number;
+      createdAt: string;
+    }>;
+    average: number;
+    weight: number;
+    weightedScore: number;
+  };
+  attendance?: {
+    count: number;
+    marks: Array<{
+      id: string;
+      formatName: string;
+      total: number;
+      createdAt: string;
+    }>;
+    average: number;
+    weight: number;
+    weightedScore: number;
+  };
+  overall: {
+    totalMarks: number;
+    average: number;
+    finalGrade: number;
+    gradeBreakdown: {
+      quiz: string;
+      midterm: string;
+      final: string;
+      assignment: string;
+      presentation: string;
+      attendance: string;
+    };
+  };
 }
 
 export const marksApi = baseApi.injectEndpoints({
@@ -75,7 +182,7 @@ export const marksApi = baseApi.injectEndpoints({
 
     // Student Marks endpoints
     getStudentMarks: builder.query<StudentMarks[], string>({
-      query: (formatId) => `/marks/students?formatId=${formatId}`,
+      query: (formatId) => `/marks/students/format/${formatId}`,
       providesTags: (result, _, formatId) => 
         result
           ? [
@@ -83,6 +190,17 @@ export const marksApi = baseApi.injectEndpoints({
               { type: 'Marks', id: `FORMAT_${formatId}` },
             ]
           : [{ type: 'Marks', id: `FORMAT_${formatId}` }],
+    }),
+
+    getStudentMarksByType: builder.query<StudentMarks[], string>({
+      query: (examType) => `/marks/students/type/${examType}`,
+      providesTags: (result, _, examType) => 
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Marks' as const, id })),
+              { type: 'Marks', id: `TYPE_${examType}` },
+            ]
+          : [{ type: 'Marks', id: `TYPE_${examType}` }],
     }),
 
     getStudentMark: builder.query<StudentMarks, string>({
@@ -96,10 +214,15 @@ export const marksApi = baseApi.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: (_, __, { formatId }) => [
-        { type: 'Marks', id: `FORMAT_${formatId}` },
-        'Marks',
-      ],
+      invalidatesTags: (_, __, { formatId, examType }) => {
+        const tags: Array<{ type: 'Marks'; id?: string } | 'Marks'> = ['Marks'];
+        if (formatId) {
+          tags.push({ type: 'Marks', id: `FORMAT_${formatId}` });
+        } else {
+          tags.push({ type: 'Marks', id: `TYPE_${examType}` });
+        }
+        return tags;
+      },
     }),
 
     updateStudentMarks: builder.mutation<StudentMarks, UpdateStudentMarksRequest>({
@@ -108,22 +231,34 @@ export const marksApi = baseApi.injectEndpoints({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (_, __, { id, formatId }) => [
-        { type: 'Marks', id },
-        { type: 'Marks', id: `FORMAT_${formatId}` },
-        'Marks',
-      ],
+      invalidatesTags: (_, __, { id, formatId, examType }) => {
+        const tags: Array<{ type: 'Marks'; id?: string } | 'Marks'> = [
+          { type: 'Marks', id },
+          'Marks',
+        ];
+        if (formatId) {
+          tags.push({ type: 'Marks', id: `FORMAT_${formatId}` });
+        } else {
+          tags.push({ type: 'Marks', id: `TYPE_${examType}` });
+        }
+        return tags;
+      },
     }),
 
-    deleteStudentMarks: builder.mutation<{ message: string }, { id: string; formatId: string }>({
+    deleteStudentMarks: builder.mutation<{ message: string }, { id: string; formatId?: string; examType?: string }>({
       query: ({ id }) => ({
         url: `/marks/students/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_, __, { formatId }) => [
-        { type: 'Marks', id: `FORMAT_${formatId}` },
-        'Marks',
-      ],
+      invalidatesTags: (_, __, { formatId, examType }) => {
+        const tags: Array<{ type: 'Marks'; id?: string } | 'Marks'> = ['Marks'];
+        if (formatId) {
+          tags.push({ type: 'Marks', id: `FORMAT_${formatId}` });
+        } else if (examType) {
+          tags.push({ type: 'Marks', id: `TYPE_${examType}` });
+        }
+        return tags;
+      },
     }),
 
     // Bulk operations
@@ -159,6 +294,12 @@ export const marksApi = baseApi.injectEndpoints({
         { type: 'Marks', id: `STATS_${formatId}` },
       ],
     }),
+
+    // Get a student marks summary
+    getStudentMarksSummary: builder.query<StudentMarksSummary, string>({
+      query: (studentId) => `/marks/students/summary/${studentId}`,
+      providesTags: (_, __, studentId) => [{ type: 'Marks' as const, id: `summary-${studentId}` }],
+    }),
   }),
 });
 
@@ -172,6 +313,7 @@ export const {
   
   // Student Marks hooks
   useGetStudentMarksQuery,
+  useGetStudentMarksByTypeQuery,
   useGetStudentMarkQuery,
   useCreateStudentMarksMutation,
   useUpdateStudentMarksMutation,
@@ -183,4 +325,7 @@ export const {
   
   // Statistics hooks
   useGetMarksStatisticsQuery,
+  
+  // Student Marks Summary hooks
+  useGetStudentMarksSummaryQuery,
 } = marksApi;

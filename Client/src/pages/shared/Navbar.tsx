@@ -6,13 +6,23 @@ import toast from "react-hot-toast";
 const links = (
     <>
         <li>
-            <NavLink to="#">Assign Quiz Marks</NavLink>
+            <NavLink to="/quiz-marks">Assign Quiz Marks</NavLink>
         </li>
         <li>
             <NavLink to="/midterm-marks">Assign Midterm Marks</NavLink>
         </li>
         <li>
-            <NavLink to="#">Assign Final Marks</NavLink>
+            <NavLink to="/final-marks">Assign Final Marks</NavLink>
+        </li>
+        <li>
+            <NavLink to="/assignment-marks">Assign Assignment Marks</NavLink>
+        </li>
+        <li>
+            <NavLink to="/presentation-marks">Assign Presentation Marks</NavLink>
+        </li>
+
+        <li>
+            <NavLink to="/student-marks-summary">Student Marks Summary</NavLink>
         </li>
     </>
 );
@@ -23,7 +33,8 @@ const NavbarRTK = () => {
     const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
     // Ensure user object has required properties before rendering user UI
-    const isUserDataComplete = user && user.firstName && user.lastName && user.email;
+    const isUserDataComplete =
+        user && user.firstName && user.lastName && user.email;
 
     const handleLogout = async () => {
         try {
@@ -74,11 +85,11 @@ const NavbarRTK = () => {
                     Smart Marks
                 </NavLink>
             </div>
-            
+
             <div className="navbar-center hidden lg:flex">
                 <ul className="menu menu-horizontal px-1">{links}</ul>
             </div>
-            
+
             <div className="navbar-end">
                 {isAuthenticated && isUserDataComplete ? (
                     <div className="dropdown dropdown-end">
@@ -97,7 +108,12 @@ const NavbarRTK = () => {
                                 ) : (
                                     <div className="bg-neutral text-neutral-content rounded-full w-full h-full flex items-center justify-center">
                                         <span className="text-sm font-semibold">
-                                            {user.firstName?.charAt(0)?.toUpperCase() || 'U'}{user.lastName?.charAt(0)?.toUpperCase() || 'U'}
+                                            {user.firstName
+                                                ?.charAt(0)
+                                                ?.toUpperCase() || "U"}
+                                            {user.lastName
+                                                ?.charAt(0)
+                                                ?.toUpperCase() || "U"}
                                         </span>
                                     </div>
                                 )}
@@ -109,7 +125,8 @@ const NavbarRTK = () => {
                         >
                             <li className="menu-title">
                                 <span>
-                                    {user.firstName || 'User'} {user.lastName || ''}
+                                    {user.firstName || "User"}{" "}
+                                    {user.lastName || ""}
                                     {!user.isEmailVerified && (
                                         <div className="badge badge-warning badge-xs ml-1">
                                             Unverified
@@ -118,7 +135,10 @@ const NavbarRTK = () => {
                                 </span>
                             </li>
                             <li>
-                                <NavLink to="/profile" className="justify-between">
+                                <NavLink
+                                    to="/profile"
+                                    className="justify-between"
+                                >
                                     Profile
                                     <span className="badge">New</span>
                                 </NavLink>
@@ -128,13 +148,16 @@ const NavbarRTK = () => {
                             </li>
                             {!user.isEmailVerified && (
                                 <li>
-                                    <NavLink to="/verify-email" className="text-warning">
+                                    <NavLink
+                                        to="/verify-email"
+                                        className="text-warning"
+                                    >
                                         Verify Email
                                     </NavLink>
                                 </li>
                             )}
                             <li>
-                                <button 
+                                <button
                                     onClick={handleLogout}
                                     disabled={isLoggingOut}
                                     className="text-error"
@@ -156,7 +179,10 @@ const NavbarRTK = () => {
                         <NavLink to="/login" className="btn btn-ghost btn-sm">
                             Login
                         </NavLink>
-                        <NavLink to="/register" className="btn btn-primary btn-sm">
+                        <NavLink
+                            to="/register"
+                            className="btn btn-primary btn-sm"
+                        >
                             Register
                         </NavLink>
                     </div>
