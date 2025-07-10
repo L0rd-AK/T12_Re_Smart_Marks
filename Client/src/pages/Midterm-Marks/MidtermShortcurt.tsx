@@ -320,9 +320,11 @@ const MidtermShortcurt: React.FC = () => {
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               {entryList?.map((e) => (
-                                <span key={e.q}>
+                                (questionNo===e.q?<span key={e.q}>
                                   <span className="font-bold">{e.mark}</span>,
                                 </span>
+                              : <span key={e.q}></span>
+                              )
                               ))}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
