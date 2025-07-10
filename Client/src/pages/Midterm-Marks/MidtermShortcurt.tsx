@@ -292,7 +292,6 @@ const MidtermShortcurt: React.FC = () => {
           </div>
           {/* Live Summary Table (moved above input fields) */}
           {Object.keys(questionSums).length > 0 && (
-            <div className="mb-6">
               <div className="mb-6">
                 <h3 className="font-semibold text-blue-800 mb-2">
                   Live Entry Summary
@@ -350,7 +349,6 @@ const MidtermShortcurt: React.FC = () => {
                   </table>
                 </div>
               </div>
-            </div>
           )}
           <h1 className="text-3xl font-bold text-gray-800 mb-6">
             Midterm Marks Shortcut Entry
