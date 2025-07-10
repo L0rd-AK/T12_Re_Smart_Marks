@@ -1,6 +1,6 @@
 import { baseApi } from './baseApi';
 import type { LoginFormData, RegisterFormData } from '../../schemas/auth';
-import { setCredentials, clearCredentials } from '../features/authSlice';
+import { setCredentials, clearCredentials, updateUser } from '../features/authSlice';
 import { triggerGlobalLogout } from '../../hooks/useAuthPersistence';
 
 export interface User {
@@ -155,6 +155,24 @@ export const authApi = baseApi.injectEndpoints({
         body: data,
       }),
     }),
+
+    // Update user profile
+    updateProfile: builder.mutation<User, Partial<User>>({
+      query: (data) => ({
+        url: '/auth/profile',
+        method: 'PUT',
+        body: data,
+      }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data: updatedUser } = await queryFulfilled;
+          dispatch(updateUser(updatedUser));
+        } catch (error) {
+          console.error('Profile update failed:', error);
+        }
+      },
+      invalidatesTags: ['User'],
+    }),
   }),
 });
 
@@ -169,4 +187,5 @@ export const {
   useResendVerificationEmailMutation,
   useGetCurrentUserQuery,
   useRefreshTokenMutation,
+  useUpdateProfileMutation,
 } = authApi;
