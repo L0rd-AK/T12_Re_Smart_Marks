@@ -128,7 +128,6 @@ const MidtermShortcurt: React.FC = () => {
           // Save to database
           await createStudentMarks({
             formatId: selectedFormat.id,
-            name: studentId.trim(),
             studentId: studentId.trim(),
             marks,
             examType: 'midterm'
