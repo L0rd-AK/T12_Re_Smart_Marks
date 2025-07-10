@@ -3,6 +3,10 @@ import toast, { Toaster } from "react-hot-toast";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import type { QuestionFormat } from "../../types/types";
+import {
+  useCreateStudentMarksMutation,
+  useGetStudentMarksQuery
+} from "../../redux/api/marksApi";
 
 const FinalMarksShortcut: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<QuestionFormat | null>(
@@ -19,9 +23,17 @@ const FinalMarksShortcut: React.FC = () => {
       id: string;
       summary: Array<{ q: string; mark: number }>;
       total: number;
+      savedToDb?: boolean;
     }>
   >([]);
   const [step, setStep] = useState<"student" | "question" | "mark">("student");
+
+  // API hooks
+  const [createStudentMarks, { isLoading: creating }] = useCreateStudentMarksMutation();
+  const { data: existingMarks, refetch: refetchMarks } = useGetStudentMarksQuery(
+    selectedFormat?.id || '',
+    { skip: !selectedFormat?.id }
+  );
 
   // Input refs
   const studentIdRef = useRef<HTMLInputElement>(null);
@@ -45,6 +57,29 @@ const FinalMarksShortcut: React.FC = () => {
     }
   }, []);
 
+  // Load existing marks from API when format is selected
+  useEffect(() => {
+    if (selectedFormat && existingMarks) {
+      const finalMarks = existingMarks.filter(mark => mark.examType === 'final');
+      const convertedResults = finalMarks.map(mark => {
+        // Convert API marks back to summary format
+        const summary = selectedFormat.questions.map((q, index) => ({
+          q: String(q.label.split("Q")[1] || q.label),
+          mark: mark.marks[index] || 0
+        })).filter(entry => entry.mark > 0);
+
+        return {
+          id: mark.studentId,
+          summary,
+          total: mark.total,
+          savedToDb: true
+        };
+      });
+
+      setResults(convertedResults);
+    }
+  }, [selectedFormat, existingMarks]);
+
   // Handle student ID input
   const handleStudentId = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -61,7 +96,7 @@ const FinalMarksShortcut: React.FC = () => {
   };
 
   // Handle question input
-  const handleQuestionInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleQuestionInput = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       const qLabel = questionInput.trim();
       if (qLabel === "0") {
@@ -70,6 +105,33 @@ const FinalMarksShortcut: React.FC = () => {
           toast.error("No marks entered");
           return;
         }
+
+        // Save to API
+        if (selectedFormat && !creating) {
+          try {
+            // Convert entryList to marks array matching format questions order
+            const marks = selectedFormat.questions.map(q => {
+              const entries = entryList.filter(entry => entry.q === String(q.label.split("Q")[1] || q.label));
+              return entries.reduce((sum, entry) => sum + entry.mark, 0);
+            });
+
+            await createStudentMarks({
+              formatId: selectedFormat.id,
+              studentId: studentId.trim(),
+              marks,
+              examType: 'final' as const,
+            }).unwrap();
+
+            toast.success("Student marks saved to database!");
+
+            // Refetch existing marks to update the view
+            refetchMarks();
+          } catch (error) {
+            console.error('Error saving to API:', error);
+            toast.error("Failed to save to database, but keeping local copy");
+          }
+        }
+
         const total = entryList.reduce((sum, entry) => sum + entry.mark, 0);
         setResults((prev) => [
           ...prev,
@@ -77,6 +139,7 @@ const FinalMarksShortcut: React.FC = () => {
             id: studentId.trim(),
             summary: entryList.map((e) => ({ q: e.q, mark: e.mark })),
             total,
+            savedToDb: selectedFormat ? true : false,
           },
         ]);
         setStudentId("");
@@ -84,12 +147,11 @@ const FinalMarksShortcut: React.FC = () => {
         setQuestionInput("");
         setMarkInput("");
         setStep("student");
-        toast.success("Student saved!");
         return;
       }
       // Fix: allow numeric input if format label is a string number
       const valid = selectedFormat?.questions.some(
-        (q) => String(q.label) === qLabel
+        (q) => String(q.label.split("Q")[1]) === qLabel
       );
       if (!valid) {
         toast.error("Invalid question label");
@@ -111,7 +173,7 @@ const FinalMarksShortcut: React.FC = () => {
       }
       const num = parseFloat(markVal);
       const qLabel = questionInput.trim();
-      const qObj = selectedFormat?.questions.find((q) => q.label === qLabel);
+      const qObj = selectedFormat?.questions.find((q) => q.label.split("Q")[1] === qLabel);
       if (!qObj) {
         toast.error("Invalid question label");
         return;
@@ -120,6 +182,7 @@ const FinalMarksShortcut: React.FC = () => {
         toast.error(`Mark should be between 0 and ${qObj.maxMark}`);
         return;
       }
+      // Use just the numeric part of the question label for consistency
       setEntryList((prev) => [...prev, { q: qLabel, mark: num }]);
       setMarkInput("");
     }
@@ -146,7 +209,7 @@ const FinalMarksShortcut: React.FC = () => {
         const marks = student.summary
           .filter((e) => e.q === q)
           .map((e) => e.mark);
-        row[`Q${q}`] = marks.length > 0 ? marks.join(", ") : "";
+        row[`${q}`] = marks.length > 0 ? marks.join(", ") : "";
         total += marks.reduce((a, b) => a + b, 0);
       });
       row["Total"] = total;
@@ -170,6 +233,58 @@ const FinalMarksShortcut: React.FC = () => {
       `final-shortcut-${new Date().toISOString().split("T")[0]}.xlsx`
     );
     toast.success("Excel file exported successfully!");
+  };
+
+  // Clear all data
+  const clearAllData = () => {
+    if (window.confirm("Are you sure you want to clear all data? This will only clear the local view, not the database.")) {
+      setResults([]);
+      setStudentId("");
+      setEntryList([]);
+      setQuestionInput("");
+      setMarkInput("");
+      setStep("student");
+      toast.success("Local data cleared!");
+    }
+  };
+
+  // Sync unsaved entries to database
+  const syncToDatabase = async () => {
+    if (!selectedFormat) {
+      toast.error("No format selected");
+      return;
+    }
+
+    const unsavedEntries = results.filter(result => !result.savedToDb);
+    if (unsavedEntries.length === 0) {
+      toast.success("All entries are already saved to database");
+      return;
+    }
+
+    try {
+      for (const entry of unsavedEntries) {
+        // Convert summary back to marks array
+        const marks = selectedFormat.questions.map(q => {
+          const entries = entry.summary.filter(s => s.q === String(q.label.split("Q")[1] || q.label));
+          return entries.reduce((sum, e) => sum + e.mark, 0);
+        });
+
+        await createStudentMarks({
+          formatId: selectedFormat.id,
+          studentId: entry.id,
+          marks,
+          examType: 'final' as const,
+        }).unwrap();
+      }
+
+      // Update all entries as saved
+      setResults(prev => prev.map(result => ({ ...result, savedToDb: true })));
+      refetchMarks();
+      toast.success(`${unsavedEntries.length} entries synced to database!`);
+    } catch (error) {
+      console.error('Error syncing to database:', error);
+      toast.error("Failed to sync some entries to database");
+    }
   };
 
   // Calculate summary only when entryList changes
@@ -212,7 +327,13 @@ const FinalMarksShortcut: React.FC = () => {
       <Toaster position="bottom-right" />
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex justify-between">
+            <button
+              onClick={clearAllData}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            >
+              Clear All Data
+            </button>
             <a
               href="/final-marks"
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
@@ -227,9 +348,9 @@ const FinalMarksShortcut: React.FC = () => {
               Current Format: {selectedFormat.name}
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {selectedFormat.questions.map((question) => (
+              {selectedFormat.questions.map((question, index) => (
                 <div
-                  key={question.id}
+                  key={index}
                   className="text-center p-2 bg-white rounded border"
                 >
                   <div className="font-medium">{question.label}</div>
@@ -322,7 +443,13 @@ const FinalMarksShortcut: React.FC = () => {
                   placeholder="Enter student ID"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                   title="Enter student ID and press Enter"
+                  disabled={creating}
                 />
+                {creating && (
+                  <div className="mt-2 text-sm text-blue-600">
+                    Saving previous student to database...
+                  </div>
+                )}
               </div>
             )}
             {step === "question" && (
@@ -338,7 +465,7 @@ const FinalMarksShortcut: React.FC = () => {
                   ref={questionInputRef}
                   type="text"
                   value={questionInput}
-                  onChange={(e) => setQuestionInput(e.target.value)}
+                  onChange={(e) => setQuestionInput(`${e.target.value}`)}
                   onKeyDown={handleQuestionInput}
                   placeholder="e.g. 1, 2a, etc. (0 to finish)"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
@@ -376,13 +503,25 @@ const FinalMarksShortcut: React.FC = () => {
             <div className="mt-8">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold">Results Table</h3>
-                <button
-                  onClick={exportToExcel}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                  title="Export to Excel"
-                >
-                  Export to Excel
-                </button>
+                <div className="flex gap-2">
+                  {selectedFormat && results.some(r => !r.savedToDb) && (
+                    <button
+                      onClick={syncToDatabase}
+                      disabled={creating}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                      title="Sync unsaved entries to database"
+                    >
+                      {creating ? 'Syncing...' : 'Sync to DB'}
+                    </button>
+                  )}
+                  <button
+                    onClick={exportToExcel}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                    title="Export to Excel"
+                  >
+                    Export to Excel
+                  </button>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse border border-gray-300">
@@ -391,7 +530,10 @@ const FinalMarksShortcut: React.FC = () => {
                       <th className="border border-gray-300 p-2 text-left">
                         Student ID
                       </th>
-                      {Array.from(
+                      <th className="border border-gray-300 p-2 text-center">
+                        Status
+                      </th>
+                      {/* {Array.from(
                         new Set(
                           results.flatMap((s) => s.summary.map((e) => e.q))
                         )
@@ -402,9 +544,27 @@ const FinalMarksShortcut: React.FC = () => {
                         >
                           Q{q}
                         </th>
+                      ))} */}
+                      {selectedFormat?.questions.map((question, index) => (
+                        <th
+                          key={index}
+                          className="border border-gray-300 p-2 text-center"
+                        >
+                          {question.label}
+                          <br />
+                          <span className="text-xs text-gray-500">
+                            /{question.maxMark}
+                          </span>
+                        </th>
                       ))}
                       <th className="border border-gray-300 p-2 text-center font-bold">
                         Total
+                      </th>
+                      <th className="border border-gray-300 p-2 text-center">
+                        %
+                      </th>
+                      <th className="border border-gray-300 p-2 text-center">
+                        Actions
                       </th>
                     </tr>
                   </thead>
@@ -419,6 +579,17 @@ const FinalMarksShortcut: React.FC = () => {
                         <tr key={student.id} className="hover:bg-gray-50">
                           <td className="border border-gray-300 p-2 font-medium">
                             {student.id}
+                          </td>
+                          <td className="border border-gray-300 p-2 text-center">
+                            {student.savedToDb ? (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                                Saved
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                                Local Only
+                              </span>
+                            )}
                           </td>
                           {allQuestions.map((q) => {
                             const marks = student.summary
@@ -447,6 +618,8 @@ const FinalMarksShortcut: React.FC = () => {
                               );
                             })()}
                           </td>
+                         
+
                         </tr>
                       );
                     })}
@@ -469,8 +642,8 @@ const FinalMarksShortcut: React.FC = () => {
                 });
                 const average = totals.length
                   ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(
-                      2
-                    )
+                    2
+                  )
                   : 0;
                 const highest = totals.length ? Math.max(...totals) : 0;
                 const lowest = totals.length ? Math.min(...totals) : 0;

@@ -10,31 +10,31 @@ import {
   useDeleteStudentMarksMutation
 } from "../../redux/api/marksApi";
 
-const QuizMarks: React.FC = () => {
+const AssignmentMarks: React.FC = () => {
     const [students, setStudents] = useState<StudentMarks[]>([]);
     const [currentStudentId, setCurrentStudentId] = useState("");
     // const [currentStudentName, setCurrentStudentName] = useState("");
     const [currentMark, setCurrentMark] = useState("");
-    const [maxMark, setMaxMark] = useState<number>(15); // Default max mark for quiz
+    const [maxMark, setMaxMark] = useState<number>(5); // Default max mark for assignment
     const [editingCell, setEditingCell] = useState<{
         studentId: string;
     } | null>(null);
-    const [selectedQuiz, setSelectedQuiz] = useState<string>("Quiz-1");
+    const [selectedAssignment, setSelectedAssignment] = useState<string>("Assignment-1");
 
     // API hooks
     const [createStudentMarks] = useCreateStudentMarksMutation();
     const [updateStudentMarks] = useUpdateStudentMarksMutation();
     const [deleteStudentMarks] = useDeleteStudentMarksMutation();
     const { data: existingMarks = [], refetch: refetchMarks } = useGetStudentMarksByTypeQuery(
-        'quiz', // Fetch marks by exam type instead of format ID
+        'assignment', // Fetch marks by exam type instead of format ID
         { skip: false }
     );
 
     // Load existing marks when component mounts
     useEffect(() => {
         if (existingMarks.length > 0) {
-            const quizMarks = existingMarks.filter(mark => mark.examType === 'quiz');
-            setStudents(quizMarks);
+            const assignmentMarks = existingMarks.filter(mark => mark.examType === 'assignment');
+            setStudents(assignmentMarks);
         }
     }, [existingMarks]);
 
@@ -60,10 +60,10 @@ const QuizMarks: React.FC = () => {
         try {
             // Save to database - store single mark as array for consistency
             const savedMarks = await createStudentMarks({
-                name: currentStudentId.trim(), // Use student ID as name if name not provided
+                name: currentStudentId.trim(),
                 studentId: currentStudentId.trim(),
                 marks: [mark], // Single mark stored as array
-                examType: 'quiz',
+                examType: 'assignment',
                 maxMark: maxMark
             }).unwrap();
 
@@ -89,7 +89,7 @@ const QuizMarks: React.FC = () => {
 
             await deleteStudentMarks({ 
                 id: studentId, 
-                examType: 'quiz'
+                examType: 'assignment'
             }).unwrap();
 
             setStudents((prev) => prev.filter((s) => s.id !== studentId));
@@ -115,10 +115,10 @@ const QuizMarks: React.FC = () => {
 
             await updateStudentMarks({
                 id: studentId,
-                name: student.name || student.studentId,
+                // name: student.name,
                 studentId: student.studentId,
                 marks: [newMark], // Single mark as array
-                examType: 'quiz',
+                examType: 'assignment',
                 maxMark: maxMark
             }).unwrap();
 
@@ -155,7 +155,7 @@ const QuizMarks: React.FC = () => {
 
         const excelData = students.map((student) => ({
             "Student ID": student.studentId,
-            "Student Name": student.name || student.studentId,
+            "Student Name": student.name,
             "Mark": student.marks[0], // Single mark from array
             "Max Mark": maxMark,
             "Percentage": ((student.marks[0] / maxMark) * 100).toFixed(1) + "%"
@@ -172,7 +172,7 @@ const QuizMarks: React.FC = () => {
             { wch: 12 }, // Percentage
         ];
 
-        XLSX.utils.book_append_sheet(wb, ws, "Quiz Marks");
+        XLSX.utils.book_append_sheet(wb, ws, "Assignment Marks");
 
         const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
         const data = new Blob([excelBuffer], {
@@ -180,7 +180,7 @@ const QuizMarks: React.FC = () => {
         });
         saveAs(
             data,
-            `quiz-marks-${selectedQuiz.toLowerCase()}-${new Date().toISOString().split("T")[0]}.xlsx`
+            `assignment-marks-${selectedAssignment.toLowerCase()}-${new Date().toISOString().split("T")[0]}.xlsx`
         );
         toast.success("Excel file exported successfully!");
     };
@@ -212,7 +212,7 @@ const QuizMarks: React.FC = () => {
                 <div className="bg-white rounded-lg shadow-lg p-6 text-black">
                     <div className="mb-4 flex justify-end">
                         <a
-                            href="/quiz-shortcut"
+                            href="/assignment-shortcut"
                             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                         >
                             Go to Shortcut Entry
@@ -223,7 +223,7 @@ const QuizMarks: React.FC = () => {
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-800">
-                                Quiz Marks Entry
+                                Assignment Marks Entry
                             </h1>
                             <p className="text-gray-600">
                                 Simple mark entry - One mark per student
@@ -239,21 +239,21 @@ const QuizMarks: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Quiz Selection and Max Mark */}
+                    {/* Assignment Selection and Max Mark */}
                     <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Quiz
+                                    Select Assignment
                                 </label>
                                 <select
-                                    value={selectedQuiz}
-                                    onChange={(e) => setSelectedQuiz(e.target.value)}
+                                    value={selectedAssignment}
+                                    onChange={(e) => setSelectedAssignment(e.target.value)}
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                                 >
-                                    {Array.from({ length: 3 }, (_, i) => i + 1).map((num) => (
-                                        <option key={num} value={`Quiz-${num}`}>
-                                            Quiz-{num}
+                                    {Array.from({ length: 1 }, (_, i) => i + 1).map((num) => (
+                                        <option key={num} value={`Assignment-${num}`}>
+                                            Assignment-{num}
                                         </option>
                                     ))}
                                 </select>
@@ -265,10 +265,10 @@ const QuizMarks: React.FC = () => {
                                 <input
                                     type="number"
                                     value={maxMark}
-                                    onChange={(e) => setMaxMark(parseInt(e.target.value) || 15)}
+                                    onChange={(e) => setMaxMark(parseInt(e.target.value) || 5)}
                                     min="1"
                                     max="100"
-                                       readOnly
+                                    readOnly
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                                 />
                             </div>
@@ -317,7 +317,6 @@ const QuizMarks: React.FC = () => {
                                     min="0"
                                     max={maxMark}
                                     step="0.5"
-                                 
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                                 />
                             </div>
@@ -482,4 +481,4 @@ const QuizMarks: React.FC = () => {
     );
 };
 
-export default QuizMarks;
+export default AssignmentMarks;

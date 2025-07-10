@@ -3,6 +3,10 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import toast, { Toaster } from "react-hot-toast";
 import { type QuestionFormat } from "../../types/types";
+import {
+  useCreateStudentMarksMutation,
+  useGetStudentMarksByTypeQuery
+} from "../../redux/api/marksApi";
 
 const QuizShortcut: React.FC = () => {
     const [selectedFormat, setSelectedFormat] = useState<QuestionFormat | null>(
@@ -19,10 +23,18 @@ const QuizShortcut: React.FC = () => {
             id: string;
             summary: Array<{ q: string; mark: number }>;
             total: number;
+            savedToDb?: boolean;
         }>
     >([]);
     const [step, setStep] = useState<"student" | "question" | "mark">(
         "student"
+    );
+
+    // API hooks
+    const [createStudentMarks, { isLoading: creating }] = useCreateStudentMarksMutation();
+    const { data: existingMarks, refetch: refetchMarks } = useGetStudentMarksByTypeQuery(
+        'quiz',
+        { refetchOnMountOrArgChange: true }
     );
 
     // Input refs
@@ -48,6 +60,28 @@ const QuizShortcut: React.FC = () => {
         }
     }, []);
 
+    // Load existing quiz marks from API
+    useEffect(() => {
+        if (existingMarks) {
+            const quizMarks = existingMarks.filter(mark => mark.examType === 'quiz');
+            const convertedResults = quizMarks.map(mark => {
+                // For quiz marks, it's simpler as we just have a single mark
+                // But we need to format it to match our UI structure
+                const markValue = mark.marks[0] || 0;
+                const summary = [{ q: "1", mark: markValue }]; // Default question label for quiz
+
+                return {
+                    id: mark.studentId,
+                    summary,
+                    total: mark.total,
+                    savedToDb: true
+                };
+            });
+
+            setResults(convertedResults);
+        }
+    }, [existingMarks]);
+
     // Handle student ID input
     const handleStudentId = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
@@ -64,7 +98,7 @@ const QuizShortcut: React.FC = () => {
     };
 
     // Handle question input
-    const handleQuestionInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleQuestionInput = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             const qLabel = questionInput.trim();
             if (qLabel === "0") {
@@ -73,10 +107,37 @@ const QuizShortcut: React.FC = () => {
                     toast.error("No marks entered");
                     return;
                 }
+
+                // Calculate total for this student
                 const total = entryList.reduce(
                     (sum, entry) => sum + entry.mark,
                     0
                 );
+
+                // Save to API
+                if (!creating) {
+                    try {
+                        // For quiz marks, we only need the first mark
+                        // (or the sum of all marks if multiple entries for the same question)
+                        const markSum = entryList.reduce((sum, entry) => sum + entry.mark, 0);
+                        
+                        await createStudentMarks({
+                            studentId: studentId.trim(),
+                            marks: [markSum], // For quiz, we just save a single mark in the array
+                            maxMark: selectedFormat?.questions[0]?.maxMark || 100, // Use format max mark or default to 100
+                            examType: 'quiz' as const,
+                        }).unwrap();
+
+                        toast.success("Student marks saved to database!");
+
+                        // Refetch existing marks to update the view
+                        refetchMarks();
+                    } catch (error) {
+                        console.error('Error saving to API:', error);
+                        toast.error("Failed to save to database, but keeping local copy");
+                    }
+                }
+
                 setResults((prev) => [
                     ...prev,
                     {
@@ -86,6 +147,7 @@ const QuizShortcut: React.FC = () => {
                             mark: e.mark,
                         })),
                         total,
+                        savedToDb: true,
                     },
                 ]);
                 setStudentId("");
@@ -183,6 +245,19 @@ const QuizShortcut: React.FC = () => {
         toast.success("Excel file exported successfully!");
     };
 
+    // Clear all data
+    const clearAllData = () => {
+        if (window.confirm("Are you sure you want to clear all data? This will not delete data from the database.")) {
+            setResults([]);
+            setEntryList([]);
+            setStudentId("");
+            setQuestionInput("");
+            setMarkInput("");
+            setStep("student");
+            toast.success("All local data cleared");
+        }
+    };
+
     // Calculate summary only when entryList changes
     const questionSums = React.useMemo(() => {
         const sums: Record<string, number> = {};
@@ -197,7 +272,13 @@ const QuizShortcut: React.FC = () => {
             <Toaster position="bottom-right" />
             <div className="max-w-4xl mx-auto px-4">
                 <div className="bg-white rounded-lg shadow-lg p-6">
-                    <div className="mb-4 flex justify-end">
+                    <div className="mb-4 flex justify-between">
+                        <button
+                            onClick={clearAllData}
+                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                        >
+                            Clear All Data
+                        </button>
                         <a
                             href="/quiz-marks"
                             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
@@ -298,7 +379,13 @@ const QuizShortcut: React.FC = () => {
                                     placeholder="Enter student ID"
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                                     title="Enter student ID and press Enter"
+                                    disabled={creating}
                                 />
+                                {creating && (
+                                    <div className="mt-2 text-sm text-blue-600">
+                                        Saving previous student to database...
+                                    </div>
+                                )}
                             </div>
                         )}
                         {step === "question" && (
@@ -353,13 +440,22 @@ const QuizShortcut: React.FC = () => {
                                 <h3 className="text-lg font-semibold">
                                     Results Table
                                 </h3>
-                                <button
-                                    onClick={exportToExcel}
-                                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                                    title="Export to Excel"
-                                >
-                                    Export to Excel
-                                </button>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => refetchMarks()}
+                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                        title="Sync with database"
+                                    >
+                                        Sync with DB
+                                    </button>
+                                    <button
+                                        onClick={exportToExcel}
+                                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                        title="Export to Excel"
+                                    >
+                                        Export to Excel
+                                    </button>
+                                </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse border border-gray-300">
@@ -367,6 +463,9 @@ const QuizShortcut: React.FC = () => {
                                         <tr className="bg-gray-100">
                                             <th className="border border-gray-300 p-2 text-left">
                                                 ID
+                                            </th>
+                                            <th className="border border-gray-300 p-2 text-center">
+                                                Status
                                             </th>
                                             {(
                                                 selectedFormat?.questions || []
@@ -394,6 +493,17 @@ const QuizShortcut: React.FC = () => {
                                                 >
                                                     <td className="border border-gray-300 p-2 font-medium">
                                                         {student.id}
+                                                    </td>
+                                                    <td className="border border-gray-300 p-2 text-center">
+                                                        {student.savedToDb ? (
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                Saved
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                                Local
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     {(
                                                         selectedFormat?.questions ||
@@ -463,12 +573,12 @@ const QuizShortcut: React.FC = () => {
                                 const lowest = Math.min(...totals);
                                 const highestStudents = results
                                     .filter(
-                                        (student, i) => totals[i] === highest
+                                        (_, i) => totals[i] === highest
                                     )
                                     .map((s) => s.id);
                                 const lowestStudents = results
                                     .filter(
-                                        (student, i) => totals[i] === lowest
+                                        (_, i) => totals[i] === lowest
                                     )
                                     .map((s) => s.id);
                                 return (

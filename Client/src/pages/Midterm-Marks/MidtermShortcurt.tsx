@@ -3,6 +3,11 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import toast, { Toaster } from "react-hot-toast";
 import { type QuestionFormat } from "../../types/types";
+import {
+  useGetQuestionFormatsQuery,
+  useCreateStudentMarksMutation,
+  useGetStudentMarksQuery
+} from "../../redux/api/marksApi";
 
 const MidtermShortcurt: React.FC = () => {
   const [selectedFormat, setSelectedFormat] = useState<QuestionFormat | null>(
@@ -23,6 +28,14 @@ const MidtermShortcurt: React.FC = () => {
   >([]);
   const [step, setStep] = useState<"student" | "question" | "mark">("student");
 
+  // API hooks
+  const { data: questionFormats = [], isLoading: formatsLoading } = useGetQuestionFormatsQuery();
+  const [createStudentMarks] = useCreateStudentMarksMutation();
+  const { data: existingMarks = [], refetch: refetchMarks } = useGetStudentMarksQuery(
+    selectedFormat?.id || '',
+    { skip: !selectedFormat?.id }
+  );
+
   // Input refs
   const studentIdRef = useRef<HTMLInputElement>(null);
   const questionInputRef = useRef<HTMLInputElement>(null);
@@ -37,13 +50,35 @@ const MidtermShortcurt: React.FC = () => {
     if (step === "mark" && markInputRef.current) markInputRef.current.focus();
   }, [step]);
 
-  // Load selected format from localStorage on mount
+  // Load selected format from localStorage on mount and load existing marks
   useEffect(() => {
     const saved = localStorage.getItem("selectedFormat");
     if (saved) {
-      setSelectedFormat(JSON.parse(saved));
+      const format = JSON.parse(saved);
+      setSelectedFormat(format);
     }
   }, []);
+
+  // Load existing marks when format is selected
+  useEffect(() => {
+    if (selectedFormat && existingMarks.length > 0) {
+      // Convert existing marks to results format
+      const convertedResults = existingMarks
+        .filter(mark => mark.examType === 'midterm')
+        .map(mark => {
+          const summary = mark.marks.map((markValue, index) => ({
+            q: selectedFormat.questions[index]?.label || `${index + 1}`,
+            mark: markValue
+          }));
+          return {
+            id: mark.studentId,
+            summary,
+            total: mark.total
+          };
+        });
+      setResults(convertedResults);
+    }
+  }, [selectedFormat, existingMarks]);
 
   // Handle student ID input
   const handleStudentId = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -52,7 +87,13 @@ const MidtermShortcurt: React.FC = () => {
         toast.error("Student ID required");
         return;
       }
-      if (results.some((r) => r.id === studentId.trim())) {
+      // Check against both local results and existing marks from database
+      const isDuplicateLocal = results.some((r) => r.id === studentId.trim());
+      const isDuplicateDb = existingMarks.some((mark) =>
+        mark.studentId === studentId.trim() && mark.examType === 'midterm'
+      );
+
+      if (isDuplicateLocal || isDuplicateDb) {
         toast.error("Duplicate Student ID!");
         return;
       }
@@ -61,7 +102,7 @@ const MidtermShortcurt: React.FC = () => {
   };
 
   // Handle question input
-  const handleQuestionInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleQuestionInput = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       const qLabel = questionInput.trim();
       if (qLabel === "0") {
@@ -70,26 +111,59 @@ const MidtermShortcurt: React.FC = () => {
           toast.error("No marks entered");
           return;
         }
-        const total = entryList.reduce((sum, entry) => sum + entry.mark, 0);
-        setResults((prev) => [
-          ...prev,
-          {
-            id: studentId.trim(),
-            summary: entryList.map((e) => ({ q: e.q, mark: e.mark })),
-            total,
-          },
-        ]);
-        setStudentId("");
-        setEntryList([]);
-        setQuestionInput("");
-        setMarkInput("");
-        setStep("student");
-        toast.success("Student saved!");
+        if (!selectedFormat) {
+          toast.error("No format selected");
+          return;
+        }
+
+        try {
+          // Convert entry list to marks array matching the format
+          const marks = selectedFormat.questions.map(question => {
+            const entry = entryList.find(e => e.q === question.label);
+            return entry ? entry.mark : 0;
+          });
+
+          const total = marks.reduce((sum, mark) => sum + mark, 0);
+
+          // Save to database
+          await createStudentMarks({
+            formatId: selectedFormat.id,
+            name: studentId.trim(),
+            studentId: studentId.trim(),
+            marks,
+            examType: 'midterm'
+          }).unwrap();
+
+          // Update local results
+          setResults((prev) => [
+            ...prev,
+            {
+              id: studentId.trim(),
+              summary: entryList.map((e) => ({ q: e.q, mark: e.mark })),
+              total,
+            },
+          ]);
+
+          setStudentId("");
+          setEntryList([]);
+          setQuestionInput("");
+          setMarkInput("");
+          setStep("student");
+          toast.success("Student saved to database!");
+
+          // Refetch to get updated data
+          refetchMarks();
+        } catch (error) {
+          const errorMessage = error && typeof error === 'object' && 'data' in error
+            ? ((error.data as { message?: string })?.message || "Failed to save student marks")
+            : "Failed to save student marks";
+          toast.error(errorMessage);
+        }
         return;
       }
       // Fix: allow numeric input if format label is a string number
       const valid = selectedFormat?.questions.some(
-        (q) => String(q.label) === qLabel
+        (q) => String(q.label.split("Q")[1]) === qLabel
       );
       if (!valid) {
         toast.error("Invalid question label");
@@ -111,7 +185,7 @@ const MidtermShortcurt: React.FC = () => {
       }
       const num = parseFloat(markVal);
       const qLabel = questionInput.trim();
-      const qObj = selectedFormat?.questions.find((q) => q.label === qLabel);
+      const qObj = selectedFormat?.questions.find((q) => q.label.split("Q")[1] === qLabel);
       if (!qObj) {
         toast.error("Invalid question label");
         return;
@@ -127,16 +201,38 @@ const MidtermShortcurt: React.FC = () => {
 
   // Export to Excel
   const exportToExcel = () => {
-    if (results.length === 0) {
+    // Combine local results with existing marks from database
+    const allResults = [...results];
+
+    // Add existing marks that aren't already in local results
+    existingMarks
+      .filter(mark => mark.examType === 'midterm')
+      .forEach(mark => {
+        const existsInLocal = results.some(r => r.id === mark.studentId);
+        if (!existsInLocal && selectedFormat) {
+          const summary = mark.marks.map((markValue, index) => ({
+            q: selectedFormat.questions[index]?.label || `${index + 1}`,
+            mark: markValue
+          }));
+          allResults.push({
+            id: mark.studentId,
+            summary,
+            total: mark.total
+          });
+        }
+      });
+
+    if (allResults.length === 0) {
       toast.error("No data to export");
       return;
     }
+
     // Get all unique question labels from all students
     const allQuestions = Array.from(
-      new Set(results.flatMap((s) => s.summary.map((e) => e.q)))
+      new Set(allResults.flatMap((s) => s.summary.map((e) => e.q)))
     );
     // Prepare data rows
-    const excelData = results.map((student) => {
+    const excelData = allResults.map((student) => {
       const row: Record<string, string | number> = {
         ID: student.id,
       };
@@ -262,68 +358,127 @@ const MidtermShortcurt: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-6">
             Midterm Marks Shortcut Entry
           </h1>
-          <div className="space-y-4">
-            {step === "student" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Student ID
-                </label>
-                <input
-                  ref={studentIdRef}
-                  type="text"
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  onKeyDown={handleStudentId}
-                  placeholder="Enter student ID"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-                  title="Enter student ID and press Enter"
-                />
-              </div>
-            )}
-            {step === "question" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Question Number
-                </label>
-                <input
-                  ref={questionInputRef}
-                  type="text"
-                  value={questionInput}
-                  onChange={(e) => setQuestionInput(e.target.value)}
-                  onKeyDown={handleQuestionInput}
-                  placeholder="e.g. 1, 2a, etc. (0 to finish)"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-                  title="Type question label, 0 to finish, Enter to proceed"
-                />
-              </div>
-            )}
-            {step === "mark" && (
-              <div>
-                <div className="mb-2 text-blue-800 font-semibold">
-                  Inputting for Question:{" "}
-                  <span className="font-bold">{questionInput}</span>
+
+          {/* Format Selection */}
+          {!selectedFormat && (
+            <div className="mb-8 p-4 bg-blue-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-blue-800 mb-4">
+                Select Question Format
+              </h3>
+              {formatsLoading ? (
+                <div className="text-center">Loading formats...</div>
+              ) : questionFormats.length === 0 ? (
+                <div className="text-center text-gray-600">
+                  No question formats found. Please create a format first in the standard entry page.
                 </div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mark Input
-                </label>
-                <input
-                  ref={markInputRef}
-                  type="number"
-                  value={markInput}
-                  onChange={(e) => setMarkInput(e.target.value)}
-                  onKeyDown={handleMarkInput}
-                  placeholder="Enter mark (press -1 to finish question)"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-                  title="Type mark, Enter to add, -1 to finish question"
-                />
+              ) : (
+                <div className="space-y-2">
+                  {questionFormats.map((format) => (
+                    <button
+                      key={format.id}
+                      onClick={() => {
+                        setSelectedFormat(format);
+                        localStorage.setItem("selectedFormat", JSON.stringify(format));
+                      }}
+                      className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <div className="font-medium">{format.name}</div>
+                      <div className="text-sm text-gray-600">
+                        {format.questions.length} questions, {' '}
+                        {format.questions.reduce((sum, q) => sum + q.maxMark, 0)} total marks
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedFormat && (
+            <>
+              <div className="mb-4 p-3 bg-green-50 rounded-lg">
+                <div className="font-semibold text-green-800">
+                  Selected Format: {selectedFormat.name}
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedFormat(null);
+                    localStorage.removeItem("selectedFormat");
+                    setResults([]);
+                    setStep("student");
+                  }}
+                  className="mt-2 px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
+                >
+                  Change Format
+                </button>
               </div>
-            )}
-          </div>
+
+              <div className="space-y-4">
+                {step === "student" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Student ID
+                    </label>
+                    <input
+                      ref={studentIdRef}
+                      type="text"
+                      value={studentId}
+                      onChange={(e) => setStudentId(e.target.value)}
+                      onKeyDown={handleStudentId}
+                      placeholder="Enter student ID"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                      title="Enter student ID and press Enter"
+                    />
+                  </div>
+                )}
+                {step === "question" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Question Number
+                    </label>
+                    <input
+                      ref={questionInputRef}
+                      type="text"
+                      value={questionInput}
+                      onChange={(e) => setQuestionInput(e.target.value)}
+                      onKeyDown={handleQuestionInput}
+                      placeholder="e.g. 1, 2a, etc. (0 to finish)"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                      title="Type question label, 0 to finish, Enter to proceed"
+                    />
+                  </div>
+                )}
+                {step === "mark" && (
+                  <div>
+                    <div className="mb-2 text-blue-800 font-semibold">
+                      Inputting for Question:{" "}
+                      <span className="font-bold">{questionInput}</span>
+                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mark Input
+                    </label>
+                    <input
+                      ref={markInputRef}
+                      type="number"
+                      value={markInput}
+                      onChange={(e) => setMarkInput(e.target.value)}
+                      onKeyDown={handleMarkInput}
+                      placeholder="Enter mark (press -1 to finish question)"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                      title="Type mark, Enter to add, -1 to finish question"
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
           {/* Results Table */}
-          {results.length > 0 && (
+          {(results.length > 0 || existingMarks.some(mark => mark.examType === 'midterm')) && (
             <div className="mt-8">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-semibold">Results Table</h3>
+                <h3 className="text-lg font-semibold">
+                  Results Table ({results.length + existingMarks.filter(mark => mark.examType === 'midterm' && !results.some(r => r.id === mark.studentId)).length} students)
+                </h3>
                 <button
                   onClick={exportToExcel}
                   className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
@@ -350,9 +505,13 @@ const MidtermShortcurt: React.FC = () => {
                       <th className="border border-gray-300 p-2 text-center font-bold">
                         Total
                       </th>
+                      <th className="border border-gray-300 p-2 text-center">
+                        Source
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
+                    {/* Local results */}
                     {results.map((student) => {
                       // Calculate total for this student
                       let total = 0;
@@ -378,15 +537,68 @@ const MidtermShortcurt: React.FC = () => {
                           <td className="border border-gray-300 p-2 text-center font-bold bg-blue-50">
                             {total}
                           </td>
+                          <td className="border border-gray-300 p-2 text-center text-sm">
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              Current Session
+                            </span>
+                          </td>
                         </tr>
                       );
                     })}
+
+                    {/* Existing marks from database (not in current session) */}
+                    {existingMarks
+                      .filter(mark => mark.examType === 'midterm' && !results.some(r => r.id === mark.studentId))
+                      .map((mark) => (
+                        <tr key={mark.id} className="hover:bg-gray-50 bg-gray-25">
+                          <td className="border border-gray-300 p-2 font-medium">
+                            {mark.studentId}
+                          </td>
+                          {(selectedFormat?.questions || []).map((q, index) => (
+                            <td
+                              key={q.label}
+                              className="border border-gray-300 p-2 text-center"
+                            >
+                              {mark.marks[index] !== undefined ? mark.marks[index] : ''}
+                            </td>
+                          ))}
+                          <td className="border border-gray-300 p-2 text-center font-bold bg-green-50">
+                            {mark.total}
+                          </td>
+                          <td className="border border-gray-300 p-2 text-center text-sm">
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                              Database
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
               {/* Summary below table */}
               {(() => {
-                const totals = results.map((student) => {
+                // Combine local results with existing marks for statistics
+                const allResults = [...results];
+
+                // Add existing marks that aren't already in local results
+                existingMarks
+                  .filter(mark => mark.examType === 'midterm')
+                  .forEach(mark => {
+                    const existsInLocal = results.some(r => r.id === mark.studentId);
+                    if (!existsInLocal && selectedFormat) {
+                      const summary = mark.marks.map((markValue, index) => ({
+                        q: selectedFormat.questions[index]?.label || `${index + 1}`,
+                        mark: markValue
+                      }));
+                      allResults.push({
+                        id: mark.studentId,
+                        summary,
+                        total: mark.total
+                      });
+                    }
+                  });
+
+                const totals = allResults.map((student) => {
                   const questionSumsRow: Record<string, number> = {};
                   student.summary.forEach((entry) => {
                     questionSumsRow[entry.q] =
@@ -399,16 +611,16 @@ const MidtermShortcurt: React.FC = () => {
                 });
                 const average = totals.length
                   ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(
-                      2
-                    )
+                    2
+                  )
                   : 0;
-                const highest = Math.max(...totals);
-                const lowest = Math.min(...totals);
-                const highestStudents = results
-                  .filter((student, i) => totals[i] === highest)
+                const highest = totals.length ? Math.max(...totals) : 0;
+                const lowest = totals.length ? Math.min(...totals) : 0;
+                const highestStudents = allResults
+                  .filter((_, i) => totals[i] === highest)
                   .map((s) => s.id);
-                const lowestStudents = results
-                  .filter((student, i) => totals[i] === lowest)
+                const lowestStudents = allResults
+                  .filter((_, i) => totals[i] === lowest)
                   .map((s) => s.id);
                 return (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg flex justify-between">

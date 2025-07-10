@@ -16,6 +16,11 @@ const FinalMarks = lazy(() => import("../pages/Final-Marks/FinalMarks"));
 const FinalMarksShortcut = lazy(() => import("../pages/Final-Marks/FinalMarksShortcut"));
 const QuizMarks = lazy(() => import("../pages/Quiz-Marks/QuizMarks"));
 const QuizShortcut = lazy(() => import("../pages/Quiz-Marks/QuizShortcurt"));
+const AssignmentMarks = lazy(() => import("../pages/Assignment-Marks/AssignmentMarks"));
+const AssignmentShortcut = lazy(() => import("../pages/Assignment-Marks/AssignmentShortcut"));
+const PresentationMarks = lazy(() => import("../pages/Presentation-Marks/PresentationMarks"));
+const PresentationShortcut = lazy(() => import("../pages/Presentation-Marks/PresentationShortcut"));
+const StudentMarksSummary = lazy(() => import("../pages/Student-Marks/StudentMarksSummary"));
 
 // Wrapper component for Suspense - returns a component, not JSX
 const withSuspense = (Component: React.ComponentType) => {
@@ -50,6 +55,34 @@ export const router = createBrowserRouter([
             {
                 path: "quiz-shortcut",
                 Component: withSuspense(QuizShortcut),
+            },
+            {
+                path: "assignment-marks",
+                Component: withSuspense(AssignmentMarks),
+            },
+            {
+                path: "assignment-marks/:formatId",
+                Component: withSuspense(AssignmentMarks),
+            },
+            {
+                path: "assignment-shortcut",
+                Component: withSuspense(AssignmentShortcut),
+            },
+            {
+                path: "presentation-marks",
+                Component: withSuspense(PresentationMarks),
+            },
+            {
+                path: "presentation-marks/:formatId",
+                Component: withSuspense(PresentationMarks),
+            },
+            {
+                path: "presentation-shortcut",
+                Component: withSuspense(PresentationShortcut),
+            },
+            {
+                path: "student-marks-summary",
+                Component: withSuspense(StudentMarksSummary),
             },
             {
                 path: "final-marks",
