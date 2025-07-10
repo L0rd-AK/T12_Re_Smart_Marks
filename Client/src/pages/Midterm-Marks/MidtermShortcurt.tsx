@@ -129,13 +129,19 @@ const MidtermShortcurt: React.FC = () => {
 
           const total = marks.reduce((sum, mark) => sum + mark, 0);
 
-          // Save to database
-          await createStudentMarks({
+          // Log the data being sent
+          const requestData = {
             formatId: selectedFormat.id,
             studentId: studentId.trim(),
             marks,
-            examType: 'midterm'
-          }).unwrap();
+            examType: 'midterm' as const
+          };
+          console.log('Sending data to backend:', requestData);
+          console.log('Selected format:', selectedFormat);
+          console.log('Format ID:', selectedFormat?.id);
+
+          // Save to database
+          await createStudentMarks(requestData).unwrap();
 
           // Update local results
           setResults((prev) => [
@@ -157,6 +163,10 @@ const MidtermShortcurt: React.FC = () => {
           // Refetch to get updated data
           refetchMarks();
         } catch (error) {
+          console.error('Full error object:', error);
+          console.error('Error status:', (error as { status?: number })?.status);
+          console.error('Error data:', (error as { data?: unknown })?.data);
+          
           const errorMessage = error && typeof error === 'object' && 'data' in error
             ? ((error.data as { message?: string })?.message || "Failed to save student marks")
             : "Failed to save student marks";
@@ -381,6 +391,7 @@ const MidtermShortcurt: React.FC = () => {
                     <button
                       key={format.id}
                       onClick={() => {
+                        console.log('Setting format:', format);
                         setSelectedFormat(format);
                         localStorage.setItem("selectedFormat", JSON.stringify(format));
                       }}
