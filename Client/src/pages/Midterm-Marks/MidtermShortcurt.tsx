@@ -32,8 +32,8 @@ const MidtermShortcurt: React.FC = () => {
   const { data: questionFormats = [], isLoading: formatsLoading } = useGetQuestionFormatsQuery();
   const [createStudentMarks] = useCreateStudentMarksMutation();
   const { data: existingMarks = [], refetch: refetchMarks } = useGetStudentMarksQuery(
-    selectedFormat?.id || '',
-    { skip: !selectedFormat?.id }
+    selectedFormat?._id || '',
+    { skip: !selectedFormat?._id }
   );
 
   // Input refs
@@ -138,7 +138,7 @@ const MidtermShortcurt: React.FC = () => {
           };
           console.log('Sending data to backend:', requestData);
           console.log('Selected format:', selectedFormat);
-          console.log('Format ID:', selectedFormat?.id);
+          console.log('Format ID:', selectedFormat?._id);
 
           // Save to database
           await createStudentMarks(requestData).unwrap();
@@ -389,7 +389,7 @@ const MidtermShortcurt: React.FC = () => {
                 <div className="space-y-2">
                   {questionFormats.map((format) => (
                     <button
-                      key={format.id}
+                      key={format._id}
                       onClick={() => {
                         console.log('Setting format:', format);
                         setSelectedFormat(format);
