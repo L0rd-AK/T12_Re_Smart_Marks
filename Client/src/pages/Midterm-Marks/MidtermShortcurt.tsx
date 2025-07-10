@@ -319,7 +319,11 @@ const MidtermShortcurt: React.FC = () => {
                               {questionNo}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
-                              {(idx + 1).toString().padStart(2, "0")}
+                              {entryList?.map((e) => (
+                                <span key={e.q}>
+                                  <span className="font-bold">{e.mark}</span>,
+                                </span>
+                              ))}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               {sum}
