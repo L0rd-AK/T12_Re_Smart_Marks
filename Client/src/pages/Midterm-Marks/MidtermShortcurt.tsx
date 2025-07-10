@@ -32,8 +32,8 @@ const MidtermShortcurt: React.FC = () => {
   const { data: questionFormats = [], isLoading: formatsLoading } = useGetQuestionFormatsQuery();
   const [createStudentMarks] = useCreateStudentMarksMutation();
   const { data: existingMarks = [], refetch: refetchMarks } = useGetStudentMarksQuery(
-    selectedFormat?.id || '',
-    { skip: !selectedFormat?.id }
+    selectedFormat?._id || '',
+    { skip: !selectedFormat?._id }
   );
 
   // Input refs
@@ -119,20 +119,29 @@ const MidtermShortcurt: React.FC = () => {
         try {
           // Convert entry list to marks array matching the format
           const marks = selectedFormat.questions.map(question => {
-            const entry = entryList.find(e => e.q === question.label);
+            // Try to match by the number part of the question label
+            const questionNumber = question.label.replace('Q', '');
+            const entry = entryList.find(e => e.q === questionNumber);
+            console.log(`Looking for question ${questionNumber}, found entry:`, entry);
             return entry ? entry.mark : 0;
           });
+          console.log(marks)
 
           const total = marks.reduce((sum, mark) => sum + mark, 0);
 
-          // Save to database
-          await createStudentMarks({
-            formatId: selectedFormat.id,
-            name: studentId.trim(),
+          // Log the data being sent
+          const requestData = {
+            formatId: selectedFormat._id,
             studentId: studentId.trim(),
             marks,
-            examType: 'midterm'
-          }).unwrap();
+            examType: 'midterm' as const
+          };
+          console.log('Sending data to backend:', requestData);
+          console.log('Selected format:', selectedFormat);
+          console.log('Format ID:', selectedFormat?._id);
+
+          // Save to database
+          await createStudentMarks(requestData).unwrap();
 
           // Update local results
           setResults((prev) => [
@@ -154,6 +163,10 @@ const MidtermShortcurt: React.FC = () => {
           // Refetch to get updated data
           refetchMarks();
         } catch (error) {
+          console.error('Full error object:', error);
+          console.error('Error status:', (error as { status?: number })?.status);
+          console.error('Error data:', (error as { data?: unknown })?.data);
+          
           const errorMessage = error && typeof error === 'object' && 'data' in error
             ? ((error.data as { message?: string })?.message || "Failed to save student marks")
             : "Failed to save student marks";
@@ -313,16 +326,18 @@ const MidtermShortcurt: React.FC = () => {
                     </thead>
                     <tbody>
                       {Object.entries(questionSums).map(
-                        ([questionNo, sum], idx) => (
+                        ([questionNo, sum]) => (
                           <tr key={questionNo}>
                             <td className="border border-gray-300 p-2 text-center">
                               {questionNo}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               {entryList?.map((e) => (
-                                <span key={e.q}>
+                                (questionNo===e.q?<span key={e.q}>
                                   <span className="font-bold">{e.mark}</span>,
                                 </span>
+                              : <span key={e.q}></span>
+                              )
                               ))}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
@@ -374,8 +389,9 @@ const MidtermShortcurt: React.FC = () => {
                 <div className="space-y-2">
                   {questionFormats.map((format) => (
                     <button
-                      key={format.id}
+                      key={format._id}
                       onClick={() => {
+                        console.log('Setting format:', format);
                         setSelectedFormat(format);
                         localStorage.setItem("selectedFormat", JSON.stringify(format));
                       }}
