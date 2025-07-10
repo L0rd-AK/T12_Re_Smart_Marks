@@ -1,5 +1,5 @@
 export interface QuestionFormat {
-    id: string;
+    _id: string;
     name: string;
     questions: Question[];
     createdBy: string;
