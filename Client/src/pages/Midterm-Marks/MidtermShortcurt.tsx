@@ -119,8 +119,10 @@ const MidtermShortcurt: React.FC = () => {
         try {
           // Convert entry list to marks array matching the format
           const marks = selectedFormat.questions.map(question => {
-            const entry = entryList.find(e => e.q === question.label);
-            //console.log(entryList)
+            // Try to match by the number part of the question label
+            const questionNumber = question.label.replace('Q', '');
+            const entry = entryList.find(e => e.q === questionNumber);
+            console.log(`Looking for question ${questionNumber}, found entry:`, entry);
             return entry ? entry.mark : 0;
           });
           console.log(marks)
