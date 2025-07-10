@@ -16,10 +16,10 @@ const StudentMarksSummary = () => {
         setStudentId(search);
     };
     return (
-        <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-6">Student Marks Summary</h1>
+        <div className="container mx-auto p-4  h-[calc(100vh-300px)]">
+            <h1 className="text-2xl font-bold mb-6 text-center">Student Marks Summary</h1>
 
-            <form onSubmit={handleSearch} className="mb-8 flex gap-2">
+            <form onSubmit={handleSearch} className="mb-8 flex gap-2 w-full justify-center items-start">
                 <input
                     type="text"
                     value={search}
