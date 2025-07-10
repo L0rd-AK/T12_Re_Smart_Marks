@@ -10,7 +10,7 @@ const Register = lazy(() => import("../pages/Auth/Register"));
 const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
 const VerifyEmail = lazy(() => import("../pages/Auth/VerifyEmail"));
-const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
+// const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
 const MidtermShortcurt = lazy(() => import("../pages/Midterm-Marks/MidtermShortcurt"));
 const FinalMarks = lazy(() => import("../pages/Final-Marks/FinalMarks"));
 const FinalMarksShortcut = lazy(() => import("../pages/Final-Marks/FinalMarksShortcut"));
@@ -21,6 +21,7 @@ const AssignmentShortcut = lazy(() => import("../pages/Assignment-Marks/Assignme
 const PresentationMarks = lazy(() => import("../pages/Presentation-Marks/PresentationMarks"));
 const PresentationShortcut = lazy(() => import("../pages/Presentation-Marks/PresentationShortcut"));
 const StudentMarksSummary = lazy(() => import("../pages/Student-Marks/StudentMarksSummary"));
+const Profile = lazy(() => import("../pages/Profile/Profile"));
 
 // Wrapper component for Suspense - returns a component, not JSX
 const withSuspense = (Component: React.ComponentType) => {
@@ -42,12 +43,12 @@ export const router = createBrowserRouter([
             },
             {
                 path: "midterm-marks",
-                Component: withSuspense(MidtermMarks),
-            },
-            {
-                path: "midterm-shortcut",
                 Component: withSuspense(MidtermShortcurt),
             },
+            // {
+            //     path: "midterm-shortcut",
+            //     Component: withSuspense(MidtermShortcurt),
+            // },
             {
                 path: "quiz-marks",
                 Component: withSuspense(QuizMarks),
@@ -111,6 +112,10 @@ export const router = createBrowserRouter([
             {
                 path: "verify-email",
                 Component: withSuspense(VerifyEmail),
+            },
+            {
+                path: "profile",
+                Component: withSuspense(Profile),
             },
         ],
     },
