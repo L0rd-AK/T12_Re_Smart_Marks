@@ -807,67 +807,70 @@ const MidtermMarks: React.FC = () => {
                                                                 student.id &&
                                                                 editingCell.markIndex ===
                                                                 index ? (
-                                                                <input
-                                                                    type="number"
-                                                                    defaultValue={
-                                                                        mark
-                                                                    }
-                                                                    min="0"
-                                                                    max={
-                                                                        selectedFormat
-                                                                            ?.questions[
-                                                                            index
-                                                                        ]
-                                                                            .maxMark
-                                                                    }
-                                                                    className="w-full p-1 text-center border border-gray-300 rounded text-black"
-                                                                    autoFocus
-                                                                    onBlur={(
-                                                                        e
-                                                                    ) => {
-                                                                        const newMark =
-                                                                            parseFloat(
-                                                                                e
-                                                                                    .target
-                                                                                    .value
-                                                                            ) ||
-                                                                            0;
-                                                                        updateStudentMark(
-                                                                            student.id,
-                                                                            index,
-                                                                            newMark
-                                                                        );
-                                                                    }}
-                                                                    onKeyDown={(
-                                                                        e
-                                                                    ) => {
-                                                                        if (
-                                                                            e.key ===
-                                                                            "Enter"
-                                                                        ) {
-                                                                            const newMark =
-                                                                                parseFloat(
-                                                                                    (
-                                                                                        e.target as HTMLInputElement
-                                                                                    )
-                                                                                        .value
-                                                                                ) ||
-                                                                                0;
-                                                                            updateStudentMark(
-                                                                                student.id,
-                                                                                index,
-                                                                                newMark
-                                                                            );
-                                                                        } else if (
-                                                                            e.key ===
-                                                                            "Escape"
-                                                                        ) {
-                                                                            setEditingCell(
-                                                                                null
-                                                                            );
-                                                                        }
-                                                                    }}
-                                                                />
+                                                                                                                <input
+                                                    type="number"
+                                                    defaultValue={
+                                                        mark
+                                                    }
+                                                    min="0"
+                                                    max={
+                                                        selectedFormat
+                                                            ?.questions[
+                                                            index
+                                                        ]
+                                                            .maxMark
+                                                    }
+                                                    className="w-full p-1 text-center border border-gray-300 rounded text-black"
+                                                    autoFocus
+                                                    aria-label={`Edit mark for ${student.studentId} question ${selectedFormat?.questions[index].label}`}
+                                                    title={`Edit mark for ${selectedFormat?.questions[index].label} (max: ${selectedFormat?.questions[index].maxMark})`}
+                                                    placeholder={`0-${selectedFormat?.questions[index].maxMark}`}
+                                                    onBlur={(
+                                                        e
+                                                    ) => {
+                                                        const newMark =
+                                                            parseFloat(
+                                                                e
+                                                                    .target
+                                                                    .value
+                                                            ) ||
+                                                            0;
+                                                        updateStudentMark(
+                                                            student.id,
+                                                            index,
+                                                            newMark
+                                                        );
+                                                    }}
+                                                    onKeyDown={(
+                                                        e
+                                                    ) => {
+                                                        if (
+                                                            e.key ===
+                                                            "Enter"
+                                                        ) {
+                                                            const newMark =
+                                                                parseFloat(
+                                                                    (
+                                                                        e.target as HTMLInputElement
+                                                                    )
+                                                                        .value
+                                                                ) ||
+                                                                0;
+                                                            updateStudentMark(
+                                                                student.id,
+                                                                index,
+                                                                newMark
+                                                            );
+                                                        } else if (
+                                                            e.key ===
+                                                            "Escape"
+                                                        ) {
+                                                            setEditingCell(
+                                                                null
+                                                            );
+                                                        }
+                                                    }}
+                                                />
                                                             ) : (
                                                                 <button
                                                                     onClick={() =>

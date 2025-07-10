@@ -302,10 +302,10 @@ const MidtermShortcurt: React.FC = () => {
                     <thead>
                       <tr className="bg-gray-100">
                         <th className="border border-gray-300 p-2 text-center">
-                          Serial No
+                          Question No
                         </th>
                         <th className="border border-gray-300 p-2 text-center">
-                          Question No
+                          Detailed View
                         </th>
                         <th className="border border-gray-300 p-2 text-center">
                           Sum
@@ -317,10 +317,10 @@ const MidtermShortcurt: React.FC = () => {
                         ([questionNo, sum], idx) => (
                           <tr key={questionNo}>
                             <td className="border border-gray-300 p-2 text-center">
-                              {(idx + 1).toString().padStart(2, "0")}
+                              {questionNo}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
-                              {questionNo}
+                              {(idx + 1).toString().padStart(2, "0")}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               {sum}
