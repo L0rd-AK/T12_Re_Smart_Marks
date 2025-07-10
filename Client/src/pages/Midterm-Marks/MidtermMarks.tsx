@@ -7,16 +7,21 @@ import {
     type Question,
     type StudentMarks,
 } from "../../types/types";
+import { 
+  useGetQuestionFormatsQuery,
+  useCreateQuestionFormatMutation,
+  useCreateStudentMarksMutation,
+  useGetStudentMarksQuery,
+  useUpdateStudentMarksMutation,
+  useDeleteStudentMarksMutation
+} from "../../redux/api/marksApi";
 
 const MidtermMarks: React.FC = () => {
-    const [questionFormats, setQuestionFormats] = useState<QuestionFormat[]>(
-        []
-    );
     const [selectedFormat, setSelectedFormat] = useState<QuestionFormat | null>(
         null
     );
     const [students, setStudents] = useState<StudentMarks[]>([]);
-    const [currentStudentName, setCurrentStudentName] = useState("");
+    const [currentStudentId, setCurrentStudentId] = useState("");
     const [currentMarksInput, setCurrentMarksInput] = useState("");
     const [isSetupMode, setIsSetupMode] = useState(true);
     const [newFormatName, setNewFormatName] = useState("");
@@ -26,63 +31,90 @@ const MidtermMarks: React.FC = () => {
         markIndex: number;
     } | null>(null);
 
-    // Load saved formats from localStorage on component mount
+    // API hooks
+    const { data: questionFormats = [], isLoading: formatsLoading } = useGetQuestionFormatsQuery();
+    const [createQuestionFormat] = useCreateQuestionFormatMutation();
+    const [createStudentMarks] = useCreateStudentMarksMutation();
+    const [updateStudentMarks] = useUpdateStudentMarksMutation();
+    const [deleteStudentMarks] = useDeleteStudentMarksMutation();
+    const { data: existingMarks = [], refetch: refetchMarks } = useGetStudentMarksQuery(
+        selectedFormat?.id || '',
+        { skip: !selectedFormat?.id }
+    );
+
+    // Load selected format from localStorage on component mount
     useEffect(() => {
-        const savedFormats = localStorage.getItem("questionFormats");
-        if (savedFormats) {
-            setQuestionFormats(JSON.parse(savedFormats));
+        const savedFormat = localStorage.getItem("selectedFormat");
+        if (savedFormat) {
+            const format = JSON.parse(savedFormat);
+            setSelectedFormat(format);
         }
     }, []);
 
-    // Save formats to localStorage whenever they change
+    // Load existing marks when format is selected
     useEffect(() => {
-        localStorage.setItem(
-            "questionFormats",
-            JSON.stringify(questionFormats)
-        );
-    }, [questionFormats]);
+        if (selectedFormat && existingMarks.length > 0) {
+            const midtermMarks = existingMarks.filter(mark => mark.examType === 'midterm');
+            setStudents(midtermMarks);
+        }
+    }, [selectedFormat, existingMarks]);
 
-    const createSimpleFormat = () => {
-        const format: QuestionFormat = {
-            id: Date.now().toString(),
-            name: "Simple Format (5 questions, 5 marks each)",
-            questions: [
-                { id: "1", label: "1", maxMark: 5 },
-                { id: "2", label: "2", maxMark: 5 },
-                { id: "3", label: "3", maxMark: 5 },
-                { id: "4", label: "4", maxMark: 5 },
-                { id: "5", label: "5", maxMark: 5 },
-            ],
-        };
-        setQuestionFormats((prev) => [...prev, format]);
-        setSelectedFormat(format);
-        localStorage.setItem("selectedFormat", JSON.stringify(format));
-        setIsSetupMode(false);
-        toast.success("Simple format created successfully!");
+    // Calculate total marks for the selected format
+    const totalMarks = selectedFormat?.questions.reduce((sum, q) => sum + q.maxMark, 0) || 0;
+
+    const createSimpleFormat = async () => {
+        try {
+            const format = await createQuestionFormat({
+                name: "Simple Format - Midterm (5 questions, 5 marks each)",
+                questions: [
+                    { label: "Q1", maxMark: 5 },
+                    { label: "Q2", maxMark: 5 },
+                    { label: "Q3", maxMark: 5 },
+                    { label: "Q4", maxMark: 5 },
+                    { label: "Q5", maxMark: 5 },
+                ],
+            }).unwrap();
+
+            setSelectedFormat(format);
+            localStorage.setItem("selectedFormat", JSON.stringify(format));
+            setIsSetupMode(false);
+            toast.success("Simple format created successfully!");
+        } catch (error) {
+            const errorMessage = error && typeof error === 'object' && 'data' in error
+                ? ((error.data as { message?: string })?.message || "Failed to create format")
+                : "Failed to create format";
+            toast.error(errorMessage);
+        }
     };
 
-    const createSubQuestionFormat = () => {
-        const format: QuestionFormat = {
-            id: Date.now().toString(),
-            name: "Sub-question Format",
-            questions: [
-                { id: "1a", label: "1a", maxMark: 3 },
-                { id: "1b", label: "1b", maxMark: 2 },
-                { id: "2a", label: "2a", maxMark: 3 },
-                { id: "2b", label: "2b", maxMark: 2 },
-                { id: "3", label: "3", maxMark: 5 },
-                { id: "4", label: "4", maxMark: 5 },
-                { id: "5", label: "5", maxMark: 5 },
-            ],
-        };
-        setQuestionFormats((prev) => [...prev, format]);
-        setSelectedFormat(format);
-        localStorage.setItem("selectedFormat", JSON.stringify(format));
-        setIsSetupMode(false);
-        toast.success("Sub-question format created successfully!");
+    const createSubQuestionFormat = async () => {
+        try {
+            const format = await createQuestionFormat({
+                name: "Sub-question Format - Midterm",
+                questions: [
+                    { label: "Q1a", maxMark: 3 },
+                    { label: "Q1b", maxMark: 2 },
+                    { label: "Q2a", maxMark: 3 },
+                    { label: "Q2b", maxMark: 2 },
+                    { label: "Q3", maxMark: 5 },
+                    { label: "Q4", maxMark: 5 },
+                    { label: "Q5", maxMark: 5 },
+                ],
+            }).unwrap();
+
+            setSelectedFormat(format);
+            localStorage.setItem("selectedFormat", JSON.stringify(format));
+            setIsSetupMode(false);
+            toast.success("Sub-question format created successfully!");
+        } catch (error) {
+            const errorMessage = error && typeof error === 'object' && 'data' in error
+                ? ((error.data as { message?: string })?.message || "Failed to create format")
+                : "Failed to create format";
+            toast.error(errorMessage);
+        }
     };
 
-    const addCustomFormat = () => {
+    const addCustomFormat = async () => {
         if (!newFormatName.trim() || newQuestions.length === 0) {
             toast.error(
                 "Please provide a format name and at least one question"
@@ -90,23 +122,28 @@ const MidtermMarks: React.FC = () => {
             return;
         }
 
-        const format: QuestionFormat = {
-            id: Date.now().toString(),
-            name: newFormatName,
-            questions: newQuestions,
-        };
-        setQuestionFormats((prev) => [...prev, format]);
-        setSelectedFormat(format);
-        localStorage.setItem("selectedFormat", JSON.stringify(format));
-        setIsSetupMode(false);
-        setNewFormatName("");
-        setNewQuestions([]);
-        toast.success("Custom format created successfully!");
+        try {
+            const format = await createQuestionFormat({
+                name: `${newFormatName} - Midterm`,
+                questions: newQuestions.map(q => ({ label: q.label, maxMark: q.maxMark })),
+            }).unwrap();
+
+            setSelectedFormat(format);
+            localStorage.setItem("selectedFormat", JSON.stringify(format));
+            setIsSetupMode(false);
+            setNewFormatName("");
+            setNewQuestions([]);
+            toast.success("Custom format created successfully!");
+        } catch (error) {
+            const errorMessage = error && typeof error === 'object' && 'data' in error
+                ? ((error.data as { message?: string })?.message || "Failed to create format")
+                : "Failed to create format";
+            toast.error(errorMessage);
+        }
     };
 
     const addQuestion = () => {
         const question: Question = {
-            id: `q${newQuestions.length + 1}`,
             label: `Q${newQuestions.length + 1}`,
             maxMark: 5,
         };
@@ -154,10 +191,10 @@ const MidtermMarks: React.FC = () => {
         return null;
     };
 
-    const addStudentMarks = () => {
+    const addStudentMarks = async () => {
         if (
             !selectedFormat ||
-            !currentStudentName.trim() ||
+            !currentStudentId ||
             !currentMarksInput.trim()
         ) {
             toast.error("Please fill in all fields");
@@ -172,25 +209,102 @@ const MidtermMarks: React.FC = () => {
             return;
         }
 
-        const total = marks.reduce((sum, mark) => sum + mark, 0);
-        const student: StudentMarks = {
-            id: Date.now().toString(),
-            name: currentStudentName,
-            marks,
-            total,
-        };
+        try {
+            console.log('Attempting to save student marks:', {
+                formatId: selectedFormat.id,
+                studentId: currentStudentId,
+                marks,
+                examType: 'midterm'
+            });
 
-        setStudents((prev) => [...prev, student]);
-        setCurrentStudentName("");
-        setCurrentMarksInput("");
-        toast.success(`Student ${currentStudentName} added successfully!`);
+            // Save to database
+            const savedMarks = await createStudentMarks({
+                formatId: selectedFormat.id,
+                // name: currentStudentName.trim(),
+                studentId: currentStudentId,
+                marks,
+                examType: 'midterm'
+            }).unwrap();
+
+            console.log('Successfully saved student marks:', savedMarks);
+
+            // Update local state first
+            setStudents((prev) => [...prev, savedMarks]);
+            setCurrentStudentId("");
+            setCurrentMarksInput("");
+
+            // Show success message
+            toast.success(`Student ${currentStudentId} added successfully!`);
+
+            // Refetch to get updated data (do this after showing success)
+            setTimeout(() => {
+                if (selectedFormat?.id) {
+                    refetchMarks();
+                }
+            }, 100);
+
+        } catch (error) {
+            console.error('Error saving student marks:', error);
+
+            // More detailed error handling
+            let errorMessage = "Failed to save student marks";
+
+            if (error && typeof error === 'object') {
+                if ('data' in error && error.data && typeof error.data === 'object') {
+                    const errorData = error.data as { message?: string; error?: string };
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } else if ('message' in error && typeof error.message === 'string') {
+                    errorMessage = error.message;
+                } else if ('status' in error) {
+                    errorMessage = `Server error (${error.status}): ${errorMessage}`;
+                }
+            }
+
+            toast.error(errorMessage);
+        }
     };
 
-    const removeStudent = (studentId: string) => {
-        setStudents((prev) => prev.filter((s) => s.id !== studentId));
+    const removeStudent = async (studentId: string) => {
+        try {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            await deleteStudentMarks({
+                id: studentId,
+                formatId: selectedFormat?.id || ''
+            }).unwrap();
+
+            setStudents((prev) => prev.filter((s) => s.id !== studentId));
+            toast.success("Student removed successfully!");
+
+            // Delay refetch to avoid race conditions
+            setTimeout(() => {
+                if (selectedFormat?.id) {
+                    refetchMarks();
+                }
+            }, 100);
+
+        } catch (error) {
+            console.error('Error removing student:', error);
+
+            let errorMessage = "Failed to remove student";
+
+            if (error && typeof error === 'object') {
+                if ('data' in error && error.data && typeof error.data === 'object') {
+                    const errorData = error.data as { message?: string; error?: string };
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } else if ('message' in error && typeof error.message === 'string') {
+                    errorMessage = error.message;
+                } else if ('status' in error) {
+                    errorMessage = `Server error (${error.status}): ${errorMessage}`;
+                }
+            }
+
+            toast.error(errorMessage);
+        }
     };
 
-    const updateStudentMark = (
+    const updateStudentMark = async (
         studentId: string,
         markIndex: number,
         newMark: number
@@ -203,23 +317,63 @@ const MidtermMarks: React.FC = () => {
             return;
         }
 
-        setStudents((prev) =>
-            prev.map((student) => {
-                if (student.id === studentId) {
-                    const updatedMarks = [...student.marks];
-                    updatedMarks[markIndex] = newMark;
-                    const newTotal = updatedMarks.reduce(
-                        (sum, mark) => sum + mark,
-                        0
-                    );
-                    return { ...student, marks: updatedMarks, total: newTotal };
-                }
-                return student;
-            })
-        );
+        try {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
 
-        setEditingCell(null);
-        toast.success("Mark updated successfully!");
+            const updatedMarks = [...student.marks];
+            updatedMarks[markIndex] = newMark;
+
+            await updateStudentMarks({
+                id: studentId,
+                formatId: selectedFormat.id,
+                // name: student.name,
+                studentId: student.studentId,
+                marks: updatedMarks,
+                examType: 'midterm'
+            }).unwrap();
+
+            setStudents((prev) =>
+                prev.map((s) => {
+                    if (s.id === studentId) {
+                        const newTotal = updatedMarks.reduce(
+                            (sum, mark) => sum + mark,
+                            0
+                        );
+                        return { ...s, marks: updatedMarks, total: newTotal, updatedAt: new Date().toISOString() };
+                    }
+                    return s;
+                })
+            );
+
+            setEditingCell(null);
+            toast.success("Mark updated successfully!");
+
+            // Delay refetch to avoid race conditions
+            setTimeout(() => {
+                if (selectedFormat?.id) {
+                    refetchMarks();
+                }
+            }, 100);
+
+        } catch (error) {
+            console.error('Error updating student mark:', error);
+
+            let errorMessage = "Failed to update mark";
+
+            if (error && typeof error === 'object') {
+                if ('data' in error && error.data && typeof error.data === 'object') {
+                    const errorData = error.data as { message?: string; error?: string };
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } else if ('message' in error && typeof error.message === 'string') {
+                    errorMessage = error.message;
+                } else if ('status' in error) {
+                    errorMessage = `Server error (${error.status}): ${errorMessage}`;
+                }
+            }
+
+            toast.error(errorMessage);
+        }
     };
 
     const exportToExcel = () => {
@@ -231,7 +385,7 @@ const MidtermMarks: React.FC = () => {
         // Prepare data for Excel
         const excelData = students.map((student) => {
             const row: Record<string, string | number> = {
-                "Student Name": student.name,
+                "Student Name": student.name!,
                 Total: student.total,
             };
 
@@ -339,35 +493,39 @@ const MidtermMarks: React.FC = () => {
                                 <h2 className="text-xl font-semibold mb-4">
                                     Saved Formats
                                 </h2>
-                                <div className="space-y-2">
-                                    {questionFormats.map((format) => (
-                                        <button
-                                            key={format.id}
-                                            onClick={() => {
-                                                setSelectedFormat(format);
-                                                localStorage.setItem(
-                                                    "selectedFormat",
-                                                    JSON.stringify(format)
-                                                );
-                                                setIsSetupMode(false);
-                                            }}
-                                            className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                        >
-                                            <div className="font-medium">
-                                                {format.name}
-                                            </div>
-                                            <div className="text-sm text-gray-600">
-                                                {format.questions.length}{" "}
-                                                questions,{" "}
-                                                {format.questions.reduce(
-                                                    (sum, q) => sum + q.maxMark,
-                                                    0
-                                                )}{" "}
-                                                total marks
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
+                                {formatsLoading ? (
+                                    <div className="text-center">Loading formats...</div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {questionFormats.map((format, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => {
+                                                    setSelectedFormat(format);
+                                                    localStorage.setItem(
+                                                        "selectedFormat",
+                                                        JSON.stringify(format)
+                                                    );
+                                                    setIsSetupMode(false);
+                                                }}
+                                                className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                            >
+                                                <div className="font-medium">
+                                                    {format.name}
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    {format.questions.length}{" "}
+                                                    questions,{" "}
+                                                    {format.questions.reduce(
+                                                        (sum, q) => sum + q.maxMark,
+                                                        0
+                                                    )}{" "}
+                                                    total marks
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -487,7 +645,7 @@ const MidtermMarks: React.FC = () => {
                                 Midterm Marks Entry
                             </h1>
                             <p className="text-gray-600">
-                                Format: {selectedFormat?.name}
+                                Format: {selectedFormat?.name} ({totalMarks} marks)
                             </p>
                         </div>
                         <div className="flex gap-2">
@@ -509,21 +667,16 @@ const MidtermMarks: React.FC = () => {
                     {/* Question Format Display */}
                     {selectedFormat && (
                         <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                            <h3 className="font-semibold text-blue-800 mb-2">
-                                Question Format:
+                            <h3 className="font-semibold mb-2">
+                                Question Format
                             </h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                                {selectedFormat.questions.map((question) => (
+                                {selectedFormat.questions.map((question, index) => (
                                     <div
-                                        key={question.id}
-                                        className="text-center p-2 bg-white rounded border"
+                                        key={index}
+                                        className="text-sm bg-white p-2 rounded border"
                                     >
-                                        <div className="font-medium">
-                                            {question.label}
-                                        </div>
-                                        <div className="text-sm text-gray-600">
-                                            Max: {question.maxMark}
-                                        </div>
+                                        {question.label}: {question.maxMark} marks
                                     </div>
                                 ))}
                             </div>
@@ -542,9 +695,9 @@ const MidtermMarks: React.FC = () => {
                                 </label>
                                 <input
                                     type="text"
-                                    value={currentStudentName}
+                                    value={currentStudentId}
                                     onChange={(e) =>
-                                        setCurrentStudentName(e.target.value)
+                                        setCurrentStudentId(e.target.value)
                                     }
                                     placeholder="Enter student ID"
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
@@ -575,14 +728,12 @@ const MidtermMarks: React.FC = () => {
                                 </button>
                             </div>
                         </div>
-                        {selectedFormat && (
-                            <p className="text-sm text-gray-600 mt-2">
-                                Expected format:{" "}
-                                {selectedFormat.questions
-                                    .map((q) => `${q.label}(${q.maxMark})`)
-                                    .join(" ")}
-                            </p>
-                        )}
+                        <div className="mt-2 text-sm text-gray-500">
+                            Expected format:{" "}
+                            {selectedFormat?.questions
+                                .map((q) => `${q.label}(${q.maxMark})`)
+                                .join(" ")}
+                        </div>
                     </div>
 
                     {/* Students Table */}
@@ -608,17 +759,28 @@ const MidtermMarks: React.FC = () => {
                                                 Student ID
                                             </th>
                                             {selectedFormat?.questions.map(
-                                                (question) => (
+                                                (question, index) => (
                                                     <th
-                                                        key={question.id}
+                                                        key={index}
                                                         className="border border-gray-300 p-2 text-center"
                                                     >
                                                         {question.label}
+                                                        <br />
+                                                        <span className="text-xs text-gray-500">
+                                                            /{question.maxMark}
+                                                        </span>
                                                     </th>
                                                 )
                                             )}
-                                            <th className="border border-gray-300 p-2 text-center font-bold">
+                                            <th className="border border-gray-300 p-2 text-center">
                                                 Total
+                                                <br />
+                                                <span className="text-xs text-gray-500">
+                                                    /{totalMarks}
+                                                </span>
+                                            </th>
+                                            <th className="border border-gray-300 p-2 text-center">
+                                                %
                                             </th>
                                             <th className="border border-gray-300 p-2 text-center">
                                                 Actions
@@ -626,13 +788,13 @@ const MidtermMarks: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {students.map((student) => (
+                                        {students.map((student, idx) => (
                                             <tr
-                                                key={student.id}
+                                                key={idx}
                                                 className="hover:bg-gray-50"
                                             >
                                                 <td className="border border-gray-300 p-2 font-medium">
-                                                    {student.name}
+                                                    {student.studentId}
                                                 </td>
                                                 {student.marks.map(
                                                     (mark, index) => (
@@ -641,9 +803,9 @@ const MidtermMarks: React.FC = () => {
                                                             className="border border-gray-300 p-2 text-center"
                                                         >
                                                             {editingCell &&
-                                                            editingCell.studentId ===
+                                                                editingCell.studentId ===
                                                                 student.id &&
-                                                            editingCell.markIndex ===
+                                                                editingCell.markIndex ===
                                                                 index ? (
                                                                 <input
                                                                     type="number"
@@ -729,6 +891,14 @@ const MidtermMarks: React.FC = () => {
                                                 )}
                                                 <td className="border border-gray-300 p-2 text-center font-bold bg-blue-50">
                                                     {student.total}
+                                                </td>
+                                                <td className="border border-gray-300 p-2 text-center font-bold bg-blue-50">
+                                                     {(
+                                                        (student.marks.reduce((sum, mark) => sum + mark, 0) /
+                                                            totalMarks) *
+                                                        100
+                                                    ).toFixed(1)}
+                                                    %
                                                 </td>
                                                 <td className="border border-gray-300 p-2 text-center">
                                                     <button
