@@ -21,6 +21,7 @@ const AssignmentShortcut = lazy(() => import("../pages/Assignment-Marks/Assignme
 const PresentationMarks = lazy(() => import("../pages/Presentation-Marks/PresentationMarks"));
 const PresentationShortcut = lazy(() => import("../pages/Presentation-Marks/PresentationShortcut"));
 const StudentMarksSummary = lazy(() => import("../pages/Student-Marks/StudentMarksSummary"));
+const Profile = lazy(() => import("../pages/Profile/Profile"));
 
 // Wrapper component for Suspense - returns a component, not JSX
 const withSuspense = (Component: React.ComponentType) => {
@@ -111,6 +112,10 @@ export const router = createBrowserRouter([
             {
                 path: "verify-email",
                 Component: withSuspense(VerifyEmail),
+            },
+            {
+                path: "profile",
+                Component: withSuspense(Profile),
             },
         ],
     },
