@@ -120,8 +120,10 @@ const MidtermShortcurt: React.FC = () => {
           // Convert entry list to marks array matching the format
           const marks = selectedFormat.questions.map(question => {
             const entry = entryList.find(e => e.q === question.label);
+            //console.log(entryList)
             return entry ? entry.mark : 0;
           });
+          console.log(marks)
 
           const total = marks.reduce((sum, mark) => sum + mark, 0);
 
