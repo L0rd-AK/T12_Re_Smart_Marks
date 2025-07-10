@@ -131,7 +131,7 @@ const MidtermShortcurt: React.FC = () => {
 
           // Log the data being sent
           const requestData = {
-            // formatId: selectedFormat.id,
+            formatId: selectedFormat._id,
             studentId: studentId.trim(),
             marks,
             examType: 'midterm' as const
