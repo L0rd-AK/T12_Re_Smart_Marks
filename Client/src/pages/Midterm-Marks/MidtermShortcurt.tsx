@@ -313,7 +313,7 @@ const MidtermShortcurt: React.FC = () => {
                     </thead>
                     <tbody>
                       {Object.entries(questionSums).map(
-                        ([questionNo, sum], idx) => (
+                        ([questionNo, sum]) => (
                           <tr key={questionNo}>
                             <td className="border border-gray-300 p-2 text-center">
                               {questionNo}
