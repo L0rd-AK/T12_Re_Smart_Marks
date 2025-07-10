@@ -10,7 +10,7 @@ const Register = lazy(() => import("../pages/Auth/Register"));
 const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
 const VerifyEmail = lazy(() => import("../pages/Auth/VerifyEmail"));
-const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
+// const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
 const MidtermShortcurt = lazy(() => import("../pages/Midterm-Marks/MidtermShortcurt"));
 const FinalMarks = lazy(() => import("../pages/Final-Marks/FinalMarks"));
 const FinalMarksShortcut = lazy(() => import("../pages/Final-Marks/FinalMarksShortcut"));
