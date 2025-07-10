@@ -14,6 +14,16 @@ const links = (
         <li>
             <NavLink to="/final-marks">Assign Final Marks</NavLink>
         </li>
+        <li>
+            <NavLink to="/assignment-marks">Assign Assignment Marks</NavLink>
+        </li>
+        <li>
+            <NavLink to="/presentation-marks">Assign Presentation Marks</NavLink>
+        </li>
+
+        <li>
+            <NavLink to="/student-marks-summary">Student Marks Summary</NavLink>
+        </li>
     </>
 );
 
