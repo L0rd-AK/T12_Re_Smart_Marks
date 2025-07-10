@@ -42,12 +42,12 @@ export const router = createBrowserRouter([
             },
             {
                 path: "midterm-marks",
-                Component: withSuspense(MidtermMarks),
-            },
-            {
-                path: "midterm-shortcut",
                 Component: withSuspense(MidtermShortcurt),
             },
+            // {
+            //     path: "midterm-shortcut",
+            //     Component: withSuspense(MidtermShortcurt),
+            // },
             {
                 path: "quiz-marks",
                 Component: withSuspense(QuizMarks),
