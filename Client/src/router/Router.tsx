@@ -12,7 +12,7 @@ const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword"));
 const VerifyEmail = lazy(() => import("../pages/Auth/VerifyEmail"));
 // const MidtermMarks = lazy(() => import("../pages/Midterm-Marks/MidtermMarks"));
 const MidtermShortcurt = lazy(() => import("../pages/Midterm-Marks/MidtermShortcurt"));
-const FinalMarks = lazy(() => import("../pages/Final-Marks/FinalMarks"));
+// const FinalMarks = lazy(() => import("../pages/Final-Marks/FinalMarks"));
 const FinalMarksShortcut = lazy(() => import("../pages/Final-Marks/FinalMarksShortcut"));
 const QuizMarks = lazy(() => import("../pages/Quiz-Marks/QuizMarks"));
 const QuizShortcut = lazy(() => import("../pages/Quiz-Marks/QuizShortcurt"));
@@ -85,10 +85,10 @@ export const router = createBrowserRouter([
                 path: "student-marks-summary",
                 Component: withSuspense(StudentMarksSummary),
             },
-            {
-                path: "final-marks",
-                Component: withSuspense(FinalMarks),
-            },
+            // {
+            //     path: "final-marks",
+            //     Component: withSuspense(FinalMarks),
+            // },
             {
                 path: "final-shortcut",
                 Component: withSuspense(FinalMarksShortcut),
