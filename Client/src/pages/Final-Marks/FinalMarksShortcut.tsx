@@ -6,10 +6,286 @@ import { type QuestionFormat } from "../../types/types";
 import {
   useGetQuestionFormatsQuery,
   useCreateStudentMarksMutation,
-  useGetStudentMarksQuery
+  useGetStudentMarksQuery,
 } from "../../redux/api/marksApi";
 
 const FinalMarksShortcut: React.FC = () => {
+  const [selectedFormat, setSelectedFormat] = useState<QuestionFormat | null>(
+    null
+  );
+  const [studentId, setStudentId] = useState("");
+  const [questionInput, setQuestionInput] = useState("");
+  const [markInput, setMarkInput] = useState("");
+  const [entryList, setEntryList] = useState<
+    Array<{ q: string; mark: number }>
+  >([]);
+  const [results, setResults] = useState<
+    Array<{
+      id: string;
+      summary: Array<{ q: string; mark: number }>;
+      total: number;
+    }>
+  >([]);
+  const [step, setStep] = useState<"student" | "question" | "mark">("student");
+
+  // API hooks
+  const { data: questionFormats = [], isLoading: formatsLoading } =
+    useGetQuestionFormatsQuery();
+  const [createStudentMarks] = useCreateStudentMarksMutation();
+  const { data: existingMarks = [], refetch: refetchMarks } =
+    useGetStudentMarksQuery(selectedFormat?._id || "", {
+      skip: !selectedFormat?._id,
+    });
+
+  // Input refs
+  const studentIdRef = useRef<HTMLInputElement>(null);
+  const questionInputRef = useRef<HTMLInputElement>(null);
+  const markInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus management
+  useEffect(() => {
+    if (step === "student" && studentIdRef.current)
+      studentIdRef.current.focus();
+    if (step === "question" && questionInputRef.current)
+      questionInputRef.current.focus();
+    if (step === "mark" && markInputRef.current) markInputRef.current.focus();
+  }, [step]);
+
+  // Load selected format from localStorage on mount and load existing marks
+  useEffect(() => {
+    const saved = localStorage.getItem("selectedFinalFormat");
+    if (saved) {
+      const format = JSON.parse(saved);
+      setSelectedFormat(format);
+    }
+  }, []);
+
+  // Load existing marks when format is selected
+  useEffect(() => {
+    if (selectedFormat && existingMarks.length > 0) {
+      // Convert existing marks to results format
+      const convertedResults = existingMarks
+        .filter((mark) => mark.examType === "final")
+        .map((mark) => {
+          const summary = mark.marks.map((markValue, index) => ({
+            q: selectedFormat.questions[index]?.label || `${index + 1}`,
+            mark: markValue,
+          }));
+          return {
+            id: mark.studentId,
+            summary,
+            total: mark.total,
+          };
+        });
+      setResults(convertedResults);
+    }
+  }, [selectedFormat, existingMarks]);
+
+  // Handle student ID input
+  const handleStudentId = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      if (!studentId.trim()) {
+        toast.error("Student ID required");
+        return;
+      }
+      // Check against both local results and existing marks from database
+      const isDuplicateLocal = results.some((r) => r.id === studentId.trim());
+      const isDuplicateDb = existingMarks.some(
+        (mark) =>
+          mark.studentId === studentId.trim() && mark.examType === "final"
+      );
+
+      if (isDuplicateLocal || isDuplicateDb) {
+        toast.error("Duplicate Student ID!");
+        return;
+      }
+      setStep("question");
+    }
+  };
+
+  // Handle question input
+  const handleQuestionInput = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      const qLabel = questionInput.trim();
+      if (qLabel === "0") {
+        // Finish student entry
+        if (entryList.length === 0) {
+          toast.error("No marks entered");
+          return;
+        }
+        if (!selectedFormat) {
+          toast.error("No format selected");
+          return;
+        }
+
+        try {
+          // Convert entry list to marks array matching the format
+          const marks = selectedFormat.questions.map((question) => {
+            // Try to match by the number part of the question label
+            const questionNumber = question.label.replace("Q", "");
+            const entry = entryList.find((e) => e.q === questionNumber);
+            return entry ? entry.mark : 0;
+          });
+
+          const total = marks.reduce((sum, mark) => sum + mark, 0);
+
+          // Save to database
+          await createStudentMarks({
+            formatId: selectedFormat._id,
+            studentId: studentId.trim(),
+            marks,
+            examType: "final" as const,
+          }).unwrap();
+
+          // Update local results
+          setResults((prev) => [
+            ...prev,
+            {
+              id: studentId.trim(),
+              summary: entryList.map((e) => ({ q: e.q, mark: e.mark })),
+              total,
+            },
+          ]);
+
+          setStudentId("");
+          setEntryList([]);
+          setQuestionInput("");
+          setMarkInput("");
+          setStep("student");
+          toast.success("Student saved to database!");
+
+          // Refetch to get updated data
+          refetchMarks();
+        } catch (error) {
+          console.error("Error saving to API:", error);
+          const errorMessage =
+            error && typeof error === "object" && "data" in error
+              ? (error.data as { message?: string })?.message ||
+                "Failed to save student marks"
+              : "Failed to save student marks";
+          toast.error(errorMessage);
+        }
+        return;
+      }
+      // Fix: allow numeric input if format label is a string number
+      const valid = selectedFormat?.questions.some(
+        (q) => String(q.label.split("Q")[1]) === qLabel
+      );
+      if (!valid) {
+        toast.error("Invalid question label");
+        return;
+      }
+      setStep("mark");
+    }
+  };
+
+  // Handle mark input
+  const handleMarkInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const markVal = markInput.trim();
+      if (markVal === "-1") {
+        setStep("question");
+        setQuestionInput("");
+        setMarkInput("");
+        return;
+      }
+      const num = parseFloat(markVal);
+      const qLabel = questionInput.trim();
+      const qObj = selectedFormat?.questions.find(
+        (q) => q.label.split("Q")[1] === qLabel
+      );
+      if (!qObj) {
+        toast.error("Invalid question label");
+        return;
+      }
+      if (isNaN(num) || num < 0 || num > qObj.maxMark) {
+        toast.error(`Mark should be between 0 and ${qObj.maxMark}`);
+        return;
+      }
+      setEntryList((prev) => [...prev, { q: qLabel, mark: num }]);
+      setMarkInput("");
+    }
+  };
+
+  // Export to Excel
+  const exportToExcel = () => {
+    // Combine local results with existing marks from database
+    const allResults = [...results];
+
+    // Add existing marks that aren't already in local results
+    existingMarks
+      .filter((mark) => mark.examType === "final")
+      .forEach((mark) => {
+        const existsInLocal = results.some((r) => r.id === mark.studentId);
+        if (!existsInLocal && selectedFormat) {
+          const summary = mark.marks.map((markValue, index) => ({
+            q: selectedFormat.questions[index]?.label || `${index + 1}`,
+            mark: markValue,
+          }));
+          allResults.push({
+            id: mark.studentId,
+            summary,
+            total: mark.total,
+          });
+        }
+      });
+
+    if (allResults.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    // Get all unique question labels from all students
+    const allQuestions = Array.from(
+      new Set(allResults.flatMap((s) => s.summary.map((e) => e.q)))
+    );
+    // Prepare data rows
+    const excelData = allResults.map((student) => {
+      const row: Record<string, string | number> = {
+        ID: student.id,
+      };
+      // For each question, join all marks as comma-separated string
+      let total = 0;
+      allQuestions.forEach((q) => {
+        const marks = student.summary
+          .filter((e) => e.q === q)
+          .map((e) => e.mark);
+        row[`Q${q}`] = marks.length > 0 ? marks.join(", ") : "";
+        total += marks.reduce((a, b) => a + b, 0);
+      });
+      row["Total"] = total;
+      return row;
+    });
+    // Write to Excel
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    ws["!cols"] = [
+      { wch: 20 },
+      ...allQuestions.map(() => ({ wch: 10 })),
+      { wch: 10 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, "Final Shortcut");
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const data = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(
+      data,
+      `final-shortcut-${new Date().toISOString().split("T")[0]}.xlsx`
+    );
+    toast.success("Excel file exported successfully!");
+  };
+
+  // Calculate summary only when entryList changes
+  const questionSums = React.useMemo(() => {
+    const sums: Record<string, number> = {};
+    entryList.forEach((entry) => {
+      sums[entry.q] = (sums[entry.q] || 0) + entry.mark;
+    });
+    return sums;
+  }, [entryList]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 text-black">
@@ -27,69 +303,69 @@ const FinalMarksShortcut: React.FC = () => {
 
           {/* Live Summary Table (moved above input fields) */}
           {Object.keys(questionSums).length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-semibold text-blue-800 mb-2">
-                  Live Entry Summary
-                </h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-300 p-2 text-center">
-                          Question No
-                        </th>
-                        <th className="border border-gray-300 p-2 text-center">
-                          Detailed View
-                        </th>
-                        <th className="border border-gray-300 p-2 text-center">
-                          Sum
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(questionSums).map(
-                        ([questionNo, sum]) => (
-                          <tr key={questionNo}>
-                            <td className="border border-gray-300 p-2 text-center">
-                              {questionNo}
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              {entryList?.map((e) => (
-                                (questionNo===e.q?<span key={e.q}>
-                                  <span className="font-bold">{e.mark}</span>,
-                                </span>
-                              : <span key={e.q}></span>
-                              )
-                              ))}
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              {sum}
-                            </td>
-                          </tr>
-                        )
-                      )}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-gray-100">
-                        <td
-                          className="border border-gray-300 p-2 text-center"
-                          colSpan={2}
-                        >
-                          <strong>Total</strong>
+            <div className="mb-6">
+              <h3 className="font-semibold text-blue-800 mb-2">
+                Live Entry Summary
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2 text-center">
+                        Question No
+                      </th>
+                      <th className="border border-gray-300 p-2 text-center">
+                        Detailed View
+                      </th>
+                      <th className="border border-gray-300 p-2 text-center">
+                        Sum
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(questionSums).map(([questionNo, sum]) => (
+                      <tr key={questionNo}>
+                        <td className="border border-gray-300 p-2 text-center">
+                          {questionNo}
                         </td>
                         <td className="border border-gray-300 p-2 text-center">
-                          <strong>
-                            {Object.values(questionSums).reduce(
-                              (acc, val) => acc + val,
-                              0
-                            )}
-                          </strong>
+                          {entryList?.map((e) =>
+                            questionNo === e.q ? (
+                              <span key={e.q}>
+                                <span className="font-bold">{e.mark}</span>,
+                              </span>
+                            ) : (
+                              <span key={e.q}></span>
+                            )
+                          )}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-center">
+                          {sum}
                         </td>
                       </tr>
-                    </tfoot>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100">
+                      <td
+                        className="border border-gray-300 p-2 text-center"
+                        colSpan={2}
+                      >
+                        <strong>Total</strong>
+                      </td>
+                      <td className="border border-gray-300 p-2 text-center">
+                        <strong>
+                          {Object.values(questionSums).reduce(
+                            (acc, val) => acc + val,
+                            0
+                          )}
+                        </strong>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
+            </div>
           )}
 
           <h1 className="text-3xl font-bold text-gray-800 mb-6">
@@ -106,7 +382,8 @@ const FinalMarksShortcut: React.FC = () => {
                 <div className="text-center">Loading formats...</div>
               ) : questionFormats.length === 0 ? (
                 <div className="text-center text-gray-600">
-                  No question formats found. Please create a format first in the standard entry page.
+                  No question formats found. Please create a format first in the
+                  standard entry page.
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -115,14 +392,21 @@ const FinalMarksShortcut: React.FC = () => {
                       key={format._id}
                       onClick={() => {
                         setSelectedFormat(format);
-                        localStorage.setItem("selectedFinalFormat", JSON.stringify(format));
+                        localStorage.setItem(
+                          "selectedFinalFormat",
+                          JSON.stringify(format)
+                        );
                       }}
                       className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-blue-100 transition-colors"
                     >
                       <div className="font-medium">{format.name}</div>
                       <div className="text-sm text-gray-600">
-                        {format.questions.length} questions, {' '}
-                        {format.questions.reduce((sum, q) => sum + q.maxMark, 0)} total marks
+                        {format.questions.length} questions,{" "}
+                        {format.questions.reduce(
+                          (sum, q) => sum + q.maxMark,
+                          0
+                        )}{" "}
+                        total marks
                       </div>
                     </button>
                   ))}
@@ -211,11 +495,19 @@ const FinalMarksShortcut: React.FC = () => {
           )}
 
           {/* Results Table */}
-          {(results.length > 0 || existingMarks.some(mark => mark.examType === 'final')) && (
+          {(results.length > 0 ||
+            existingMarks.some((mark) => mark.examType === "final")) && (
             <div className="mt-8">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold">
-                  Results Table ({results.length + existingMarks.filter(mark => mark.examType === 'final' && !results.some(r => r.id === mark.studentId)).length} students)
+                  Results Table (
+                  {results.length +
+                    existingMarks.filter(
+                      (mark) =>
+                        mark.examType === "final" &&
+                        !results.some((r) => r.id === mark.studentId)
+                    ).length}{" "}
+                  students)
                 </h3>
                 <button
                   onClick={exportToExcel}
@@ -286,9 +578,16 @@ const FinalMarksShortcut: React.FC = () => {
 
                     {/* Existing marks from database (not in current session) */}
                     {existingMarks
-                      .filter(mark => mark.examType === 'final' && !results.some(r => r.id === mark.studentId))
+                      .filter(
+                        (mark) =>
+                          mark.examType === "final" &&
+                          !results.some((r) => r.id === mark.studentId)
+                      )
                       .map((mark) => (
-                        <tr key={mark.id} className="hover:bg-gray-50 bg-gray-25">
+                        <tr
+                          key={mark.id}
+                          className="hover:bg-gray-50 bg-gray-25"
+                        >
                           <td className="border border-gray-300 p-2 font-medium">
                             {mark.studentId}
                           </td>
@@ -297,7 +596,9 @@ const FinalMarksShortcut: React.FC = () => {
                               key={q.label}
                               className="border border-gray-300 p-2 text-center"
                             >
-                              {mark.marks[index] !== undefined ? mark.marks[index] : ''}
+                              {mark.marks[index] !== undefined
+                                ? mark.marks[index]
+                                : ""}
                             </td>
                           ))}
                           <td className="border border-gray-300 p-2 text-center font-bold bg-green-50">
@@ -320,18 +621,22 @@ const FinalMarksShortcut: React.FC = () => {
 
                 // Add existing marks that aren't already in local results
                 existingMarks
-                  .filter(mark => mark.examType === 'final')
-                  .forEach(mark => {
-                    const existsInLocal = results.some(r => r.id === mark.studentId);
+                  .filter((mark) => mark.examType === "final")
+                  .forEach((mark) => {
+                    const existsInLocal = results.some(
+                      (r) => r.id === mark.studentId
+                    );
                     if (!existsInLocal && selectedFormat) {
                       const summary = mark.marks.map((markValue, index) => ({
-                        q: selectedFormat.questions[index]?.label || `${index + 1}`,
-                        mark: markValue
+                        q:
+                          selectedFormat.questions[index]?.label ||
+                          `${index + 1}`,
+                        mark: markValue,
                       }));
                       allResults.push({
                         id: mark.studentId,
                         summary,
-                        total: mark.total
+                        total: mark.total,
                       });
                     }
                   });
@@ -349,8 +654,8 @@ const FinalMarksShortcut: React.FC = () => {
                 });
                 const average = totals.length
                   ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(
-                    2
-                  )
+                      2
+                    )
                   : 0;
                 const highest = totals.length ? Math.max(...totals) : 0;
                 const lowest = totals.length ? Math.min(...totals) : 0;
