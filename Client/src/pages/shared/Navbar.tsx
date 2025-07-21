@@ -6,24 +6,15 @@ import toast from "react-hot-toast";
 const links = (
     <>
         <li>
-            <NavLink to="/quiz-marks">Assign Quiz Marks</NavLink>
+            <NavLink to="/marks-entry">Marks Entry</NavLink>
         </li>
         <li>
-            <NavLink to="/midterm-marks">Assign Midterm Marks</NavLink>
+            <NavLink to="/document-submission">Document Submission</NavLink>
         </li>
         <li>
-            <NavLink to="/final-shortcut">Assign Final Marks</NavLink>
-        </li>
-        <li>
-            <NavLink to="/assignment-marks">Assign Assignment Marks</NavLink>
-        </li>
-        <li>
-            <NavLink to="/presentation-marks">Assign Presentation Marks</NavLink>
+            <NavLink to="/document-submissions">My Submissions</NavLink>
         </li>
 
-        <li>
-            <NavLink to="/student-marks-summary">Student Marks Summary</NavLink>
-        </li>
     </>
 );
 
