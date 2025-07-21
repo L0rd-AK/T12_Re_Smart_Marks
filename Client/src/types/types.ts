@@ -1,5 +1,6 @@
 export interface QuestionFormat {
     _id: string;
+    id: string;
     name: string;
     questions: Question[];
     createdBy: string;
@@ -18,7 +19,7 @@ export interface StudentMarks {
     studentId: string;
     marks: number[]; // For midterm/final: array of marks per question; For others: single mark in array
     total: number;
-    examType: 'quiz' | 'midterm' | 'final' | 'assignment' | 'presentation' | 'attendance';
+    examType: 'quiz' | 'midterm' | 'final' | 'assignment' | 'presentation' ;
     formatId?: string; // Optional - only for midterm/final
     maxMark?: number; // For quiz/assignment/presentation - the maximum possible mark
     createdBy: string;
@@ -32,8 +33,49 @@ export interface SimpleMarkEntry {
     name: string;
     mark: number;
     maxMark: number;
-    examType: 'quiz' | 'assignment' | 'presentation' | 'attendance';
+    examType: 'quiz' | 'assignment' | 'presentation' ;
     createdBy: string;
     createdAt: string;
     updatedAt: string;
   }
+
+// Mark Entry Types
+export type MarkEntryType = 'assignment' | 'presentation' | 'quiz' | 'midterm' | 'final';
+
+export interface AssignmentMarks {
+  relevantKnowledge: number; // 1 mark
+  problemStatement: number; // 1 mark
+  appropriateMethod: number; // 2 marks
+  findingsSolution: number; // 1 mark
+}
+
+export interface PresentationMarks {
+  getupOutfit: number; // 0.8 marks
+  bodyLanguage: number; // 0.8 marks
+  englishCommunication: number; // 0.8 marks
+  eyeContact: number; // 0.8 marks
+  knowledgeContent: number; // 3.2 marks
+  handlingQA: number; // 1.6 marks
+}
+
+export interface QuizEntry {
+  studentId: string;
+  mark: number;
+}
+
+export interface StudentMarkEntry {
+  studentId: string;
+  marks: number[];
+  total: number;
+}
+
+export interface MarkEntryState {
+  type: MarkEntryType | null;
+  currentStudentId: string;
+  currentQuestionNumber: number;
+  questionFormat: QuestionFormat | null;
+  selectedQuizNumber: number;
+  tempMarks: { [key: string]: number[] };
+  savedMarks: StudentMarkEntry[];
+  quizMarks: { [studentId: string]: { quiz1?: number; quiz2?: number; quiz3?: number; average?: number } };
+}
