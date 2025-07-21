@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import authRoutes from "./routes/auth";
 import marksRoutes from "./routes/marks";
+import googleDriveRoutes from "./routes/googleDrive";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app: Application = express();
@@ -29,6 +30,7 @@ app.get("/", (req: Request, res: Response) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/marks", marksRoutes);
+app.use("/api/google-drive", googleDriveRoutes);
 
 // Global error handler
 app.use(errorHandler);
