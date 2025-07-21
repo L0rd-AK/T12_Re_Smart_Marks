@@ -1,6 +1,7 @@
 import { GraduationCap, BarChart3, Users, Shield, ChevronRight, Star } from 'lucide-react';
 
 const Home = () => {
+   
     return (
         <main className="min-h-screen bg-gray-900 relative overflow-hidden">
             {/* Background decorative elements */}
@@ -24,10 +25,12 @@ const Home = () => {
                         </p>
                         
                         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                            <a href="/marks-entry">
                             <button className="group px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2">
                                 Get Started
                                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </button>
+                            </a>
                             <button className="px-8 py-4 border-2 border-purple-500 text-purple-400 font-semibold rounded-xl hover:bg-purple-500 hover:text-white transition-all duration-300 hover:shadow-md">
                                 Learn More
                             </button>
