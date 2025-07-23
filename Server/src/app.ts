@@ -5,6 +5,7 @@ import helmet from "helmet";
 import authRoutes from "./routes/auth";
 import marksRoutes from "./routes/marks";
 import googleDriveRoutes from "./routes/googleDrive";
+import adminRoutes from "./routes/admin";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app: Application = express();
@@ -31,6 +32,7 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/marks", marksRoutes);
 app.use("/api/google-drive", googleDriveRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Global error handler
 app.use(errorHandler);
