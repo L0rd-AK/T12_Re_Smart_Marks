@@ -9,6 +9,10 @@ export interface IUser extends Document {
   avatar?: string;
   isEmailVerified: boolean;
   role: 'user' | 'admin';
+  isBlocked: boolean;
+  blockedAt?: Date;
+  blockedBy?: mongoose.Types.ObjectId;
+  blockReason?: string;
   googleId?: string;
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
@@ -67,6 +71,23 @@ const userSchema = new Schema<IUser>({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  isBlocked: {
+    type: Boolean,
+    default: false
+  },
+  blockedAt: {
+    type: Date,
+    default: null
+  },
+  blockedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  blockReason: {
+    type: String,
+    default: null
+  },
   googleId: {
     type: String,
     sparse: true // Allows multiple null values but ensures uniqueness for non-null values
@@ -117,12 +138,12 @@ userSchema.index({ passwordResetToken: 1 });
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  
+
   if (this.password) {
     const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12');
     this.password = await bcrypt.hash(this.password, saltRounds);
   }
-  
+
   next();
 });
 
@@ -136,10 +157,10 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
 userSchema.methods.generateEmailVerificationToken = function(): string {
   const crypto = require('crypto');
   const token = crypto.randomBytes(32).toString('hex');
-  
+
   this.emailVerificationToken = crypto.createHash('sha256').update(token).digest('hex');
   this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  
+
   return token;
 };
 
@@ -147,10 +168,10 @@ userSchema.methods.generateEmailVerificationToken = function(): string {
 userSchema.methods.generatePasswordResetToken = function(): string {
   const crypto = require('crypto');
   const token = crypto.randomBytes(32).toString('hex');
-  
+
   this.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
   this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  
+
   return token;
 };
 
