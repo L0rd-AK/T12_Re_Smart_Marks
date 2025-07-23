@@ -3,7 +3,7 @@ import { useAppSelector } from "../../redux/hooks";
 import { useLogoutMutation } from "../../redux/api/authApi";
 import toast from "react-hot-toast";
 
-const links = (
+const links = (user?: any) => (
     <>
         <li>
             <NavLink to="/marks-entry">Marks Entry</NavLink>
@@ -14,7 +14,16 @@ const links = (
         <li>
             <NavLink to="/document-submissions">My Submissions</NavLink>
         </li>
-
+        {user?.role === 'module-leader' && (
+                <li>
+                    <NavLink to="/module-leader">Module Leader</NavLink>
+                </li>
+        )}
+        {user?.role === 'admin' && (
+            <li>
+                <NavLink to="/admin">Admin Dashboard</NavLink>
+            </li>
+        )} 
     </>
 );
 
@@ -69,7 +78,7 @@ const NavbarRTK = () => {
                         tabIndex={0}
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
                     >
-                        {links}
+                        {links(user)}
                     </ul>
                 </div>
                 <NavLink to="/" className="btn btn-ghost text-xl">
@@ -78,7 +87,7 @@ const NavbarRTK = () => {
             </div>
 
             <div className="navbar-center hidden lg:flex">
-                <ul className="menu menu-horizontal px-1">{links}</ul>
+                <ul className="menu menu-horizontal px-1">{links(user)}</ul>
             </div>
 
             <div className="navbar-end">

@@ -14,7 +14,7 @@ declare global {
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.cookies.accessToken || req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       res.status(401).json({ message: 'Access token required' });
       return;
@@ -22,9 +22,19 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     const decoded = JWTService.verifyAccessToken(token);
     const user = await User.findById(decoded.userId).select('+refreshTokens');
-    
+
     if (!user) {
       res.status(401).json({ message: 'User not found' });
+      return;
+    }
+
+    // Check if user is blocked
+    if (user.isBlocked) {
+      res.status(403).json({
+        message: 'Account has been blocked',
+        reason: user.blockReason || 'No reason provided',
+        blockedAt: user.blockedAt
+      });
       return;
     }
 
@@ -39,13 +49,13 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.cookies.accessToken || req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (token) {
       const decoded = JWTService.verifyAccessToken(token);
       const user = await User.findById(decoded.userId);
       req.user = user || undefined;
     }
-    
+
     next();
   } catch (error) {
     // Continue without authentication for optional auth
@@ -55,9 +65,9 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
 
 export const requireEmailVerification = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user?.isEmailVerified) {
-    res.status(403).json({ 
+    res.status(403).json({
       message: 'Email verification required',
-      requiresEmailVerification: true 
+      requiresEmailVerification: true
     });
     return;
   }

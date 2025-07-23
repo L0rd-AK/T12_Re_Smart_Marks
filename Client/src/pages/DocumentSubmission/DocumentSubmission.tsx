@@ -566,6 +566,7 @@ const DocumentSubmission: React.FC = () => {
                                                     {getFileTypeDisplayName(fileType)}
                                                 </label>
                                                 <input
+                                                    placeholder='Select file...'
                                                     type="file"
                                                     id={`${fileType}-${doc.id}`}
                                                     onChange={(e) => {
@@ -603,6 +604,7 @@ const DocumentSubmission: React.FC = () => {
                                 {/* Status Dropdown */}
                                 <td className="border border-gray-300 p-3 text-center">
                                     <select
+                                        title='Select status'
                                         value={doc.status}
                                         onChange={(e) => handleStatusChange(doc.id, e.target.value as 'yes' | 'no', category)}
                                         className="w-20 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
@@ -626,6 +628,7 @@ const DocumentSubmission: React.FC = () => {
                                                     </span>
                                                     <div className="flex items-center">
                                                         <input
+                                                            placeholder='Select file...'
                                                             type="checkbox"
                                                             checked={hasFile}
                                                             readOnly
