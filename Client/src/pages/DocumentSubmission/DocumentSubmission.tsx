@@ -628,6 +628,7 @@ const DocumentSubmission: React.FC = () => {
                                                     </span>
                                                     <div className="flex items-center">
                                                         <input
+                                                            placeholder='Select file...'
                                                             type="checkbox"
                                                             checked={hasFile}
                                                             readOnly
