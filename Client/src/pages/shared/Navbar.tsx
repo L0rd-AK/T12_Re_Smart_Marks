@@ -14,11 +14,16 @@ const links = (user?: any) => (
         <li>
             <NavLink to="/document-submissions">My Submissions</NavLink>
         </li>
-        {/* {user?.role === 'admin' && ( */}
+        {user?.role === 'module-leader' && (
+                <li>
+                    <NavLink to="/module-leader">Module Leader</NavLink>
+                </li>
+        )}
+        {user?.role === 'admin' && (
             <li>
                 <NavLink to="/admin">Admin Dashboard</NavLink>
             </li>
-        {/* )} */}
+        )} 
     </>
 );
 
