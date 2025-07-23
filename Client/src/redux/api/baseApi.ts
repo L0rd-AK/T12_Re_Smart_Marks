@@ -41,18 +41,18 @@ const baseQueryWithReauth: BaseQueryFn<
       if (refreshResult.data) {
         const { accessToken } = refreshResult.data as { accessToken: string };
         // Store the new token with proper options
-        Cookies.set('accessToken', accessToken, { 
+        Cookies.set('accessToken', accessToken, {
           expires: 1,
           secure: window.location.protocol === 'https:',
           sameSite: 'lax'
         });
-        
+
         // Retry the original query with new token
         result = await baseQuery(args, api, extraOptions);
       } else {
         // Refresh failed, clear auth data
         api.dispatch(clearCredentials());
-        
+
         // Only redirect if we're not already on auth pages
         const currentPath = window.location.pathname;
         const authPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
@@ -63,7 +63,7 @@ const baseQueryWithReauth: BaseQueryFn<
     } else {
       // No refresh token, clear auth data
       api.dispatch(clearCredentials());
-      
+
       // Only redirect if we're not already on auth pages
       const currentPath = window.location.pathname;
       const authPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
@@ -80,6 +80,6 @@ const baseQueryWithReauth: BaseQueryFn<
 export const baseApi = createApi({
   reducerPath: 'baseApi',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['User', 'Auth', 'Marks', 'QuestionFormat', 'DocumentSubmission', 'GoogleDriveFiles'],
+  tagTypes: ['User', 'Auth', 'Marks', 'QuestionFormat', 'DocumentSubmission', 'GoogleDriveFiles', 'Admin', 'Department', 'Course', 'Batch', 'Section'],
   endpoints: () => ({}),
 });
