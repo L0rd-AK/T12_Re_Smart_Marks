@@ -11,6 +11,13 @@ interface ProfileFormData {
   firstName: string;
   lastName: string;
   email: string;
+  name?: string;
+  employeeId?: string;
+  designation?: string;
+  emailId?: string;
+  mobileNumber?: string;
+  roomNumber?: string;
+  initial?: string;
 }
 
 const Profile: React.FC = () => {
@@ -24,6 +31,13 @@ const Profile: React.FC = () => {
     firstName: user?.firstName || currentUser?.firstName || '',
     lastName: user?.lastName || currentUser?.lastName || '',
     email: user?.email || currentUser?.email || '',
+    name: user?.name || currentUser?.name || 'Mehedi Hasan',
+    employeeId: user?.employeeId || currentUser?.employeeId || '342353',
+    designation: user?.designation || currentUser?.designation || 'Lecturer',
+    emailId: user?.emailId || currentUser?.emailId || 'mehedi15-4680@diu.edu.bd',
+    mobileNumber: user?.mobileNumber || currentUser?.mobileNumber || '+8801767705251',
+    roomNumber: user?.roomNumber || currentUser?.roomNumber || '810',
+    initial: user?.initial || currentUser?.initial || 'ADS',
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -37,6 +51,13 @@ const Profile: React.FC = () => {
         firstName: userData?.firstName || '',
         lastName: userData?.lastName || '',
         email: userData?.email || '',
+        name: userData?.name || 'Mehedi Hasan',
+        employeeId: userData?.employeeId || '342353',
+        designation: userData?.designation || 'Lecturer',
+        emailId: userData?.emailId || 'mehedi15-4680@diu.edu.bd',
+        mobileNumber: userData?.mobileNumber || '+8801767705251',
+        roomNumber: userData?.roomNumber || '810',
+        initial: userData?.initial || 'ADS',
       });
     }
   }, [user, currentUser]);
@@ -68,6 +89,13 @@ const Profile: React.FC = () => {
       const updateData: Partial<User> = {
         firstName: formData.firstName,
         lastName: formData.lastName,
+        name: formData.name,
+        employeeId: formData.employeeId,
+        designation: formData.designation,
+        emailId: formData.emailId,
+        mobileNumber: formData.mobileNumber,
+        roomNumber: formData.roomNumber,
+        initial: formData.initial,
       };
 
       if (avatarFile && avatarPreview) {
@@ -82,6 +110,13 @@ const Profile: React.FC = () => {
       dispatch(updateUser({
         firstName: formData.firstName,
         lastName: formData.lastName,
+        name: formData.name,
+        employeeId: formData.employeeId,
+        designation: formData.designation,
+        emailId: formData.emailId,
+        mobileNumber: formData.mobileNumber,
+        roomNumber: formData.roomNumber,
+        initial: formData.initial,
         ...(avatarPreview && { avatar: avatarPreview })
       }));
 
@@ -105,6 +140,13 @@ const Profile: React.FC = () => {
       firstName: userData?.firstName || '',
       lastName: userData?.lastName || '',
       email: userData?.email || '',
+      name: userData?.name || 'Mehedi Hasan',
+      employeeId: userData?.employeeId || '342353',
+      designation: userData?.designation || 'Lecturer',
+      emailId: userData?.emailId || 'mehedi15-4680@diu.edu.bd',
+      mobileNumber: userData?.mobileNumber || '+8801767705251',
+      roomNumber: userData?.roomNumber || '',
+      initial: userData?.initial || '',
     });
   };
 
@@ -140,7 +182,7 @@ const Profile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
@@ -209,14 +251,38 @@ const Profile: React.FC = () => {
                 )}
 
                 {/* Account Info */}
-                <div className="text-left space-y-3 text-sm text-gray-600">
+                <div className="text-left space-y-3 text-sm text-gray-800">
                   <div className="flex justify-between">
-                    <span>Member since:</span>
-                    <span className="font-medium">{formatDate(userData.createdAt)}</span>
+                    <span className="font-semibold text-gray-700">Member since:</span>
+                    <span className="font-bold text-gray-900">{formatDate(userData.createdAt)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Last updated:</span>
-                    <span className="font-medium">{formatDate(userData.updatedAt)}</span>
+                    <span className="font-semibold text-gray-700">Last updated:</span>
+                    <span className="font-bold text-gray-900">{formatDate(userData.updatedAt)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Name:</span>
+                    <span className="font-bold text-gray-900">{userData.name || 'Mehedi Hasan'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Employee ID:</span>
+                    <span className="font-bold text-gray-900">{userData.employeeId || '342353'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Designation:</span>
+                    <span className="font-bold text-gray-900">{userData.designation || 'Lecturer'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Email ID:</span>
+                    <span className="font-bold text-gray-900">{userData.emailId || 'mehedi15-4680@diu.edu.bd'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Mobile Number:</span>
+                    <span className="font-bold text-gray-900">{userData.mobileNumber || '+8801767705251'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Room Number:</span>
+                    <span className="font-bold text-gray-900">{userData.roomNumber || '-'}</span>
                   </div>
                 </div>
               </div>
@@ -268,6 +334,7 @@ const Profile: React.FC = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* First Name */}
                   <div>
@@ -283,7 +350,7 @@ const Profile: React.FC = () => {
                       disabled={!isEditing}
                       className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                         isEditing 
-                          ? 'border-gray-300 bg-white' 
+                          ? 'border-gray-300 bg-white text-gray-900' 
                           : 'border-gray-200 bg-gray-50 text-gray-500'
                       }`}
                       required
@@ -304,7 +371,7 @@ const Profile: React.FC = () => {
                       disabled={!isEditing}
                       className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                         isEditing 
-                          ? 'border-gray-300 bg-white' 
+                          ? 'border-gray-300 bg-white text-gray-900' 
                           : 'border-gray-200 bg-gray-50 text-gray-500'
                       }`}
                       required
@@ -312,22 +379,130 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Email */}
+                {/* Name with Initial */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    Initial
+                  </label>
+                  <input
+                    type="text"
+                    id="initial"
+                    name="initial"
+                    value={formData.initial}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      isEditing 
+                        ? 'border-gray-300 bg-white text-gray-900' 
+                        : 'border-gray-200 bg-gray-50 text-gray-500'
+                    }`}
+                    required
+                  />
+                </div>
+
+                {/* Employee ID */}
+                <div>
+                  <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-2">
+                    Employee ID
+                  </label>
+                  <input
+                    type="text"
+                    id="employeeId"
+                    name="employeeId"
+                    value={formData.employeeId}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      isEditing 
+                        ? 'border-gray-300 bg-white text-gray-900' 
+                        : 'border-gray-200 bg-gray-50 text-gray-500'
+                    }`}
+                    required
+                  />
+                </div>
+
+                {/* Designation */}
+                <div>
+                  <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-2">
+                    Designation
+                  </label>
+                  <input
+                    type="text"
+                    id="designation"
+                    name="designation"
+                    value={formData.designation}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      isEditing 
+                        ? 'border-gray-300 bg-white text-gray-900' 
+                        : 'border-gray-200 bg-gray-50 text-gray-500'
+                    }`}
+                    required
+                  />
+                </div>
+
+                {/* Email ID */}
+                <div>
+                  <label htmlFor="emailId" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email ID
                   </label>
                   <input
                     type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    disabled={true} // Email should not be editable
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                    id="emailId"
+                    name="emailId"
+                    value={formData.emailId}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      isEditing 
+                        ? 'border-gray-300 bg-white text-gray-900' 
+                        : 'border-gray-200 bg-gray-50 text-gray-500'
+                    }`}
+                    required
                   />
-                  <p className="mt-1 text-sm text-gray-500">
-                    Email address cannot be changed. Contact support if needed.
-                  </p>
+                </div>
+
+                {/* Mobile Number */}
+                <div>
+                  <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                    Mobile Number
+                  </label>
+                  <input
+                    type="text"
+                    id="mobileNumber"
+                    name="mobileNumber"
+                    value={formData.mobileNumber}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      isEditing 
+                        ? 'border-gray-300 bg-white text-gray-900' 
+                        : 'border-gray-200 bg-gray-50 text-gray-500'
+                    }`}
+                    required
+                  />
+                </div>
+
+
+                {/* Room Number */}
+                <div>
+                  <label htmlFor="roomNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                    Room Number
+                  </label>
+                  <input
+                    type="text"
+                    id="roomNumber"
+                    name="roomNumber"
+                    value={formData.roomNumber}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      isEditing 
+                        ? 'border-gray-300 bg-white text-gray-900' 
+                        : 'border-gray-200 bg-gray-50 text-gray-500'
+                    }`}
+                  />
                 </div>
 
                 {/* Avatar Upload */}
