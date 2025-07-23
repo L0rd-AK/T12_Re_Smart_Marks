@@ -2,6 +2,8 @@ import { createBrowserRouter } from "react-router";
 import { lazy, Suspense } from "react";
 import App from "../App";
 import PageLoader from "../components/PageLoader";
+import ProtectedRoute from "./ProtectedRoute";
+
 
 
 // Lazy load components for code splitting
@@ -32,43 +34,59 @@ export const router = createBrowserRouter([
         children: [
             {
                 index: true,
-                Component: withSuspense(Home),
+                element: withSuspense(Home)(),
             },
             {
                 path: "marks-entry",
-                Component: withSuspense(MarksEntry),
+                element: (
+                    <ProtectedRoute>
+                        {withSuspense(MarksEntry)()}
+                    </ProtectedRoute>
+                ),
             },
             {
                 path: "document-submission",
-                Component: withSuspense(DocumentSubmission),
+                element: (
+                    <ProtectedRoute>
+                        {withSuspense(DocumentSubmission)()}
+                    </ProtectedRoute>
+                ),
             },
             {
                 path: "document-submissions",
-                Component: withSuspense(DocumentSubmissionsList),
+                element: (
+                    <ProtectedRoute>
+                        {withSuspense(DocumentSubmissionsList)()}
+                    </ProtectedRoute>
+                ),
             },
             {
                 path: "login",
-                Component: withSuspense(Login),
+                element: withSuspense(Login)(),
             },
             {
                 path: "register",
-                Component: withSuspense(Register),
+                element: withSuspense(Register)(),
             },
             {
                 path: "forgot-password",
-                Component: withSuspense(ForgotPassword),
+                element: withSuspense(ForgotPassword)(),
             },
             {
                 path: "reset-password",
-                Component: withSuspense(ResetPassword),
+                element: withSuspense(ResetPassword)(),
             },
             {
                 path: "verify-email",
-                Component: withSuspense(VerifyEmail),
+                element: withSuspense(VerifyEmail)(),
             },
             {
                 path: "profile",
-                Component: withSuspense(Profile),
+                element: (
+                    <ProtectedRoute>
+                        {withSuspense(Profile)()}
+                    </ProtectedRoute>
+                ),
             },
         ],
     },
