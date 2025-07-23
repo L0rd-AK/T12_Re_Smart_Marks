@@ -309,7 +309,7 @@ const DocumentManagement: React.FC = () => {
                 <select
                   value={newDocument.type}
                   onChange={(e) => setNewDocument(prev => ({ ...prev, type: e.target.value as Document['type'] }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   title="Document type"
                 >
                   <option value="assignment">Assignment</option>
