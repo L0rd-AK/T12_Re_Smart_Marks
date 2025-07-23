@@ -566,6 +566,7 @@ const DocumentSubmission: React.FC = () => {
                                                     {getFileTypeDisplayName(fileType)}
                                                 </label>
                                                 <input
+                                                    placeholder='Select file...'
                                                     type="file"
                                                     id={`${fileType}-${doc.id}`}
                                                     onChange={(e) => {
