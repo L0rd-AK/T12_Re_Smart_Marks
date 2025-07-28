@@ -21,6 +21,9 @@ const AdminDashboard = lazy(() => import("../pages/Admin/AdminDashboard"));
 const ModuleLeaderDashboard = lazy(() => import("../pages/ModuleLeader/ModuleLeaderDashboard"));
 const Courses = lazy(() => import("../pages/Courses/Courses"));
 const DeveloperInfo = lazy(() => import("../pages/Developer-Info/DeveloperInfo"));
+
+const test= lazy(() => import("../pages/Test/Test"));
+
 // Wrapper component for Suspense - returns a component, not JSX
 const withSuspense = (Component: React.ComponentType) => {
     return () => (
@@ -123,6 +126,14 @@ export const router = createBrowserRouter([
                     </ProtectedRoute>
                 ),
             },
+            {
+                path: "test",
+                element: (
+                    <ProtectedRoute>
+                        {withSuspense(test)()}
+                    </ProtectedRoute>
+                ),
+            }
         ],
     },
 ]);
