@@ -725,7 +725,15 @@ export class UserController {
 
   static updateUserRole = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { role } = req.body;
+    // Defensive: support both { data: { role } } and { role }
+    let role;
+    if (req.body && typeof req.body === 'object') {
+      if ('data' in req.body && req.body.data && typeof req.body.data === 'object' && 'role' in req.body.data) {
+        role = req.body.data.role;
+      } else if ('role' in req.body) {
+        role = req.body.role;
+      }
+    }
     const adminId = req.user?.id;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -735,6 +743,12 @@ export class UserController {
     // Prevent admin from changing their own role
     if (id === adminId) {
       throw createError('Cannot change your own role', 400);
+    }
+
+    // Validate role value
+    const validRoles = ['user', 'admin', 'teacher', 'module-leader'];
+    if (!role || !validRoles.includes(role)) {
+      throw createError('Invalid or missing role', 400);
     }
 
     const user = await User.findById(id);
@@ -852,18 +866,22 @@ export class UserController {
   });
 
   static getUserStats = asyncHandler(async (req: Request, res: Response) => {
-    const [totalUsers, activeUsers, blockedUsers, adminUsers] = await Promise.all([
+    const [totalUsers, activeUsers, blockedUsers, adminUsers, teacherUsers, moduleLeaderUsers] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ isBlocked: false }),
       User.countDocuments({ isBlocked: true }),
-      User.countDocuments({ role: 'admin' })
+      User.countDocuments({ role: 'admin' }),
+      User.countDocuments({ role: 'teacher' }),
+      User.countDocuments({ role: 'module-leader' })
     ]);
 
     res.json({
       totalUsers,
       activeUsers,
       blockedUsers,
-      adminUsers
+      adminUsers,
+      teacherUsers,
+      moduleLeaderUsers
     });
   });
 }
