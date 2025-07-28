@@ -79,3 +79,16 @@ export interface MarkEntryState {
   savedMarks: StudentMarkEntry[];
   quizMarks: { [studentId: string]: { quiz1?: number; quiz2?: number; quiz3?: number; average?: number } };
 }
+
+export interface ProfileFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  name?: string;
+  employeeId?: string;
+  designation?: string;
+  emailId?: string;
+  mobileNumber?: string;
+  roomNumber?: string;
+  initial?: string;
+}
