@@ -70,6 +70,7 @@ const DocumentManagement: React.FC = () => {
     targetAudience: [] as string[],
     priority: 'medium' as Document['priority'],
     dueDate: '',
+    file: null as File | null,
   });
 
   const handleCreateDocument = () => {
@@ -78,9 +79,13 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
+    // Simulate file upload URL (in real app, upload to server first)
+    const fileUrl = newDocument.file ? `uploads/${newDocument.file.name}` : undefined;
+
     const document: Document = {
       id: Date.now().toString(),
       ...newDocument,
+      fileUrl,
       status: 'draft',
       createdAt: new Date().toISOString().split('T')[0],
       distributedTo: [],
@@ -94,9 +99,15 @@ const DocumentManagement: React.FC = () => {
       targetAudience: [],
       priority: 'medium',
       dueDate: '',
+      file: null,
     });
     setShowCreateModal(false);
-    toast.success('Document created successfully');
+    
+    if (newDocument.file) {
+      toast.success(`Document created successfully with file: ${newDocument.file.name}`);
+    } else {
+      toast.success('Document created successfully');
+    }
   };
 
   const handleDistribute = () => {
@@ -181,7 +192,7 @@ const DocumentManagement: React.FC = () => {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           title="Filter by status"
         >
           <option value="all">All Status</option>
@@ -193,7 +204,7 @@ const DocumentManagement: React.FC = () => {
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           title="Filter by type"
         >
           <option value="all">All Types</option>
@@ -236,8 +247,20 @@ const DocumentManagement: React.FC = () => {
                 <tr key={document.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{document.name}</div>
+                      <div className="text-sm font-medium text-gray-900 flex items-center">
+                        {document.name}
+                        {document.fileUrl && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            📎 File
+                          </span>
+                        )}
+                      </div>
                       <div className="text-sm text-gray-500">{document.description}</div>
+                      {document.fileUrl && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          Attached: {document.fileUrl.split('/').pop()}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -268,6 +291,18 @@ const DocumentManagement: React.FC = () => {
                     >
                       Distribute
                     </button>
+                    {document.fileUrl && (
+                      <button 
+                        onClick={() => {
+                          // In a real app, this would download/open the file
+                          const fileName = document.fileUrl?.split('/').pop() || 'file';
+                          toast.success(`Opening file: ${fileName}`);
+                        }}
+                        className="text-purple-600 hover:text-purple-900"
+                      >
+                        View File
+                      </button>
+                    )}
                     <button className="text-green-600 hover:text-green-900">
                       Edit
                     </button>
@@ -309,7 +344,7 @@ const DocumentManagement: React.FC = () => {
                 <select
                   value={newDocument.type}
                   onChange={(e) => setNewDocument(prev => ({ ...prev, type: e.target.value as Document['type'] }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   title="Document type"
                 >
                   <option value="assignment">Assignment</option>
@@ -360,6 +395,37 @@ const DocumentManagement: React.FC = () => {
                   onChange={(e) => setNewDocument(prev => ({ ...prev, dueDate: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Attach File (Optional)
+                </label>
+                <input
+                  type="file"
+                  title="Select file to upload"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setNewDocument(prev => ({ ...prev, file }));
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx"
+                />
+                {newDocument.file && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Selected file: <span className="font-medium text-blue-600">{newDocument.file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setNewDocument(prev => ({ ...prev, file: null }))}
+                      className="ml-2 text-red-500 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                <div className="mt-1 text-xs text-gray-500">
+                  Supported formats: PDF, Word, Text, PowerPoint, Excel
+                </div>
               </div>
             </div>
 
