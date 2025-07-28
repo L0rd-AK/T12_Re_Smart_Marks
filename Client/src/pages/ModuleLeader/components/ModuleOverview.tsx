@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import ModulePerformance from './ModulePerformance';
+import QuickActions from './QuickActions';
+import RecentActivities from './RecentActivities';
+import TeacherStatus from './TeacherStatus';
 
 interface ModuleStats {
   totalTeachers: number;
@@ -137,64 +141,6 @@ const ModuleOverview: React.FC = () => {
 
   const [selectedTimeframe, setSelectedTimeframe] = useState<'week' | 'month' | 'semester'>('week');
 
-  const formatDateTime = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 1) {
-      const minutes = Math.floor(diffInHours * 60);
-      return `${minutes} minutes ago`;
-    } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)} hours ago`;
-    } else {
-      const days = Math.floor(diffInHours / 24);
-      return `${days} days ago`;
-    }
-  };
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'submission': return '📄';
-      case 'message': return '💬';
-      case 'meeting': return '🗓️';
-      case 'document': return '📝';
-      default: return '📋';
-    }
-  };
-
-  const getStatusColor = (status: string, type: string) => {
-    if (type === 'submission') {
-      switch (status) {
-        case 'completed': return 'bg-green-100 text-green-800';
-        case 'under-review': return 'bg-yellow-100 text-yellow-800';
-        case 'pending': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
-      }
-    }
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPerformanceColor = (rate: number) => {
-    if (rate >= 90) return 'text-green-600';
-    if (rate >= 75) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
   const averageSubmissionRate = teachers.reduce((sum, teacher) => sum + teacher.submissionRate, 0) / teachers.length;
   const averageResponseRate = teachers.reduce((sum, teacher) => sum + teacher.responseRate, 0) / teachers.length;
 
@@ -268,182 +214,35 @@ const ModuleOverview: React.FC = () => {
 
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Module Performance</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">Average Submission Rate</span>
-                <span className={`text-sm font-bold ${getPerformanceColor(averageSubmissionRate)}`}>
-                  {Math.round(averageSubmissionRate)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${averageSubmissionRate}%` }}
-                ></div>
-              </div>
-            </div>
+        <ModulePerformance
+          averageSubmissionRate={averageSubmissionRate}
+          averageResponseRate={averageResponseRate}
+          completionRate={(stats.documentsSubmitted / (stats.documentsSubmitted + stats.pendingSubmissions)) * 100}
+          activeTeachersRate={(stats.activeTeachers / stats.totalTeachers) * 100}
+        />
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">Average Response Rate</span>
-                <span className={`text-sm font-bold ${getPerformanceColor(averageResponseRate)}`}>
-                  {Math.round(averageResponseRate)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${averageResponseRate}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Completion Rate:</span>
-                  <span className="font-medium ml-2">
-                    {Math.round((stats.documentsSubmitted / (stats.documentsSubmitted + stats.pendingSubmissions)) * 100)}%
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Active Teachers:</span>
-                  <span className="font-medium ml-2">
-                    {Math.round((stats.activeTeachers / stats.totalTeachers) * 100)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <button className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 p-3 rounded-lg text-left transition-colors duration-200">
-              <div className="flex items-center space-x-3">
-                <span className="text-xl">📧</span>
-                <div>
-                  <div className="font-medium">Send Announcement</div>
-                  <div className="text-sm text-blue-600">Notify all teachers</div>
-                </div>
-              </div>
-            </button>
-
-            <button className="w-full bg-green-50 hover:bg-green-100 text-green-700 p-3 rounded-lg text-left transition-colors duration-200">
-              <div className="flex items-center space-x-3">
-                <span className="text-xl">🗓️</span>
-                <div>
-                  <div className="font-medium">Schedule Meeting</div>
-                  <div className="text-sm text-green-600">Plan coordination session</div>
-                </div>
-              </div>
-            </button>
-
-            <button className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 p-3 rounded-lg text-left transition-colors duration-200">
-              <div className="flex items-center space-x-3">
-                <span className="text-xl">📝</span>
-                <div>
-                  <div className="font-medium">Create Template</div>
-                  <div className="text-sm text-purple-600">Design question format</div>
-                </div>
-              </div>
-            </button>
-
-            <button className="w-full bg-orange-50 hover:bg-orange-100 text-orange-700 p-3 rounded-lg text-left transition-colors duration-200">
-              <div className="flex items-center space-x-3">
-                <span className="text-xl">📊</span>
-                <div>
-                  <div className="font-medium">View Reports</div>
-                  <div className="text-sm text-orange-600">Generate analytics</div>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
+        <QuickActions
+          onSendAnnouncement={() => console.log('Send announcement clicked')}
+          onScheduleMeeting={() => console.log('Schedule meeting clicked')}
+          onCreateTemplate={() => console.log('Create template clicked')}
+          onViewReports={() => console.log('View reports clicked')}
+        />
       </div>
 
       {/* Recent Activities and Teacher Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
-          <div className="space-y-4">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                <span className="text-xl">{getActivityIcon(activity.type)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="text-sm font-medium text-gray-900 truncate">
-                      {activity.title}
-                    </h4>
-                    {activity.status && (
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(activity.status, activity.type)}`}>
-                        {activity.status}
-                      </span>
-                    )}
-                    {activity.priority && (
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(activity.priority)}`}>
-                        {activity.priority}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mb-1">{activity.description}</p>
-                  <p className="text-xs text-gray-500">{formatDateTime(activity.timestamp)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 text-center">
-            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              View All Activities
-            </button>
-          </div>
-        </div>
+        <RecentActivities
+          activities={recentActivities}
+          maxActivities={5}
+          onViewAll={() => console.log('View all activities clicked')}
+        />
 
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Teacher Status</h3>
-          <div className="space-y-4">
-            {teachers.slice(0, 4).map((teacher) => (
-              <div key={teacher.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${teacher.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">{teacher.name}</h4>
-                    <p className="text-xs text-gray-500">{teacher.department}</p>
-                    <p className="text-xs text-gray-500">Last login: {formatDateTime(teacher.lastLogin)}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex space-x-3 text-xs">
-                    <div>
-                      <span className="text-gray-500">Sub:</span>
-                      <span className={`font-medium ${getPerformanceColor(teacher.submissionRate)}`}>
-                        {teacher.submissionRate}%
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Resp:</span>
-                      <span className={`font-medium ${getPerformanceColor(teacher.responseRate)}`}>
-                        {teacher.responseRate}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {teacher.subjects.length} subjects
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 text-center">
-            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-              View All Teachers
-            </button>
-          </div>
-        </div>
+        <TeacherStatus
+          teachers={teachers}
+          maxTeachers={4}
+          onViewAll={() => console.log('View all teachers clicked')}
+          onTeacherClick={(teacher) => console.log('Teacher clicked:', teacher.name)}
+        />
       </div>
 
       {/* Alerts and Notifications */}
