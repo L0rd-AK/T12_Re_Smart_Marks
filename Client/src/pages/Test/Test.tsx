@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const CLIENT_ID = '563427558738-du5l77g7c4dng72gtmla09qtvt6ti9qr.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyAGqm8ox4xdTjnR7oq2ulU4tiAhnhHjjA4';
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID_DRIVE;
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY_DRIVE;
 const SCOPES = 'https://www.googleapis.com/auth/drive';
 
 // Declare global Google Identity Services
