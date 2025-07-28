@@ -7,18 +7,8 @@ import { useAppDispatch } from '../../redux/hooks';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
-interface ProfileFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  name?: string;
-  employeeId?: string;
-  designation?: string;
-  emailId?: string;
-  mobileNumber?: string;
-  roomNumber?: string;
-  initial?: string;
-}
+import type { ProfileFormData } from '../../types/types';
+
 
 const Profile: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -140,10 +130,10 @@ const Profile: React.FC = () => {
       firstName: userData?.firstName || '',
       lastName: userData?.lastName || '',
       email: userData?.email || '',
-      name: userData?.name || 'Mehedi Hasan',
+      name: userData?.name || 'Abu rayan',
       employeeId: userData?.employeeId || '342353',
       designation: userData?.designation || 'Lecturer',
-      emailId: userData?.emailId || 'mehedi15-4680@diu.edu.bd',
+      emailId: userData?.emailId || 'email@diu.edu.bd',
       mobileNumber: userData?.mobileNumber || '+8801767705251',
       roomNumber: userData?.roomNumber || '',
       initial: userData?.initial || '',
@@ -215,6 +205,8 @@ const Profile: React.FC = () => {
                   {isEditing && (
                     <label className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg cursor-pointer hover:bg-gray-50 transition-colors" title="Change profile picture">
                       <input
+                        placeholder="Enter your initial"
+                        title="Enter your initial"
                         type="file"
                         accept="image/*"
                         onChange={handleAvatarChange}
