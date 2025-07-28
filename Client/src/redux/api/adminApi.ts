@@ -233,7 +233,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'teacher' | 'module-leader';
   isBlocked: boolean;
   blockedAt?: string;
   blockedBy?: {
@@ -264,10 +264,12 @@ export interface UserStats {
   activeUsers: number;
   blockedUsers: number;
   adminUsers: number;
+  teacherUsers: number;
+  moduleLeaderUsers: number;
 }
 
 export interface UpdateUserRoleInput {
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'teacher' | 'module-leader';
 }
 
 export interface BlockUserInput {
@@ -278,7 +280,7 @@ export interface GetUsersQuery {
   page?: number;
   limit?: number;
   search?: string;
-  role?: 'user' | 'admin';
+  role?: 'user' | 'admin' | 'teacher' | 'module-leader';
   isBlocked?: boolean;
 }
 
