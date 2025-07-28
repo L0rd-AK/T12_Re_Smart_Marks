@@ -69,7 +69,7 @@ const DocumentSubmission: React.FC = () => {
         try {
             const stored = localStorage.getItem('obe_documents_state');
             if (!stored) return null;
-            
+
             const parsed = JSON.parse(stored);
             return {
                 theory: parsed.theory || [],
@@ -84,136 +84,136 @@ const DocumentSubmission: React.FC = () => {
     // Initialize documents with localStorage data if available
     const getInitialDocuments = () => {
         const stored = loadDocumentsFromStorage();
-        
+
         const defaultTheoryDocuments: DocumentItem[] = [
-            { 
-                id: 'course-outline', 
-                name: 'Course Outline (.doc Format)', 
-                category: 'theory', 
-                fileTypes: ['doc'], 
-                status: 'pending' 
+            {
+                id: 'course-outline',
+                name: 'Course Outline (.doc Format)',
+                category: 'theory',
+                fileTypes: ['doc'],
+                status: 'pending'
             },
-            { 
-                id: 'class-test', 
-                name: 'Class Test (Marginal, Average, Excellent Script) with Question', 
-                category: 'theory', 
-                fileTypes: ['marginal', 'average', 'excellent', 'question'], 
-                status: 'pending' 
+            {
+                id: 'class-test',
+                name: 'Class Test (Marginal, Average, Excellent Script) with Question',
+                category: 'theory',
+                fileTypes: ['marginal', 'average', 'excellent', 'question'],
+                status: 'pending'
             },
-            { 
-                id: 'attendance', 
-                name: 'Attendance (Class, Midterm Exam, Final Exam) pdf File', 
-                category: 'theory', 
-                fileTypes: ['class-attendance', 'midterm-attendance', 'final-attendance'], 
-                status: 'pending' 
+            {
+                id: 'attendance',
+                name: 'Attendance (Class, Midterm Exam, Final Exam) pdf File',
+                category: 'theory',
+                fileTypes: ['class-attendance', 'midterm-attendance', 'final-attendance'],
+                status: 'pending'
             },
-            { 
-                id: 'assignment', 
-                name: 'Assignment (Marginal, Average, Excellent Script)', 
-                category: 'theory', 
-                fileTypes: ['marginal', 'average', 'excellent'], 
-                status: 'pending' 
+            {
+                id: 'assignment',
+                name: 'Assignment (Marginal, Average, Excellent Script)',
+                category: 'theory',
+                fileTypes: ['marginal', 'average', 'excellent'],
+                status: 'pending'
             },
-            { 
-                id: 'assignment-marks', 
-                name: 'Assignment & Presentation Marks Sheet on Rubrics (pdf)', 
-                category: 'theory', 
-                fileTypes: ['assignment-marks', 'presentation-marks'], 
-                status: 'pending' 
+            {
+                id: 'assignment-marks',
+                name: 'Assignment & Presentation Marks Sheet on Rubrics (pdf)',
+                category: 'theory',
+                fileTypes: ['assignment-marks', 'presentation-marks'],
+                status: 'pending'
             },
-            { 
-                id: 'midterm-script', 
-                name: 'Midterm Exam Script (Marginal, Average, Excellent Script)', 
-                category: 'theory', 
-                fileTypes: ['marginal', 'average', 'excellent'], 
-                status: 'pending' 
+            {
+                id: 'midterm-script',
+                name: 'Midterm Exam Script (Marginal, Average, Excellent Script)',
+                category: 'theory',
+                fileTypes: ['marginal', 'average', 'excellent'],
+                status: 'pending'
             },
-            { 
-                id: 'final-script', 
-                name: 'Final Exam (Marginal, Average, Excellent Script)', 
-                category: 'theory', 
-                fileTypes: ['marginal', 'average', 'excellent'], 
-                status: 'pending' 
+            {
+                id: 'final-script',
+                name: 'Final Exam (Marginal, Average, Excellent Script)',
+                category: 'theory',
+                fileTypes: ['marginal', 'average', 'excellent'],
+                status: 'pending'
             },
-            { 
-                id: 'final-tabulation', 
-                name: 'Final Tabulation Sheet (pdf Format)', 
-                category: 'theory', 
-                fileTypes: ['tabulation'], 
-                status: 'pending' 
+            {
+                id: 'final-tabulation',
+                name: 'Final Tabulation Sheet (pdf Format)',
+                category: 'theory',
+                fileTypes: ['tabulation'],
+                status: 'pending'
             },
-            { 
-                id: 'section-wise-co', 
-                name: 'Section Wise CO – PO Mapping File', 
-                category: 'theory', 
-                fileTypes: ['co-po-mapping'], 
-                status: 'pending' 
+            {
+                id: 'section-wise-co',
+                name: 'Section Wise CO – PO Mapping File',
+                category: 'theory',
+                fileTypes: ['co-po-mapping'],
+                status: 'pending'
             },
-            { 
-                id: 'course-end-report', 
-                name: 'Course End Report duly signed by Section Teacher (pdf Format)', 
-                category: 'theory', 
-                fileTypes: ['course-end-report'], 
-                status: 'pending' 
+            {
+                id: 'course-end-report',
+                name: 'Course End Report duly signed by Section Teacher (pdf Format)',
+                category: 'theory',
+                fileTypes: ['course-end-report'],
+                status: 'pending'
             },
         ];
 
         const defaultLabDocuments: DocumentItem[] = [
-            { 
-                id: 'lab-report', 
-                name: 'Lab Report', 
-                category: 'lab', 
-                fileTypes: ['lab-report'], 
-                status: 'pending' 
+            {
+                id: 'lab-report',
+                name: 'Lab Report',
+                category: 'lab',
+                fileTypes: ['lab-report'],
+                status: 'pending'
             },
-            { 
-                id: 'lab-performance', 
-                name: 'Lab Performance, Lab Final, Project (pdf)', 
-                category: 'lab', 
-                fileTypes: ['lab-performance', 'lab-final', 'project'], 
-                status: 'pending' 
+            {
+                id: 'lab-performance',
+                name: 'Lab Performance, Lab Final, Project (pdf)',
+                category: 'lab',
+                fileTypes: ['lab-performance', 'lab-final', 'project'],
+                status: 'pending'
             },
-            { 
-                id: 'lab-project', 
-                name: 'Lab with Project (Marginal, Average, Excellent Report)', 
-                category: 'lab', 
-                fileTypes: ['marginal', 'average', 'excellent'], 
-                status: 'pending' 
+            {
+                id: 'lab-project',
+                name: 'Lab with Project (Marginal, Average, Excellent Report)',
+                category: 'lab',
+                fileTypes: ['marginal', 'average', 'excellent'],
+                status: 'pending'
             },
-            { 
-                id: 'projects-experiments', 
-                name: 'List of Projects and Experiments & signature (pdf)', 
-                category: 'lab', 
-                fileTypes: ['projects-list', 'experiments-list'], 
-                status: 'pending' 
+            {
+                id: 'projects-experiments',
+                name: 'List of Projects and Experiments & signature (pdf)',
+                category: 'lab',
+                fileTypes: ['projects-list', 'experiments-list'],
+                status: 'pending'
             },
-            { 
-                id: 'class-attendance', 
-                name: 'Class Attendance pdf File', 
-                category: 'lab', 
-                fileTypes: ['attendance'], 
-                status: 'pending' 
+            {
+                id: 'class-attendance',
+                name: 'Class Attendance pdf File',
+                category: 'lab',
+                fileTypes: ['attendance'],
+                status: 'pending'
             },
-            { 
-                id: 'section-wise-co-lab', 
-                name: 'Section Wise CO – PO Mapping File', 
-                category: 'lab', 
-                fileTypes: ['co-po-mapping'], 
-                status: 'pending' 
+            {
+                id: 'section-wise-co-lab',
+                name: 'Section Wise CO – PO Mapping File',
+                category: 'lab',
+                fileTypes: ['co-po-mapping'],
+                status: 'pending'
             },
-            { 
-                id: 'final-tabulation-lab', 
-                name: 'Final Tabulation Sheet (pdf Format)', 
-                category: 'lab', 
-                fileTypes: ['tabulation'], 
-                status: 'pending' 
+            {
+                id: 'final-tabulation-lab',
+                name: 'Final Tabulation Sheet (pdf Format)',
+                category: 'lab',
+                fileTypes: ['tabulation'],
+                status: 'pending'
             },
-            { 
-                id: 'course-end-report-lab', 
-                name: 'Course End Report duly signed by Section Teacher (pdf Format)', 
-                category: 'lab', 
-                fileTypes: ['course-end-report'], 
-                status: 'pending' 
+            {
+                id: 'course-end-report-lab',
+                name: 'Course End Report duly signed by Section Teacher (pdf Format)',
+                category: 'lab',
+                fileTypes: ['course-end-report'],
+                status: 'pending'
             },
         ];
 
@@ -279,9 +279,9 @@ const DocumentSubmission: React.FC = () => {
             setTheoryDocuments(prev =>
                 prev.map(doc => {
                     if (doc.id === documentId) {
-                        const updatedFiles = { 
-                            ...doc.files, 
-                            [fileType]: file 
+                        const updatedFiles = {
+                            ...doc.files,
+                            [fileType]: file
                         };
                         const updatedFileMetadata = {
                             ...doc.uploadedFiles,
@@ -294,8 +294,8 @@ const DocumentSubmission: React.FC = () => {
                         };
                         // Check if all required files are now uploaded (including previously uploaded ones)
                         const allFilesUploaded = doc.fileTypes.every(ft => updatedFiles[ft] || updatedFileMetadata[ft]);
-                        return { 
-                            ...doc, 
+                        return {
+                            ...doc,
                             files: updatedFiles,
                             uploadedFiles: updatedFileMetadata,
                             status: allFilesUploaded ? 'yes' as const : doc.status
@@ -308,9 +308,9 @@ const DocumentSubmission: React.FC = () => {
             setLabDocuments(prev =>
                 prev.map(doc => {
                     if (doc.id === documentId) {
-                        const updatedFiles = { 
-                            ...doc.files, 
-                            [fileType]: file 
+                        const updatedFiles = {
+                            ...doc.files,
+                            [fileType]: file
                         };
                         const updatedFileMetadata = {
                             ...doc.uploadedFiles,
@@ -323,8 +323,8 @@ const DocumentSubmission: React.FC = () => {
                         };
                         // Check if all required files are now uploaded (including previously uploaded ones)
                         const allFilesUploaded = doc.fileTypes.every(ft => updatedFiles[ft] || updatedFileMetadata[ft]);
-                        return { 
-                            ...doc, 
+                        return {
+                            ...doc,
                             files: updatedFiles,
                             uploadedFiles: updatedFileMetadata,
                             status: allFilesUploaded ? 'yes' as const : doc.status
@@ -339,19 +339,19 @@ const DocumentSubmission: React.FC = () => {
         try {
             if (GoogleDriveService.isSignedIn()) {
                 const targetFolderId = category === 'theory' ? theoryFolderId : labFolderId;
-                
+
                 if (!targetFolderId) {
                     console.log(`⚠️ ${category} folder not ready yet, skipping Google Drive upload`);
                     sonnerToast.error(`${category} folder not ready. Please wait for Google Drive setup to complete.`);
                     return;
                 }
-                
+
                 console.log(`📤 Uploading ${fileType} to Google Drive (${category} folder: ${targetFolderId})...`);
-                
+
                 // Upload file directly to the pre-created category folder
                 const fileName = `${fileType}_${file.name}`;
                 const uploadedFile = await GoogleDriveService.uploadFile(file, fileName, targetFolderId);
-                
+
                 console.log(`✅ File uploaded to Google Drive:`, uploadedFile);
                 sonnerToast.success(`${fileType} uploaded to Google Drive ${category} folder successfully!`);
             } else {
@@ -366,7 +366,7 @@ const DocumentSubmission: React.FC = () => {
     const getFileTypeDisplayName = (fileType: string): string => {
         const displayNames: Record<string, string> = {
             'marginal': 'Marginal Script',
-            'average': 'Average Script', 
+            'average': 'Average Script',
             'excellent': 'Excellent Script',
             'question': 'Question Paper',
             'doc': 'Document (.doc)',
@@ -413,10 +413,10 @@ const DocumentSubmission: React.FC = () => {
                                 return doc; // Don't change status
                             }
                         }
-                        
+
                         return {
-                            ...doc, 
-                            status, 
+                            ...doc,
+                            status,
                             ...(status === 'no' && { files: undefined, uploadedFiles: undefined })
                         };
                     }
@@ -435,10 +435,10 @@ const DocumentSubmission: React.FC = () => {
                                 return doc; // Don't change status
                             }
                         }
-                        
+
                         return {
-                            ...doc, 
-                            status, 
+                            ...doc,
+                            status,
                             ...(status === 'no' && { files: undefined, uploadedFiles: undefined })
                         };
                     }
@@ -556,7 +556,7 @@ const DocumentSubmission: React.FC = () => {
                                 <td className="border border-gray-300 p-3 text-gray-800">
                                     {doc.name}
                                 </td>
-                                
+
                                 {/* Local File Upload Section */}
                                 <td className="border border-gray-300 p-3">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -581,7 +581,7 @@ const DocumentSubmission: React.FC = () => {
                                                 {GoogleDriveService.isSignedIn() && (theoryFolderId || labFolderId) && (
                                                     <div className="text-xs text-blue-600 flex items-center mt-1">
                                                         <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                                                         </svg>
                                                         Will sync to Drive
                                                     </div>
@@ -620,7 +620,7 @@ const DocumentSubmission: React.FC = () => {
                                     <div className="space-y-2">
                                         {doc.fileTypes.map((fileType) => {
                                             const hasFile = !!(doc.files?.[fileType] || doc.uploadedFiles?.[fileType]);
-                                            
+
                                             return (
                                                 <div key={fileType} className="flex items-center justify-between">
                                                     <span className="text-xs text-gray-700 truncate mr-2">
@@ -632,11 +632,10 @@ const DocumentSubmission: React.FC = () => {
                                                             type="checkbox"
                                                             checked={hasFile}
                                                             readOnly
-                                                            className={`h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 ${
-                                                                hasFile 
-                                                                    ? 'text-green-600 bg-green-50' 
-                                                                    : 'text-gray-400'
-                                                            }`}
+                                                            className={`h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 ${hasFile
+                                                                ? 'text-green-600 bg-green-50'
+                                                                : 'text-gray-400'
+                                                                }`}
                                                         />
                                                         {hasFile && (
                                                             <svg className="h-4 w-4 text-green-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
@@ -647,7 +646,7 @@ const DocumentSubmission: React.FC = () => {
                                                 </div>
                                             );
                                         })}
-                                        
+
                                         {/* Overall completion indicator */}
                                         <div className="pt-2 border-t border-gray-200 mt-2">
                                             <div className="flex items-center justify-between">
@@ -687,10 +686,58 @@ const DocumentSubmission: React.FC = () => {
                     <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
                         OBE File Submission System
                     </h1>
-
+                    {/* Single Google Drive Connection */}
+                    <div className="mb-8">
+                        <GoogleDriveConnection
+                            courseInfo={{
+                                courseCode: courseInfo.courseCode || 'CSE-101',
+                                courseSection: courseInfo.courseSection || 'A',
+                                batch: '61'
+                            }}
+                            onFoldersCreated={handleFoldersCreated}
+                        />
+                    </div>
                     <form onSubmit={handleSubmit} className="space-y-8">
                         {/* Course Information and Teacher Information Side by Side */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                             {/* Teacher Information */}
+                            <div className="border border-gray-200 rounded-lg p-6">
+                                <h2 className="text-xl font-semibold mb-4 text-gray-800 bg-orange-100 p-3 rounded border">
+                                    Course Teacher Information
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <h3 className=" font-medium text-gray-700 mb-2">
+                                            Course Teacher Name with Initial : <span className='font-normal'>{teacherInfo.teacherName}</span>
+                                        </h3>
+
+                                    </div>
+                                    <div>
+                                        <h3 className=" font-medium text-gray-700 mb-2">
+                                            Employee ID : <span className='font-normal'>{teacherInfo.employeeId}</span>
+                                        </h3>
+
+                                    </div>
+                                    <div>
+                                        <h3 className=" font-medium text-gray-700 mb-2">
+                                            Designation : <span className='font-normal'>{teacherInfo.designation}</span>
+                                        </h3>
+
+                                    </div>
+                                    <div>
+                                        <h3 className=" font-medium text-gray-700 mb-2">
+                                            Email ID : <span className='font-normal'>{teacherInfo.emailId}</span>
+                                        </h3>
+
+                                    </div>
+                                    <div>
+                                        <h3 className=" font-medium text-gray-700 mb-2">
+                                            Mobile Number : <span className='font-normal'>{teacherInfo.mobileNumber}</span>
+                                        </h3>
+
+                                    </div>
+                                </div>
+                            </div>
                             {/* Course Information */}
                             <div className="border border-gray-200 rounded-lg p-6">
                                 <h2 className="text-xl font-semibold mb-4 text-gray-800 bg-orange-100 p-3 rounded border">
@@ -698,161 +745,49 @@ const DocumentSubmission: React.FC = () => {
                                 </h2>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Semester
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={courseInfo.semester}
-                                            onChange={(e) => handleCourseInfoChange('semester', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="Spring 2025"
-                                        />
+                                        <h3 className="font-medium text-gray-700 mb-2">
+                                            Semester : <span className='font-normal'>{courseInfo.semester}</span>
+                                        </h3>
+
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Course Code
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={courseInfo.courseCode}
-                                            onChange={(e) => handleCourseInfoChange('courseCode', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="CSE 101"
-                                        />
+                                        <h3 className="font-medium text-gray-700 mb-2">
+                                            Course Code : <span className='font-normal'>{courseInfo.courseCode}</span>
+                                        </h3>
+
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Course Title
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={courseInfo.courseTitle}
-                                            onChange={(e) => handleCourseInfoChange('courseTitle', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="Introduction to Computer Science"
-                                        />
+                                        <h3 className="font-medium text-gray-700 mb-2">
+                                            Course Title : <span className='font-normal'>{courseInfo.courseTitle}</span>
+                                        </h3>
+
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Credit Hours
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={courseInfo.creditHours}
-                                            onChange={(e) => handleCourseInfoChange('creditHours', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="3"
-                                        />
+                                        <h3 className=" font-medium text-gray-700 mb-2">
+                                            Credit Hours : <span className='font-normal'>{courseInfo.creditHours}</span>
+                                        </h3>
+
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Course Section
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={courseInfo.courseSection}
-                                            onChange={(e) => handleCourseInfoChange('courseSection', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="A"
-                                        />
+                                        <h3 className=" font-medium text-gray-700 mb-2">
+                                            Course Section : <span className='font-normal'>{courseInfo.courseSection}</span>
+                                        </h3>
+
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Number of Class Conducted
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={courseInfo.classCount}
-                                            onChange={(e) => handleCourseInfoChange('classCount', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="45"
-                                        />
+                                        <h3 className=" font-medium text-gray-700 mb-2">
+                                            Number of Class Conducted :
+                                            <span className='font-normal'>{courseInfo.classCount}</span>
+                                        </h3>
+
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Teacher Information */}
-                            <div className="border border-gray-200 rounded-lg p-6">
-                                <h2 className="text-xl font-semibold mb-4 text-gray-800 bg-orange-100 p-3 rounded border">
-                                    Course Teacher Information
-                                </h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Course Teacher Name with Initial
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={teacherInfo.teacherName}
-                                            onChange={(e) => handleTeacherInfoChange('teacherName', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="Dr. John A. Smith"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Employee ID
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={teacherInfo.employeeId}
-                                            onChange={(e) => handleTeacherInfoChange('employeeId', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="EMP001"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Designation
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={teacherInfo.designation}
-                                            onChange={(e) => handleTeacherInfoChange('designation', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="Assistant Professor"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Email ID
-                                        </label>
-                                        <input
-                                            type="email"
-                                            value={teacherInfo.emailId}
-                                            onChange={(e) => handleTeacherInfoChange('emailId', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="john.smith@university.edu"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Mobile Number
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            value={teacherInfo.mobileNumber}
-                                            onChange={(e) => handleTeacherInfoChange('mobileNumber', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                            placeholder="+1 (555) 123-4567"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                          
                         </div>
 
-                        {/* Single Google Drive Connection */}
-                        <div className="mb-8">
-                            <GoogleDriveConnection
-                                courseInfo={{
-                                    courseCode: courseInfo.courseCode || 'CSE-101',
-                                    courseSection: courseInfo.courseSection || 'A',
-                                    batch: '61'
-                                }}
-                                onFoldersCreated={handleFoldersCreated}
-                            />
-                        </div>
+
 
                         {/* Theory Documents */}
                         {renderDocumentTable(theoryDocuments, 'theory', 'OBE File Submission Checklist (Theory)')}
