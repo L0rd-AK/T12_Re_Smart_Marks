@@ -19,6 +19,8 @@ const DocumentSubmission = lazy(() => import("../pages/DocumentSubmission/Docume
 const DocumentSubmissionsList = lazy(() => import("../pages/DocumentSubmission/DocumentSubmissionsList"));
 const AdminDashboard = lazy(() => import("../pages/Admin/AdminDashboard"));
 const ModuleLeaderDashboard = lazy(() => import("../pages/ModuleLeader/ModuleLeaderDashboard"));
+const Courses = lazy(() => import("../pages/Courses/Courses"));
+const DeveloperInfo = lazy(() => import("../pages/Developer-Info/DeveloperInfo"));
 
 const test= lazy(() => import("../pages/Test/Test"));
 
@@ -61,6 +63,22 @@ export const router = createBrowserRouter([
                 element: (
                     <ProtectedRoute>
                         {withSuspense(DocumentSubmissionsList)()}
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: "courses",
+                element: (
+                    <ProtectedRoute>
+                        {withSuspense(Courses)()}
+                    </ProtectedRoute>
+                ),
+            },
+            {
+                path: "developer-info",
+                element: (
+                    <ProtectedRoute>
+                        {withSuspense(DeveloperInfo)()}
                     </ProtectedRoute>
                 ),
             },
