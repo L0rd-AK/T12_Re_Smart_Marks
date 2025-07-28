@@ -276,50 +276,7 @@ const MarksEntry: React.FC = () => {
   };
 
   const handleQuizInput = async (value: number) => {
-    if (value === 0) {
-      // Save current student's quiz mark
-      if (state.currentStudentId && state.tempMarks[state.currentStudentId] && state.tempMarks[state.currentStudentId].length > 0) {
-        const currentMark = state.tempMarks[state.currentStudentId][0];
-        const studentQuizData = state.quizMarks[state.currentStudentId] || {};
-
-        // Update the specific quiz mark
-        const updatedQuizData = {
-          ...studentQuizData,
-          [`quiz${state.selectedQuizNumber}`]: currentMark
-        };
-
-        // Calculate average if all 3 quizzes are completed
-        const quizValues = [updatedQuizData.quiz1, updatedQuizData.quiz2, updatedQuizData.quiz3].filter(val => val !== undefined);
-        if (quizValues.length === 3) {
-          updatedQuizData.average = quizValues.reduce((sum, val) => sum + (val || 0), 0) / 3;
-        }
-
-        try {
-          // Save to database
-          await createStudentMarks({
-            studentId: state.currentStudentId,
-            marks: [currentMark],
-            examType: 'quiz',
-            maxMark: 15
-          }).unwrap();
-
-          // Update state
-          setState(prev => ({
-            ...prev,
-            quizMarks: {
-              ...prev.quizMarks,
-              [state.currentStudentId]: updatedQuizData
-            },
-            currentStudentId: '',
-            tempMarks: { ...prev.tempMarks, [state.currentStudentId]: [] }
-          }));
-
-          toast.success(`Quiz ${state.selectedQuizNumber} marks saved successfully!`);
-        } catch (error) {
-          toast.error('Error saving marks: ' + (error as Error).message);
-        }
-      }
-    } else if (!state.currentStudentId) {
+    if (!state.currentStudentId) {
       // Set student ID - handle as string to support formats like "221-15-343"
       setState(prev => ({ ...prev, currentStudentId: inputValue.trim() || value.toString() }));
     } else {
@@ -328,11 +285,46 @@ const MarksEntry: React.FC = () => {
         toast.error('Quiz mark must be between 0 and 15');
         return;
       }
-      // Set quiz mark
-      setState(prev => ({
-        ...prev,
-        tempMarks: { ...prev.tempMarks, [state.currentStudentId]: [value] }
-      }));
+
+      // Automatically save the quiz mark
+      const studentQuizData = state.quizMarks[state.currentStudentId] || {};
+
+      // Update the specific quiz mark
+      const updatedQuizData = {
+        ...studentQuizData,
+        [`quiz${state.selectedQuizNumber}`]: value
+      };
+
+      // Calculate average if all 3 quizzes are completed
+      const quizValues = [updatedQuizData.quiz1, updatedQuizData.quiz2, updatedQuizData.quiz3].filter(val => val !== undefined);
+      if (quizValues.length === 3) {
+        updatedQuizData.average = quizValues.reduce((sum, val) => sum + (val || 0), 0) / 3;
+      }
+
+      try {
+        // Save to database
+        await createStudentMarks({
+          studentId: state.currentStudentId,
+          marks: [value],
+          examType: 'quiz',
+          maxMark: 15
+        }).unwrap();
+
+        // Update state and clear current student to ask for new one
+        setState(prev => ({
+          ...prev,
+          quizMarks: {
+            ...prev.quizMarks,
+            [state.currentStudentId]: updatedQuizData
+          },
+          currentStudentId: '',
+          tempMarks: { ...prev.tempMarks, [state.currentStudentId]: [] }
+        }));
+
+        toast.success(`Quiz ${state.selectedQuizNumber} marks saved successfully!`);
+      } catch (error) {
+        toast.error('Error saving marks: ' + (error as Error).message);
+      }
     }
   };
 
@@ -443,7 +435,7 @@ const MarksEntry: React.FC = () => {
         if (!state.currentStudentId) {
           return `Quiz ${state.selectedQuizNumber} - Enter Student ID:`;
         }
-        return `Quiz ${state.selectedQuizNumber} - Enter mark (0 to save):`;
+        return `Quiz ${state.selectedQuizNumber} - Enter mark (will auto-save):`;
 
       case 'midterm':
       case 'final':
@@ -644,7 +636,7 @@ const MarksEntry: React.FC = () => {
               <br />• Enter Student ID → Getup/Outfit (0.8) → Body Language (0.8) → English (0.8) → Eye Contact (0.8) → Knowledge (3.2) → Q&A (1.6) → 0 to save
             </li>
             <li><strong>Quiz (15 marks each):</strong>
-              <br />• Select quiz number (1-3) → Enter Student ID → Enter mark → 0 to save (averages 3 quizzes automatically)
+              <br />• Select quiz number (1-3) → Enter Student ID → Enter mark (auto-saves and asks for next student)
             </li>
             <li><strong>Midterm/Final (25/40 marks):</strong>
               <br />• Select question format → Enter Student ID → Question marks → -1 to jump to specific question → 0 to save student
