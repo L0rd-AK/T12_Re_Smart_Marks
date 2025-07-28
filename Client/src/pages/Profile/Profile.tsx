@@ -7,18 +7,8 @@ import { useAppDispatch } from '../../redux/hooks';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
-interface ProfileFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  name?: string;
-  employeeId?: string;
-  designation?: string;
-  emailId?: string;
-  mobileNumber?: string;
-  roomNumber?: string;
-  initial?: string;
-}
+import type { ProfileFormData } from '../../types/types';
+
 
 const Profile: React.FC = () => {
   const dispatch = useAppDispatch();
