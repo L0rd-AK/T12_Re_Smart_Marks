@@ -67,7 +67,7 @@ router.post('/sections/assign-module-leader', validateRequest(assignModuleLeader
 // User Management Routes
 router.get('/users', UserController.getUsers);
 router.get('/users/stats', UserController.getUserStats);
-router.put('/users/:id/role', validateRequest(updateUserRoleSchema), UserController.updateUserRole);
+router.put('/users/:id/role', UserController.updateUserRole);
 router.put('/users/:id/block', validateRequest(blockUserSchema), UserController.blockUser);
 router.put('/users/:id/unblock', UserController.unblockUser);
 router.delete('/users/:id', UserController.deleteUser);
