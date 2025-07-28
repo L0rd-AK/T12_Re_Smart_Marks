@@ -201,7 +201,9 @@ export const assignModuleLeaderSchema = z.object({
 
 // User Management Schemas
 export const updateUserRoleSchema = z.object({
-  role: z.enum(['user', 'admin'])
+  data: z.object({
+    role: z.enum(['user', 'admin', 'teacher', 'module-leader'])
+  })
 });
 
 export const blockUserSchema = z.object({
@@ -212,7 +214,7 @@ export const getUsersQuerySchema = z.object({
   page: z.string().optional().transform(val => val ? parseInt(val) : 1),
   limit: z.string().optional().transform(val => val ? parseInt(val) : 10),
   search: z.string().optional(),
-  role: z.enum(['user', 'admin']).optional(),
+  role: z.enum(['user', 'admin', 'teacher', 'module-leader']).optional(),
   isBlocked: z.string().optional().transform(val => val === 'true' ? true : val === 'false' ? false : undefined)
 });
 
