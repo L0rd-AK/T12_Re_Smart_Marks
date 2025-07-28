@@ -659,7 +659,7 @@ const MarksEntry: React.FC = () => {
               <button
                 key={type.value}
                 onClick={() => handleMarkTypeSelect(type.value)}
-                className="p-4 border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors bg-white"
+                className="p-4 shadow border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors bg-white"
               >
                 <div className="font-medium text-gray-900">{type.label}</div>
                 <div className="text-sm text-gray-600">({type.maxMark} marks)</div>

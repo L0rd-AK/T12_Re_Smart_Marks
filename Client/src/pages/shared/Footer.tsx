@@ -1,12 +1,17 @@
+import { Link } from "react-router";
+
 const Footer = () => {
     return (
-        <footer className="footer footer-horizontal footer-center bg-base-200 text-base-content rounded p-10">
+        <footer className="footer footer-horizontal footer-center bg-base-200 text-base-content rounded px-10 py-6 flex justify-between items-center">
+           <div className="">
+
             <nav className="grid grid-flow-col gap-4">
                 <a className="link link-hover">About us</a>
+                <a className="link link-hover">Privacy Policy</a>
+                <a className="link link-hover">Terms of Service</a>
                 <a className="link link-hover">Contact</a>
-                <a className="link link-hover">Jobs</a>
             </nav>
-            <nav>
+            {/* <nav>
                 <div className="grid grid-flow-col gap-4">
                     <a>
                         <svg
@@ -42,12 +47,26 @@ const Footer = () => {
                         </svg>
                     </a>
                 </div>
-            </nav>
+            </nav> */}
+           </div>
             <aside>
-                <p>
-                    Copyright © {new Date().getFullYear()} - All right reserved
-                    by Daffodil International University
-                </p>
+
+                <div className="text-center text-gray-500  ">
+                    <span className="">
+
+                        © {new Date().getFullYear()} Smart Mark Input System. All rights reserved.
+                        Developed by{" "}
+                    </span>
+                    <span>
+
+                        <Link
+                            to="/developers-info"
+                            className="text-blue-600 hover:underline"
+                        >
+                            Team X
+                        </Link>
+                    </span>
+                </div>
             </aside>
         </footer>
     );
