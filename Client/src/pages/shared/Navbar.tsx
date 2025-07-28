@@ -11,19 +11,22 @@ const links = (user?: any) => (
         <li>
             <NavLink to="/document-submission">Document Submission</NavLink>
         </li>
-        <li>
+        {/* <li>
             <NavLink to="/document-submissions">My Submissions</NavLink>
+        </li> */}
+        <li>
+            <NavLink to="/courses">Courses</NavLink>
         </li>
         {user?.role === 'module-leader' && (
-                <li>
-                    <NavLink to="/module-leader">Module Leader</NavLink>
-                </li>
+            <li>
+                <NavLink to="/module-leader">Module Leader</NavLink>
+            </li>
         )}
         {user?.role === 'admin' && (
             <li>
                 <NavLink to="/admin">Admin Dashboard</NavLink>
             </li>
-        )} 
+        )}
     </>
 );
 
