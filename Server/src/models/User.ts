@@ -8,7 +8,7 @@ export interface IUser extends Document {
   password: string;
   avatar?: string;
   isEmailVerified: boolean;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'teacher' | 'module-leader';
   isBlocked: boolean;
   blockedAt?: Date;
   blockedBy?: mongoose.Types.ObjectId;
@@ -68,7 +68,7 @@ const userSchema = new Schema<IUser>({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin','teacher', 'module-leader'],
     default: 'user'
   },
   isBlocked: {
