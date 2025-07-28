@@ -27,6 +27,9 @@ const links = (user?: any) => (
                 <NavLink to="/admin">Admin Dashboard</NavLink>
             </li>
          {/* )} */}
+        <li>
+            <NavLink to="/developer-info">About Us</NavLink>
+        </li>
     </>
 );
 
