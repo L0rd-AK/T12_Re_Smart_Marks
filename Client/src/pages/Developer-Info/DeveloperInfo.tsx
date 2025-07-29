@@ -26,7 +26,7 @@ const developers: Developer[] = [
         email: "amitkumarghosh.dev@gmail.com",
         github: "https://github.com/L0rd-AK",
         linkedin: "https://linkedin.com/in/amit-kumar-ghosh",
-        bio: "Backend specialist focused on building robust server-side applications and APIs. Passionate about creating efficient database solutions and scalable backend architectures.",
+        bio: "Passionate full-stack developer with expertise in modern web technologies. Led the development of the Smart Marks system with a focus on scalable architecture and user experience.",
         contributions: [
             "Backend API Development",
             "Database Optimization",
@@ -46,7 +46,7 @@ const developers: Developer[] = [
         email: "mehedihasan.dev@gmail.com",
         github: "https://github.com/mehedihasan444",
         linkedin: "https://linkedin.com/in/mehedihasan444",
-        bio: "Passionate full-stack developer with expertise in modern web technologies. Led the development of the Smart Marks system with a focus on scalable architecture and user experience.",
+        bio: "Backend specialist focused on building robust server-side applications and APIs. Passionate about creating efficient database solutions and scalable backend architectures.",
         contributions: [
             "System Architecture Design",
             "Authentication & Authorization",
