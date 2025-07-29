@@ -32,7 +32,8 @@ const developers: Developer[] = [
             "Database Optimization",
             "Server Configuration",
             "Performance Monitoring",
-            "Security Implementation"
+            "Team Coordination"
+           
         ],
         favoriteTools: ["Node.js", "Express.js", "MongoDB", "Mongoose", "Postman"],
         experience: "2+ years"
@@ -52,7 +53,7 @@ const developers: Developer[] = [
             "Authentication & Authorization",
             "Database Schema Design",
             "API Development",
-            "Team Coordination"
+            "Security Implementation"
         ],
         favoriteTools: ["React", "Node.js", "MongoDB", "TypeScript", "Express.js"],
         experience: "2+ years"
