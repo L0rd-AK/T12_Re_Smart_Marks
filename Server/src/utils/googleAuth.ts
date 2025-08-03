@@ -2,8 +2,7 @@ import { OAuth2Client } from 'google-auth-library';
 
 export interface GoogleUserInfo {
   email: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   picture?: string;
   googleId: string;
   emailVerified: boolean;
@@ -32,8 +31,8 @@ export class GoogleAuthService {
 
       return {
         email: payload.email,
-        firstName: payload.given_name,
-        lastName: payload.family_name,
+        name: payload.given_name,
+        // lastName: payload.family_name,
         picture: payload.picture,
         googleId: payload.sub,
         emailVerified: payload.email_verified || false,
