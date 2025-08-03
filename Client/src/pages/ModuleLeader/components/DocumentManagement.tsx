@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { GoogleDriveService } from '../../../services/googleDriveService';
 
 interface Document {
   id: string;
@@ -22,6 +23,9 @@ interface Teacher {
   subjects: string[];
   status: 'active' | 'inactive';
 }
+
+// Google Drive configuration
+const PARENT_FOLDER_ID = '1D-y0Ck0_0ArHmxv4xPwWTIjrhVWT1INR';
 
 const DocumentManagement: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([
@@ -72,6 +76,172 @@ const DocumentManagement: React.FC = () => {
     dueDate: '',
     file: null as File | null,
   });
+
+  // Google Drive upload state
+  const [driveUpload, setDriveUpload] = useState({
+    year: '',
+    semester: '',
+    batch: '',
+    term: '',
+    files: null as FileList | null,
+    isUploading: false,
+  });
+
+  // Initialize Google Drive Service on component mount
+  useEffect(() => {
+    const initializeGoogleDrive = async () => {
+      try {
+        await GoogleDriveService.initialize();
+        console.log('Google Drive Service initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize Google Drive Service:', error);
+      }
+    };
+
+    initializeGoogleDrive();
+  }, []);
+
+  // Generate folder name from selections
+  const generateFolderName = () => {
+    if (!driveUpload.year || !driveUpload.semester || !driveUpload.batch || !driveUpload.term) {
+      return '';
+    }
+    return `${driveUpload.year}_${driveUpload.semester}_${driveUpload.batch}-${driveUpload.term}`;
+  };
+
+  // Check if upload can be performed
+  const canUpload = () => {
+    return driveUpload.year && driveUpload.semester && driveUpload.batch && 
+           driveUpload.term && driveUpload.files && driveUpload.files.length > 0 && 
+           !driveUpload.isUploading && GoogleDriveService.isSignedIn();
+  };
+
+  // Check if Google Drive API is properly loaded and authenticated
+  const isGoogleDriveReady = () => {
+    return GoogleDriveService.isSignedIn();
+  };
+
+  // Check if Google API is loaded (not necessarily authenticated)
+  const isGoogleAPILoaded = () => {
+    // For the GoogleDriveService, we assume the API can be loaded
+    // The service handles initialization internally
+    return true;
+  };
+
+  // Handle Google Drive connection
+  const handleConnectToDrive = async () => {
+    try {
+      await GoogleDriveService.signIn();
+      toast.success('Successfully connected to Google Drive!');
+    } catch (error: unknown) {
+      console.error('Sign-in error:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('popup_closed_by_user') || error.message.includes('cancelled')) {
+          toast.error('Sign-in cancelled by user.');
+        } else {
+          toast.error(`Failed to connect: ${error.message}`);
+        }
+      } else {
+        toast.error('Failed to connect to Google Drive. Please try again.');
+      }
+    }
+  };
+
+  // Google Drive folder creation function
+  const createFolderInDrive = async (folderName: string, parentId: string) => {
+    try {
+      const folder = await GoogleDriveService.createFolder(folderName, parentId);
+      return folder.id;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      throw error;
+    }
+  };
+
+  // Check if folder exists
+  const findFolderByName = async (folderName: string, parentId: string) => {
+    try {
+      const folder = await GoogleDriveService.findFolderByName(folderName, parentId);
+      return folder ? folder.id : null;
+    } catch (error) {
+      console.error('Error searching for folder:', error);
+      throw error;
+    }
+  };
+
+  // Upload file to Google Drive
+  const uploadFileToDrive = async (file: File, folderId: string) => {
+    try {
+      const result = await GoogleDriveService.uploadFileToFolder(file, folderId, file.name);
+      return result;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  };
+
+  // Handle Google Drive upload
+  const handleDriveUpload = async () => {
+    if (!canUpload()) {
+      toast.error('Please fill all fields and select files');
+      return;
+    }
+
+    setDriveUpload(prev => ({ ...prev, isUploading: true }));
+
+    try {
+      const folderName = generateFolderName();
+      
+      // Check if folder exists, create if not
+      let folderId = await findFolderByName(folderName, PARENT_FOLDER_ID);
+      if (!folderId) {
+        folderId = await createFolderInDrive(folderName, PARENT_FOLDER_ID);
+        toast.success(`Created folder: ${folderName}`);
+      }
+
+      // Upload all selected files
+      const files = Array.from(driveUpload.files!);
+      const uploadPromises = files.map(file => uploadFileToDrive(file, folderId!));
+      
+      await Promise.all(uploadPromises);
+      
+      toast.success(`Successfully uploaded ${files.length} file(s) to ${folderName}`);
+      
+      // Reset form
+      setDriveUpload({
+        year: '',
+        semester: '',
+        batch: '',
+        term: '',
+        files: null,
+        isUploading: false,
+      });
+      
+      // Reset file input
+      const fileInput = document.getElementById('drive-file-input') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
+    } catch (error: unknown) {
+      console.error('Upload error:', error);
+      
+      let errorMessage = 'Failed to upload files. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('signed in')) {
+          errorMessage = 'Please sign in to Google Drive first.';
+        } else if (error.message.includes('quota')) {
+          errorMessage = 'Google Drive quota exceeded. Please try again later.';
+        } else {
+          errorMessage = `Upload failed: ${error.message}`;
+        }
+      }
+      
+      toast.error(errorMessage);
+      setDriveUpload(prev => ({ ...prev, isUploading: false }));
+    }
+  };
 
   const handleCreateDocument = () => {
     if (!newDocument.name.trim() || !newDocument.description.trim()) {
@@ -214,6 +384,240 @@ const DocumentManagement: React.FC = () => {
           <option value="reading-material">Reading Material</option>
           <option value="other">Other</option>
         </select>
+      </div>
+
+      {/* Google Drive Upload Section */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Upload to Google Drive</h3>
+            <p className="text-gray-600 text-sm mt-1">Upload documents directly to organized folders</p>
+          </div>
+          <div className="text-sm text-gray-500 flex items-center space-x-4">
+            <span>📁 Target: Smart Marks System</span>
+            <div className={`flex items-center px-2 py-1 rounded-full text-xs ${
+              isGoogleDriveReady() 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              <div className={`w-2 h-2 rounded-full mr-1 ${
+                isGoogleDriveReady() ? 'bg-green-500' : 'bg-red-500'
+              }`}></div>
+              {isGoogleDriveReady() ? 'Connected' : 'Not Connected'}
+            </div>
+          </div>
+        </div>
+
+        {!isGoogleDriveReady() && (
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="text-sm text-amber-800">
+                  <span className="font-medium">⚠️ Google Drive Not Connected:</span>
+                  <span className="ml-1">
+                    {!isGoogleAPILoaded() 
+                      ? 'Google API is not loaded. Please refresh the page and ensure you have an internet connection.' 
+                      : 'Please connect to Google Drive to enable file uploads.'
+                    }
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleConnectToDrive}
+                disabled={!isGoogleAPILoaded()}
+                className={`ml-4 px-4 py-2 text-sm rounded-lg transition-colors duration-200 flex items-center ${
+                  isGoogleAPILoaded()
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                title={
+                  !isGoogleAPILoaded() 
+                    ? 'Google API not loaded - please refresh the page'
+                    : 'Click to connect to Google Drive'
+                }
+              >
+                <span className="mr-2">{isGoogleAPILoaded() ? '🔗' : '⚠️'}</span>
+                {isGoogleAPILoaded() ? 'Connect to Drive' : 'API Not Loaded'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          {/* Year Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+            <select
+              value={driveUpload.year}
+              onChange={(e) => setDriveUpload(prev => ({ ...prev, year: e.target.value }))}
+              className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              title="Select year"
+            >
+              <option value="">Select Year</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+            </select>
+          </div>
+
+          {/* Semester Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+            <select
+              value={driveUpload.semester}
+              onChange={(e) => setDriveUpload(prev => ({ ...prev, semester: e.target.value }))}
+              className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              title="Select semester"
+            >
+              <option value="">Select Semester</option>
+              <option value="Spring">Spring</option>
+              <option value="Summer">Summer</option>
+              <option value="Fall">Fall</option>
+            </select>
+          </div>
+
+          {/* Batch Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Batch</label>
+            <select
+              value={driveUpload.batch}
+              onChange={(e) => setDriveUpload(prev => ({ ...prev, batch: e.target.value }))}
+              className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              title="Select batch"
+            >
+              <option value="">Select Batch</option>
+              <option value="60">60</option>
+              <option value="61">61</option>
+              <option value="62">62</option>
+              <option value="63">63</option>
+              <option value="64">64</option>
+              <option value="65">65</option>
+            </select>
+          </div>
+
+          {/* Term Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Term</label>
+            <select
+              value={driveUpload.term}
+              onChange={(e) => setDriveUpload(prev => ({ ...prev, term: e.target.value }))}
+              className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              title="Select term"
+            >
+              <option value="">Select Term</option>
+              <option value="T1">T1</option>
+              <option value="T2">T2</option>
+              <option value="T3">T3</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Folder Name Preview */}
+        {generateFolderName() && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-sm text-blue-800">
+              <span className="font-medium">📂 Folder will be created/used: </span>
+              <span className="font-mono bg-blue-100 px-2 py-1 rounded">
+                {generateFolderName()}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* File Upload Section */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Files to Upload
+            </label>
+            <input
+              id="drive-file-input"
+              type="file"
+              multiple
+              title="Select files to upload to Google Drive"
+              placeholder="Choose files..."
+              onChange={(e) => setDriveUpload(prev => ({ ...prev, files: e.target.files }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx,.zip,.rar"
+            />
+            <div className="mt-1 text-xs text-gray-500">
+              Supported formats: PDF, Word, Text, PowerPoint, Excel, ZIP, RAR
+            </div>
+          </div>
+
+          {/* Selected Files Preview */}
+          {driveUpload.files && driveUpload.files.length > 0 && (
+            <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+              <div className="text-sm font-medium text-gray-700 mb-2">
+                Selected Files ({driveUpload.files.length}):
+              </div>
+              <div className="space-y-1">
+                {Array.from(driveUpload.files).map((file, index) => (
+                  <div key={index} className="flex items-center text-sm text-gray-600">
+                    <span className="mr-2">📎</span>
+                    <span className="flex-1">{file.name}</span>
+                    <span className="text-xs text-gray-400">
+                      ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <div className="flex justify-end space-x-3">
+            {!isGoogleDriveReady() && (
+              <button
+                onClick={handleConnectToDrive}
+                disabled={!isGoogleAPILoaded()}
+                className={`px-4 py-2 rounded-lg transition-colors duration-200 flex items-center ${
+                  isGoogleAPILoaded()
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                title={
+                  !isGoogleAPILoaded() 
+                    ? 'Google API not loaded - please refresh the page'
+                    : 'Click to connect to Google Drive'
+                }
+              >
+                <span className="mr-2">{isGoogleAPILoaded() ? '🔗' : '⚠️'}</span>
+                {isGoogleAPILoaded() ? 'Connect to Drive' : 'API Not Loaded'}
+              </button>
+            )}
+            <button
+              onClick={handleDriveUpload}
+              disabled={!canUpload()}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors duration-200 ${
+                canUpload()
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              title={
+                !isGoogleDriveReady() 
+                  ? 'Google Drive not connected - please connect to Google Drive first' 
+                  : !driveUpload.year || !driveUpload.semester || !driveUpload.batch || !driveUpload.term
+                  ? 'Please select all dropdown fields'
+                  : !driveUpload.files || driveUpload.files.length === 0
+                  ? 'Please select files to upload'
+                  : 'Ready to upload'
+              }
+            >
+              {driveUpload.isUploading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Uploading...
+                </div>
+              ) : !isGoogleDriveReady() ? (
+                '⚠️ Drive Not Connected'
+              ) : (
+                '🚀 Upload to Drive'
+              )}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Documents List */}
