@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth";
 import marksRoutes from "./routes/marks";
 import googleDriveRoutes from "./routes/googleDrive";
 import adminRoutes from "./routes/admin";
+import templatesRoutes from "./routes/templates";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app: Application = express();
@@ -33,6 +34,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/marks", marksRoutes);
 app.use("/api/google-drive", googleDriveRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/templates", templatesRoutes);
 
 // Global error handler
 app.use(errorHandler);
