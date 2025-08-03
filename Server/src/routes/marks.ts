@@ -9,12 +9,6 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Question Format routes
-router.get('/formats', marksController.getQuestionFormats);
-router.get('/formats/:id', marksController.getQuestionFormat);
-router.post('/formats', validateRequest(createQuestionFormatSchema), marksController.createQuestionFormat);
-router.put('/formats/:id', validateRequest(updateQuestionFormatSchema), marksController.updateQuestionFormat);
-router.delete('/formats/:id', marksController.deleteQuestionFormat);
 
 // Student Marks routes
 router.get('/students/format/:formatId', marksController.getStudentMarksByFormat);
