@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import App from "../App";
 import PageLoader from "../components/PageLoader";
 import ProtectedRoute from "./ProtectedRoute";
+import RoleBasedRoute from "./RoleBasedRoute";
 
 
 
@@ -45,25 +46,25 @@ export const router = createBrowserRouter([
             {
                 path: "marks-entry",
                 element: (
-                    <ProtectedRoute>
+                    <RoleBasedRoute allowedRoles={['admin', 'teacher', 'module-leader']}>
                         {withSuspense(MarksEntry)()}
-                    </ProtectedRoute>
+                    </RoleBasedRoute>
                 ),
             },
             {
                 path: "document-submission",
                 element: (
-                    <ProtectedRoute>
+                    <RoleBasedRoute allowedRoles={['admin', 'teacher', 'module-leader']}>
                         {withSuspense(DocumentSubmission)()}
-                    </ProtectedRoute>
+                    </RoleBasedRoute>
                 ),
             },
             {
                 path: "document-submissions",
                 element: (
-                    <ProtectedRoute>
+                    <RoleBasedRoute allowedRoles={['admin', 'teacher', 'module-leader']}>
                         {withSuspense(DocumentSubmissionsList)()}
-                    </ProtectedRoute>
+                    </RoleBasedRoute>
                 ),
             },
             {
@@ -113,17 +114,17 @@ export const router = createBrowserRouter([
             {
                 path: "module-leader",
                 element: (
-                    <ProtectedRoute>
+                    <RoleBasedRoute allowedRoles={['admin', 'module-leader']}>
                         {withSuspense(ModuleLeaderDashboard)()}
-                    </ProtectedRoute>
+                    </RoleBasedRoute>
                 ),
             },
             {
                 path: "admin",
                 element: (
-                    <ProtectedRoute>
+                    <RoleBasedRoute allowedRoles={['admin']}>
                         {withSuspense(AdminDashboard)()}
-                    </ProtectedRoute>
+                    </RoleBasedRoute>
                 ),
             },
             {
