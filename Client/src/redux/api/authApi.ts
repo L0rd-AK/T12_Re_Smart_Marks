@@ -5,12 +5,17 @@ import { triggerGlobalLogout } from '../../hooks/useAuthPersistence';
 
 export interface User {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   avatar?: string;
+  employeeId?: string;
+  designation?: string;
+  emailId?: string;
+  mobileNumber?: string;
+  roomNumber?: string;
+  initial?: string;
   isEmailVerified: boolean;
-  role: 'user' | 'admin';
+  role: 'admin' | 'teacher' | 'module-leader';
   createdAt: string;
   updatedAt: string;
 }
@@ -142,7 +147,7 @@ export const authApi = baseApi.injectEndpoints({
     }),
 
     // Get current user profile
-    getCurrentUser: builder.query<User, void>({
+    getCurrentUser: builder.query<{ user: User }, void>({
       query: () => '/auth/me',
       providesTags: ['User'],
     }),
