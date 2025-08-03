@@ -81,10 +81,10 @@ export interface MarkEntryState {
 }
 
 export interface ProfileFormData {
-  firstName: string;
-  lastName: string;
+
+ name: string;
   email: string;
-  name?: string;
+
   employeeId?: string;
   designation?: string;
   emailId?: string;
