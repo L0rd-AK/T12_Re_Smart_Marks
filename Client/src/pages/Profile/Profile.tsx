@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppSelector } from '../../redux/hooks';
 import { useGetCurrentUserQuery, useUpdateProfileMutation } from '../../redux/api/authApi';
 import type { User } from '../../redux/api/authApi';
@@ -13,15 +13,16 @@ import type { ProfileFormData } from '../../types/types';
 const Profile: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user: currentUser } = useAppSelector((state) => state.auth);
-  const { data: user, isLoading } = useGetCurrentUserQuery();
+  const { data: userResponse, isLoading } = useGetCurrentUserQuery();
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
-  
+
+  // Extract user from the API response
+  const user = userResponse?.user;
+
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({
-    firstName: user?.firstName || currentUser?.firstName || '',
-    lastName: user?.lastName || currentUser?.lastName || '',
-    email: user?.email || currentUser?.email || '',
     name: user?.name || currentUser?.name || 'Mehedi Hasan',
+    email: user?.email || currentUser?.email || '',
     employeeId: user?.employeeId || currentUser?.employeeId || '342353',
     designation: user?.designation || currentUser?.designation || 'Lecturer',
     emailId: user?.emailId || currentUser?.emailId || 'mehedi15-4680@diu.edu.bd',
@@ -34,14 +35,12 @@ const Profile: React.FC = () => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Update form data when user data changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (user || currentUser) {
       const userData = user || currentUser;
       setFormData({
-        firstName: userData?.firstName || '',
-        lastName: userData?.lastName || '',
-        email: userData?.email || '',
         name: userData?.name || 'Mehedi Hasan',
+        email: userData?.email || '',
         employeeId: userData?.employeeId || '342353',
         designation: userData?.designation || 'Lecturer',
         emailId: userData?.emailId || 'mehedi15-4680@diu.edu.bd',
@@ -74,11 +73,9 @@ const Profile: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const updateData: Partial<User> = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
         name: formData.name,
         employeeId: formData.employeeId,
         designation: formData.designation,
@@ -95,11 +92,9 @@ const Profile: React.FC = () => {
       }
 
       await updateProfile(updateData).unwrap();
-      
+
       // Update local state
       dispatch(updateUser({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
         name: formData.name,
         employeeId: formData.employeeId,
         designation: formData.designation,
@@ -127,10 +122,8 @@ const Profile: React.FC = () => {
     // Reset form data to current user data
     const userData = user || currentUser;
     setFormData({
-      firstName: userData?.firstName || '',
-      lastName: userData?.lastName || '',
-      email: userData?.email || '',
       name: userData?.name || 'Abu rayan',
+      email: userData?.email || '',
       employeeId: userData?.employeeId || '342353',
       designation: userData?.designation || 'Lecturer',
       emailId: userData?.emailId || 'email@diu.edu.bd',
@@ -140,11 +133,6 @@ const Profile: React.FC = () => {
     });
   };
 
-  const getInitials = (firstName?: string, lastName?: string) => {
-    const first = firstName?.charAt(0)?.toUpperCase() || '';
-    const last = lastName?.charAt(0)?.toUpperCase() || '';
-    return first + last || 'U';
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -196,12 +184,12 @@ const Profile: React.FC = () => {
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                         <span className="text-4xl font-bold text-white">
-                          {getInitials(userData.firstName, userData.lastName)}
+                          {userData.name}
                         </span>
                       </div>
                     )}
                   </div>
-                  
+
                   {isEditing && (
                     <label className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg cursor-pointer hover:bg-gray-50 transition-colors" title="Change profile picture">
                       <input
@@ -223,13 +211,15 @@ const Profile: React.FC = () => {
 
                 {/* User Info */}
                 <h2 className="text-xl font-semibold text-gray-900 mb-1">
-                  {userData.firstName} {userData.lastName}
+                  {userData.name}
                 </h2>
                 <p className="text-gray-600 mb-4">{userData.email}</p>
-                
+
                 {/* Role Badge */}
                 <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
-                  {userData.role === 'admin' ? 'Administrator' : 'User'}
+                  {userData.role === 'admin' ? 'Administrator' : 
+                   userData.role === 'teacher' ? 'Teacher' :
+                   userData.role === 'module-leader' ? 'Module Leader' : 'Student'}
                 </div>
 
                 {/* Email Verification Status */}
@@ -327,49 +317,27 @@ const Profile: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* First Name */}
-                  <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        isEditing 
-                          ? 'border-gray-300 bg-white text-gray-900' 
-                          : 'border-gray-200 bg-gray-50 text-gray-500'
-                      }`}
-                      required
-                    />
-                  </div>
 
-                  {/* Last Name */}
-                  <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        isEditing 
-                          ? 'border-gray-300 bg-white text-gray-900' 
-                          : 'border-gray-200 bg-gray-50 text-gray-500'
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
+                      ? 'border-gray-300 bg-white text-gray-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
                       }`}
-                      required
-                    />
-                  </div>
+                    required
+                  />
                 </div>
+
+
 
                 {/* Name with Initial */}
                 <div>
@@ -383,11 +351,10 @@ const Profile: React.FC = () => {
                     value={formData.initial}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      isEditing 
-                        ? 'border-gray-300 bg-white text-gray-900' 
-                        : 'border-gray-200 bg-gray-50 text-gray-500'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
+                      ? 'border-gray-300 bg-white text-gray-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                      }`}
                     required
                   />
                 </div>
@@ -404,11 +371,10 @@ const Profile: React.FC = () => {
                     value={formData.employeeId}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      isEditing 
-                        ? 'border-gray-300 bg-white text-gray-900' 
-                        : 'border-gray-200 bg-gray-50 text-gray-500'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
+                      ? 'border-gray-300 bg-white text-gray-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                      }`}
                     required
                   />
                 </div>
@@ -425,11 +391,10 @@ const Profile: React.FC = () => {
                     value={formData.designation}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      isEditing 
-                        ? 'border-gray-300 bg-white text-gray-900' 
-                        : 'border-gray-200 bg-gray-50 text-gray-500'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
+                      ? 'border-gray-300 bg-white text-gray-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                      }`}
                     required
                   />
                 </div>
@@ -446,11 +411,10 @@ const Profile: React.FC = () => {
                     value={formData.emailId}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      isEditing 
-                        ? 'border-gray-300 bg-white text-gray-900' 
-                        : 'border-gray-200 bg-gray-50 text-gray-500'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
+                      ? 'border-gray-300 bg-white text-gray-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                      }`}
                     required
                   />
                 </div>
@@ -467,11 +431,10 @@ const Profile: React.FC = () => {
                     value={formData.mobileNumber}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      isEditing 
-                        ? 'border-gray-300 bg-white text-gray-900' 
-                        : 'border-gray-200 bg-gray-50 text-gray-500'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
+                      ? 'border-gray-300 bg-white text-gray-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                      }`}
                     required
                   />
                 </div>
@@ -489,11 +452,10 @@ const Profile: React.FC = () => {
                     value={formData.roomNumber}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      isEditing 
-                        ? 'border-gray-300 bg-white text-gray-900' 
-                        : 'border-gray-200 bg-gray-50 text-gray-500'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
+                      ? 'border-gray-300 bg-white text-gray-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                      }`}
                   />
                 </div>
 
@@ -503,16 +465,16 @@ const Profile: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Profile Picture
                     </label>
-                                         <div className="flex items-center space-x-4">
-                       <input
-                         type="file"
-                         accept="image/*"
-                         onChange={handleAvatarChange}
-                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors"
-                         aria-label="Upload profile picture"
-                         title="Select a profile picture"
-                       />
-                     </div>
+                    <div className="flex items-center space-x-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors"
+                        aria-label="Upload profile picture"
+                        title="Select a profile picture"
+                      />
+                    </div>
                     <p className="mt-1 text-sm text-gray-500">
                       Upload a new profile picture (JPG, PNG, GIF up to 5MB)
                     </p>

@@ -18,7 +18,7 @@ import {
 export class AuthController {
   // Register new user
   static register = asyncHandler(async (req: Request<{}, {}, RegisterInput>, res: Response) => {
-    const { firstName, lastName, email, password } = req.body;
+    const { name, email, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -28,8 +28,7 @@ export class AuthController {
 
     // Create new user
     const user = new User({
-      firstName,
-      lastName,
+      name,
       email,
       password,
     });
@@ -56,16 +55,16 @@ export class AuthController {
 
     // Set cookies
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from strict to lax for better compatibility
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from strict to lax for better compatibility
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -83,7 +82,7 @@ export class AuthController {
 
     // Find user and include password for comparison
     const user = await User.findOne({ email }).select('+password +refreshTokens');
-    
+
     if (!user || !(await user.comparePassword(password))) {
       throw createError('Invalid email or password', 401);
     }
@@ -97,21 +96,21 @@ export class AuthController {
     // Clean up old refresh tokens (keep only last 5)
     user.refreshTokens = user.refreshTokens.slice(-4);
     user.refreshTokens.push(refreshToken);
-    
+
     await user.save();
 
     // Set cookies
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from strict to lax for better compatibility
       maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from strict to lax for better compatibility
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -153,8 +152,7 @@ export class AuthController {
     } else {
       // Create new user
       user = new User({
-        firstName: googleUser.firstName,
-        lastName: googleUser.lastName,
+        name: googleUser.name,
         email: googleUser.email,
         googleId: googleUser.googleId,
         avatar: googleUser.picture,
@@ -176,21 +174,21 @@ export class AuthController {
     // Clean up old refresh tokens
     user.refreshTokens = user.refreshTokens.slice(-4);
     user.refreshTokens.push(refreshToken);
-    
+
     await user.save();
 
     // Set cookies
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from strict to lax for better compatibility
       maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from strict to lax for better compatibility
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -232,10 +230,10 @@ export class AuthController {
 
     // Verify refresh token
     const decoded = JWTService.verifyRefreshToken(token);
-    
+
     // Find user and check if refresh token is valid
     const user = await User.findById(decoded.userId).select('+refreshTokens');
-    
+
     if (!user || !user.refreshTokens.includes(token)) {
       throw createError('Invalid refresh token', 401);
     }
@@ -250,16 +248,16 @@ export class AuthController {
 
     // Set new cookies
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from strict to lax for better compatibility
       maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
+      httpOnly: false, // Allow client-side access
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from strict to lax for better compatibility
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -275,7 +273,7 @@ export class AuthController {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       // Don't reveal if user exists or not
       return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
@@ -301,19 +299,19 @@ export class AuthController {
 
     // Verify reset token
     const decoded = JWTService.verifyPasswordResetToken(token);
-    
+
     const user = await User.findById(decoded.userId).select('+refreshTokens');
-    
+
     if (!user) {
       throw createError('Invalid or expired reset token', 400);
     }
 
     // Update password
     user.password = password;
-    
+
     // Clear all refresh tokens (force re-login on all devices)
     user.refreshTokens = [];
-    
+
     await user.save();
 
     res.json({ message: 'Password reset successful. Please log in with your new password.' });
@@ -325,9 +323,9 @@ export class AuthController {
 
     // Verify email verification token
     const decoded = JWTService.verifyEmailVerificationToken(token);
-    
+
     const user = await User.findById(decoded.userId);
-    
+
     if (!user) {
       throw createError('Invalid or expired verification token', 400);
     }
@@ -383,11 +381,26 @@ export class AuthController {
 
   // Update profile
   static updateProfile = asyncHandler(async (req: Request, res: Response) => {
-    const { firstName, lastName } = req.body;
+    const { 
+      name, 
+      employeeId, 
+      designation, 
+      emailId, 
+      mobileNumber, 
+      roomNumber, 
+      initial,
+      avatar 
+    } = req.body;
     const user = req.user!;
 
-    if (firstName) user.firstName = firstName;
-    if (lastName) user.lastName = lastName;
+    if (name) user.name = name;
+    if (employeeId !== undefined) user.employeeId = employeeId;
+    if (designation !== undefined) user.designation = designation;
+    if (emailId !== undefined) user.emailId = emailId;
+    if (mobileNumber !== undefined) user.mobileNumber = mobileNumber;
+    if (roomNumber !== undefined) user.roomNumber = roomNumber;
+    if (initial !== undefined) user.initial = initial;
+    if (avatar !== undefined) user.avatar = avatar;
 
     await user.save();
 

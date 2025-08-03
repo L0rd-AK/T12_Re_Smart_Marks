@@ -65,13 +65,12 @@ const DocumentSubmissionsList: React.FC = () => {
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                        submission.status === 'approved' 
-                          ? 'bg-green-100 text-green-800' 
+                      <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${submission.status === 'approved'
+                          ? 'bg-green-100 text-green-800'
                           : submission.status === 'rejected'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
                         {submission.status.charAt(0).toUpperCase() + submission.status.slice(1)}
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
@@ -87,7 +86,7 @@ const DocumentSubmissionsList: React.FC = () => {
                       <p className="text-sm text-gray-600">{submission.teacherInfo.designation}</p>
                       <p className="text-sm text-gray-600">{submission.teacherInfo.emailId}</p>
                     </div>
-                    
+
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Documents Summary</h4>
                       <div className="flex space-x-4 text-sm">

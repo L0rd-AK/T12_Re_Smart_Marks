@@ -426,6 +426,8 @@ export class GoogleDriveService {
     courseCode: string;
     courseSection: string;
     batch?: string;
+    department?: string;
+    semester?: string;
   }): Promise<string> {
     console.log('🏗️ GoogleDriveService.createCourseFolder called with:', courseInfo);
     
@@ -435,20 +437,15 @@ export class GoogleDriveService {
       throw new Error('User must be signed in to create folders');
     }
 
-    // Extract department and course number from courseCode (e.g., "CSE-321" -> "cse", "321")
-    const courseCodeParts = courseInfo.courseCode.split('-');
-    const department = courseCodeParts[0]?.toLowerCase() || courseInfo.courseCode.toLowerCase();
-    const courseNumber = courseInfo.courseCode.toLowerCase().replace(/\s+/g, '-');
-    const section = `section-${courseInfo.courseSection.toLowerCase()}`;
-    const batch = courseInfo.batch ? `batch-${courseInfo.batch}` : 'batch-61';
-
-    // Create folder structure: smart-mark/cse/cse-321/batch-61/section-s
+    // Create folder structure: smart-mark/department/semester/batch-XX/courseCode/courseSection
+    const batchFormatted = courseInfo.batch ? `batch-${courseInfo.batch}` : 'batch';
     const folderStructure = [
       'smart-mark',
-      department,
-      courseNumber,
-      batch,
-      section
+      courseInfo.department || 'department',
+      courseInfo.semester || 'semester',
+      batchFormatted,
+      courseInfo.courseCode,
+      courseInfo.courseSection
     ];
 
     console.log('📁 Folder structure to create:', folderStructure);
