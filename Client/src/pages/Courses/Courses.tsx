@@ -48,18 +48,10 @@ interface AccessRequest {
 
 
 
-// interface CoursesPageProps {
-//     user?: {
-//         name: string
-//         email: string
-//         role: string
-//         department: string
-//     }
-// }
 const user = {
     name: "Dr. John Smith",
     email: "john.smith@university.edu",
-    // role: "module_leader",
+    // role: "module-leader",
     role: "teacher",
     department: "Computer Science",
 
@@ -386,7 +378,7 @@ export default function CoursesPage() {
                         Access Requests
                     </button>
 
-                    {/* {user?.role === "module_leader" && (
+                    {/* {user?.role === "module-leader" && (
                         <button
                             role="tab"
                             className={`tab flex items-center gap-2 ${activeTab === "module-leader" ? "tab-active !bg-yellow-500 !text-white" : "!text-gray-700 hover:!bg-yellow-100"}`}
