@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { templatesService, type QuestionTemplateData } from '../../../services/templatesService';
 
 interface QuestionTemplate {
@@ -183,7 +183,7 @@ const QuestionPaperTemplates: React.FC = () => {
     };
 
     try {
-      toast.loading('Creating template...', { id: 'create-template' });
+      const loadingToast = toast.loading('Creating template...');
       
       const createdTemplate = await templatesService.createTemplate(templateData);
       
@@ -205,7 +205,8 @@ const QuestionPaperTemplates: React.FC = () => {
       setTemplateQuestions([]);
       setShowCreateModal(false);
       
-      toast.success('Template created successfully!', { id: 'create-template' });
+      toast.dismiss(loadingToast);
+      toast.success('Template created successfully!');
 
       // Log the structured JSON format for debugging
       console.log('Template created successfully:', createdTemplate);
@@ -216,7 +217,7 @@ const QuestionPaperTemplates: React.FC = () => {
         const axiosError = error as { response?: { data?: { message?: string } } };
         errorMessage = axiosError.response?.data?.message || 'Failed to create template';
       }
-      toast.error(errorMessage, { id: 'create-template' });
+      toast.error(errorMessage);
       
       // Fallback to local state if API fails
       const fallbackTemplate: QuestionTemplate = {
@@ -1138,7 +1139,7 @@ const QuestionPaperTemplates: React.FC = () => {
                 onClick={async () => {
                   if (editingTemplateData) {
                     try {
-                      toast.loading('Updating template...', { id: 'update-template' });
+                      const loadingToast = toast.loading('Updating template...');
                       
                       const updatedTemplate = await templatesService.updateTemplate(editingTemplateData.id, {
                         name: editingTemplateData.name,
@@ -1156,10 +1157,11 @@ const QuestionPaperTemplates: React.FC = () => {
                       setTemplates(prev => prev.map(t => t.id === updatedTemplate.id ? updatedTemplate : t));
                       setShowEditModal(false);
                       setEditingTemplateData(null);
-                      toast.success('Template updated successfully!', { id: 'update-template' });
+                      toast.dismiss(loadingToast);
+                      toast.success('Template updated successfully!');
                     } catch (error) {
                       console.error('Failed to update template:', error);
-                      toast.error('Failed to update template', { id: 'update-template' });
+                      toast.error('Failed to update template');
                     }
                   }
                 }}
