@@ -1,28 +1,8 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { authenticate, requireRole } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import {
-  DepartmentController,
-  CourseController,
-  BatchController,
-  SectionController,
-  AdminStatsController,
-  UserController
-} from '../controllers/adminController';
-import {
-  createDepartmentSchema,
-  updateDepartmentSchema,
-  createCourseSchema,
-  updateCourseSchema,
-  createBatchSchema,
-  updateBatchSchema,
-  createSectionSchema,
-  updateSectionSchema,
-  assignModuleLeaderSchema,
-  getUsersQuerySchema,
-  updateUserRoleSchema,
-  blockUserSchema
-} from '../schemas/admin';
+import User from '../models/User';
+import { createError, asyncHandler } from '../middleware/errorHandler';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
@@ -30,46 +10,210 @@ const router = express.Router();
 router.use(authenticate);
 router.use(requireRole(['admin']));
 
-// Dashboard stats
-router.get('/dashboard/stats', AdminStatsController.getDashboardStats);
-
-// Department routes
-router.get('/departments', DepartmentController.getDepartments);
-router.get('/departments/:id', DepartmentController.getDepartment);
-router.post('/departments', validateRequest(createDepartmentSchema), DepartmentController.createDepartment);
-router.put('/departments/:id', validateRequest(updateDepartmentSchema), DepartmentController.updateDepartment);
-router.delete('/departments/:id', DepartmentController.deleteDepartment);
-
-// Course routes
-router.get('/courses', CourseController.getCourses);
-router.get('/courses/:id', CourseController.getCourse);
-router.post('/courses', validateRequest(createCourseSchema), CourseController.createCourse);
-router.put('/courses/:id', validateRequest(updateCourseSchema), CourseController.updateCourse);
-router.delete('/courses/:id', CourseController.deleteCourse);
-
-// Batch routes
-router.get('/batches', BatchController.getBatches);
-router.get('/batches/:id', BatchController.getBatch);
-router.post('/batches', validateRequest(createBatchSchema), BatchController.createBatch);
-router.put('/batches/:id', validateRequest(updateBatchSchema), BatchController.updateBatch);
-router.delete('/batches/:id', BatchController.deleteBatch);
-
-// Section routes
-router.get('/sections', SectionController.getSections);
-router.get('/sections/:id', SectionController.getSection);
-router.post('/sections', validateRequest(createSectionSchema), SectionController.createSection);
-router.put('/sections/:id', validateRequest(updateSectionSchema), SectionController.updateSection);
-router.delete('/sections/:id', SectionController.deleteSection);
-
-// Module leader assignment
-router.post('/sections/assign-module-leader', validateRequest(assignModuleLeaderSchema), SectionController.assignModuleLeader);
-
 // User Management Routes
-router.get('/users', UserController.getUsers);
-router.get('/users/stats', UserController.getUserStats);
-router.put('/users/:id/role', UserController.updateUserRole);
-router.put('/users/:id/block', validateRequest(blockUserSchema), UserController.blockUser);
-router.put('/users/:id/unblock', UserController.unblockUser);
-router.delete('/users/:id', UserController.deleteUser);
+// Get all users with filtering and pagination
+router.get('/users', asyncHandler(async (req: Request, res: Response) => {
+  const { page = 1, limit = 10, search, role, isBlocked } = req.query as any;
+
+  const filter: any = {};
+
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  if (role) {
+    filter.role = role;
+  }
+
+  if (isBlocked !== undefined) {
+    filter.isBlocked = isBlocked === 'true';
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
+      .populate('blockedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit)),
+    User.countDocuments(filter)
+  ]);
+
+  res.json({
+    users,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      pages: Math.ceil(total / limit)
+    }
+  });
+}));
+
+// Get user statistics
+router.get('/users/stats', asyncHandler(async (req: Request, res: Response) => {
+  const [totalUsers, activeUsers, blockedUsers, adminUsers, teacherUsers, moduleLeaderUsers, regularUsers] = await Promise.all([
+    User.countDocuments(),
+    User.countDocuments({ isBlocked: false }),
+    User.countDocuments({ isBlocked: true }),
+    User.countDocuments({ role: 'admin' }),
+    User.countDocuments({ role: 'teacher' }),
+    User.countDocuments({ role: 'module-leader' }),
+    User.countDocuments({ role: 'user' })
+  ]);
+
+  res.json({
+    totalUsers,
+    activeUsers,
+    blockedUsers,
+    adminUsers,
+    teacherUsers,
+    moduleLeaderUsers,
+    regularUsers
+  });
+}));
+
+// Update user role
+router.put('/users/:id/role', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { role } = req.body.data || req.body;
+  const adminId = req.user?.id;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw createError('Invalid user ID', 400);
+  }
+
+  // Prevent admin from changing their own role
+  if (id === adminId) {
+    throw createError('Cannot change your own role', 400);
+  }
+
+  // Validate role value
+  const validRoles = ['user', 'admin', 'teacher', 'module-leader'];
+  if (!role || !validRoles.includes(role)) {
+    throw createError('Invalid or missing role', 400);
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  user.role = role;
+  await user.save();
+
+  const updatedUser = await User.findById(id)
+    .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
+    .populate('blockedBy', 'name email');
+
+  res.json({
+    message: 'User role updated successfully',
+    user: updatedUser
+  });
+}));
+
+// Block user
+router.put('/users/:id/block', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { reason } = req.body.data || req.body;
+  const adminId = req.user?.id;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw createError('Invalid user ID', 400);
+  }
+
+  // Prevent admin from blocking themselves
+  if (id === adminId) {
+    throw createError('Cannot block yourself', 400);
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  if (user.isBlocked) {
+    throw createError('User is already blocked', 400);
+  }
+
+  user.isBlocked = true;
+  user.blockedAt = new Date();
+  user.blockedBy = new mongoose.Types.ObjectId(adminId);
+  user.blockReason = reason;
+  await user.save();
+
+  const updatedUser = await User.findById(id)
+    .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
+    .populate('blockedBy', 'name email');
+
+  res.json({
+    message: 'User blocked successfully',
+    user: updatedUser
+  });
+}));
+
+// Unblock user
+router.put('/users/:id/unblock', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw createError('Invalid user ID', 400);
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  if (!user.isBlocked) {
+    throw createError('User is not blocked', 400);
+  }
+
+  user.isBlocked = false;
+  user.blockedAt = undefined;
+  user.blockedBy = undefined;
+  user.blockReason = undefined;
+  await user.save();
+
+  const updatedUser = await User.findById(id)
+    .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
+    .populate('blockedBy', 'name email');
+
+  res.json({
+    message: 'User unblocked successfully',
+    user: updatedUser
+  });
+}));
+
+// Delete user
+router.delete('/users/:id', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const adminId = req.user?.id;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw createError('Invalid user ID', 400);
+  }
+
+  // Prevent admin from deleting themselves
+  if (id === adminId) {
+    throw createError('Cannot delete yourself', 400);
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw createError('User not found', 404);
+  }
+
+  await User.findByIdAndDelete(id);
+
+  res.json({
+    message: 'User deleted successfully'
+  });
+}));
 
 export default router;
