@@ -4,7 +4,10 @@ import { toast } from 'react-hot-toast';
 interface QuestionTemplate {
   id: string;
   name: string;
-  type: 'midterm' | 'final' | 'quiz' | 'assignment';
+  type: 'quiz' | 'midterm' | 'final';
+  year: string;
+  courseName: string;
+  courseCode: string;
   description: string;
   questions: Question[];
   totalMarks: number;
@@ -18,11 +21,13 @@ interface QuestionTemplate {
 
 interface Question {
   id: string;
-  type: 'mcq' | 'short-answer' | 'essay' | 'numerical' | 'true-false';
-  question: string;
+  questionNo: string;
   marks: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  bloomsLevel: 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create';
+  courseOutcomeStatements?: string;
+  type?: 'mcq' | 'short-answer' | 'essay' | 'numerical' | 'true-false';
+  question?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  bloomsLevel?: 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create';
   options?: string[]; // for MCQ
   correctAnswer?: string;
   rubric?: string;
@@ -32,28 +37,36 @@ const QuestionPaperTemplates: React.FC = () => {
   const [templates, setTemplates] = useState<QuestionTemplate[]>([
     {
       id: '1',
-      name: 'Midterm Exam Template - Computer Science',
+      name: '2025_Summer_61_T2',
       type: 'midterm',
+      year: '2025',
+      courseName: 'Computer Science',
+      courseCode: 'CS101',
       description: 'Standard midterm template for CS courses',
       questions: [
         {
           id: 'q1',
-          type: 'mcq',
-          question: 'What is the time complexity of binary search?',
+          questionNo: '1',
           marks: 5,
-          difficulty: 'medium',
-          bloomsLevel: 'understand',
-          options: ['O(n)', 'O(log n)', 'O(n²)', 'O(1)'],
-          correctAnswer: 'O(log n)'
+          courseOutcomeStatements: 'CO1',
         },
         {
           id: 'q2',
-          type: 'essay',
-          question: 'Explain the concept of object-oriented programming with examples.',
-          marks: 15,
-          difficulty: 'medium',
-          bloomsLevel: 'analyze',
-          rubric: 'Clear explanation (5 marks), Examples (5 marks), Analysis (5 marks)'
+          questionNo: '2',
+          marks: 5,
+          courseOutcomeStatements: 'CO2',
+        },
+        {
+          id: 'q3',
+          questionNo: '3',
+          marks: 5,
+          courseOutcomeStatements: 'CO3',
+        },
+        {
+          id: 'q4',
+          questionNo: '4',
+          marks: 5,
+          courseOutcomeStatements: 'CO4',
         }
       ],
       totalMarks: 20,
@@ -76,11 +89,33 @@ const QuestionPaperTemplates: React.FC = () => {
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     type: 'midterm' as QuestionTemplate['type'],
+    year: '2025',
+    courseName: '',
+    courseCode: '',
     description: '',
     duration: 90,
     instructions: '',
     isStandard: false,
   });
+
+  const [templateQuestions, setTemplateQuestions] = useState<Array<{
+    id: string;
+    questionNo: string;
+    marks: number;
+    courseOutcomeStatements?: string;
+  }>>([]);
+
+  // Available options for dropdowns
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString());
+  
+  const courses = [
+    { name: 'Computer Science', code: 'CS101' },
+    { name: 'Data Structures', code: 'CS102' },
+    { name: 'Algorithms', code: 'CS201' },
+    { name: 'Database Systems', code: 'CS301' },
+    { name: 'Software Engineering', code: 'CS401' },
+  ];
 
   const [newQuestion, setNewQuestion] = useState<Partial<Question>>({
     type: 'mcq',
@@ -94,16 +129,31 @@ const QuestionPaperTemplates: React.FC = () => {
   });
 
   const handleCreateTemplate = () => {
-    if (!newTemplate.name.trim() || !newTemplate.description.trim()) {
+    console.log('Creating template with data:', newTemplate);
+    if (!newTemplate.name.trim() || !newTemplate.description.trim() || !newTemplate.courseName.trim() || !newTemplate.courseCode.trim()) {
+      console.error('Please fill in all required fields');
       toast.error('Please fill in all required fields');
       return;
     }
 
+    if (templateQuestions.length === 0) {
+      console.error('Please add at least one question');
+      toast.error('Please add at least one question');
+      return;
+    }
+
+    const questions = templateQuestions.map(q => ({
+      id: q.id,
+      questionNo: q.questionNo,
+      marks: q.marks,
+      courseOutcomeStatements: q.courseOutcomeStatements,
+    }));
+
     const template: QuestionTemplate = {
       id: Date.now().toString(),
       ...newTemplate,
-      questions: [],
-      totalMarks: 0,
+      questions,
+      totalMarks: templateQuestions.reduce((sum, q) => sum + q.marks, 0),
       createdAt: new Date().toISOString().split('T')[0],
       usageCount: 0,
     };
@@ -112,13 +162,48 @@ const QuestionPaperTemplates: React.FC = () => {
     setNewTemplate({
       name: '',
       type: 'midterm',
+      year: '2025',
+      courseName: '',
+      courseCode: '',
       description: '',
       duration: 90,
       instructions: '',
       isStandard: false,
     });
+    setTemplateQuestions([]);
     setShowCreateModal(false);
     toast.success('Template created successfully');
+
+    // Log the structured JSON format for backend
+    console.log('Template Data for Backend:', {
+      template,
+      questions,
+      metadata: {
+        totalQuestions: questions.length,
+        totalMarks: template.totalMarks,
+        createdAt: template.createdAt
+      }
+    });
+  };
+
+  const handleAddQuestionToTemplate = () => {
+    const newQuestionItem = {
+      id: Date.now().toString(),
+      questionNo: '',
+      marks: 1,
+      courseOutcomeStatements: '',
+    };
+    setTemplateQuestions(prev => [...prev, newQuestionItem]);
+  };
+
+  const handleDeleteQuestion = (index: number) => {
+    setTemplateQuestions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateQuestion = (index: number, field: string, value: string | number) => {
+    setTemplateQuestions(prev => prev.map((q, i) => 
+      i === index ? { ...q, [field]: value } : q
+    ));
   };
 
   const handleAddQuestion = () => {
@@ -129,9 +214,10 @@ const QuestionPaperTemplates: React.FC = () => {
 
     const question: Question = {
       id: Date.now().toString(),
+      questionNo: `Q${Date.now()}`, // Add default questionNo
+      marks: newQuestion.marks || 1,
       type: newQuestion.type || 'mcq',
       question: newQuestion.question || '',
-      marks: newQuestion.marks || 1,
       difficulty: newQuestion.difficulty || 'medium',
       bloomsLevel: newQuestion.bloomsLevel || 'understand',
       options: newQuestion.type === 'mcq' ? newQuestion.options : undefined,
@@ -233,7 +319,6 @@ const QuestionPaperTemplates: React.FC = () => {
           <option value="midterm">Midterm</option>
           <option value="final">Final</option>
           <option value="quiz">Quiz</option>
-          <option value="assignment">Assignment</option>
         </select>
       </div>
 
@@ -308,64 +393,123 @@ const QuestionPaperTemplates: React.FC = () => {
       {/* Create Template Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto text-black">
-            <h3 className="text-lg font-semibold mb-4">Create New Template</h3>
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto text-black">
+            <h3 className="text-lg font-semibold mb-4">Create New Question Paper Template</h3>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Template Name
-                </label>
-                <input
-                  type="text"
-                  value={newTemplate.name}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter template name"
-                />
+            <div className="space-y-6">
+              {/* Template Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Template Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newTemplate.name}
+                    onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 2025_Summer_61_T2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Year *
+                  </label>
+                  <select
+                    value={newTemplate.year}
+                    onChange={(e) => setNewTemplate(prev => ({ ...prev, year: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Select year"
+                  >
+                    {years.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Course Name *
+                  </label>
+                  <select
+                    value={newTemplate.courseName}
+                    onChange={(e) => {
+                      const selectedCourse = courses.find(c => c.name === e.target.value);
+                      setNewTemplate(prev => ({ 
+                        ...prev, 
+                        courseName: e.target.value,
+                        courseCode: selectedCourse?.code || ''
+                      }));
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Select course"
+                  >
+                    <option value="">Select Course</option>
+                    {courses.map(course => (
+                      <option key={course.code} value={course.name}>{course.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Course Code *
+                  </label>
+                  <select
+                    value={newTemplate.courseCode}
+                    onChange={(e) => setNewTemplate(prev => ({ ...prev, courseCode: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Select course code"
+                  >
+                    <option value="">Select Code</option>
+                    {courses.map(course => (
+                      <option key={course.code} value={course.code}>{course.code}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Template Type *
+                  </label>
+                  <select
+                    value={newTemplate.type}
+                    onChange={(e) => setNewTemplate(prev => ({ ...prev, type: e.target.value as QuestionTemplate['type'] }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Template type"
+                  >
+                    <option value="quiz">Quiz</option>
+                    <option value="midterm">Midterm</option>
+                    <option value="final">Final</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    placeholder='Enter duration in minutes'
+                    type="number"
+                    value={newTemplate.duration}
+                    onChange={(e) => setNewTemplate(prev => ({ ...prev, duration: parseInt(e.target.value) || 90 }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min="1"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type
-                </label>
-                <select
-                  value={newTemplate.type}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, type: e.target.value as QuestionTemplate['type'] }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  title="Template type"
-                >
-                  <option value="midterm">Midterm</option>
-                  <option value="final">Final</option>
-                  <option value="quiz">Quiz</option>
-                  <option value="assignment">Assignment</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
+                  Description *
                 </label>
                 <textarea
                   value={newTemplate.description}
                   onChange={(e) => setNewTemplate(prev => ({ ...prev, description: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}
-                  placeholder="Enter description"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Duration (minutes)
-                </label>
-                <input
-                  placeholder='Enter duration in minutes'
-                  type="number"
-                  value={newTemplate.duration}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, duration: parseInt(e.target.value) || 90 }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="1"
+                  placeholder="Enter template description"
                 />
               </div>
 
@@ -380,6 +524,87 @@ const QuestionPaperTemplates: React.FC = () => {
                   rows={2}
                   placeholder="Enter instructions for students"
                 />
+              </div>
+
+              {/* Questions Section */}
+              <div className="border-t pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-lg font-semibold">Questions</h4>
+                  <button
+                    onClick={handleAddQuestionToTemplate}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+                  >
+                    Add Question +
+                  </button>
+                </div>
+
+                {templateQuestions.length > 0 && (
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Question No.</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Marks</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Course Outcome</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {templateQuestions.map((question, index) => (
+                          <tr key={question.id}>
+                            <td className="px-4 py-3">
+                              <input
+                                type="text"
+                                value={question.questionNo}
+                                onChange={(e) => handleUpdateQuestion(index, 'questionNo', e.target.value)}
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                placeholder="e.g., 1a, 2b"
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <input
+                                type="number"
+                                value={question.marks}
+                                onChange={(e) => handleUpdateQuestion(index, 'marks', parseFloat(e.target.value) || 0)}
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                min="0"
+                                step="0.5"
+                                placeholder="2.5"
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <input
+                                type="text"
+                                value={question.courseOutcomeStatements || ''}
+                                onChange={(e) => handleUpdateQuestion(index, 'courseOutcomeStatements', e.target.value)}
+                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                placeholder="e.g., CO1"
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => handleDeleteQuestion(index)}
+                                className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50"
+                                title="Delete question"
+                              >
+                                🗑️ Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {templateQuestions.length > 0 && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <div className="text-sm text-blue-800">
+                      <strong>Total Questions:</strong> {templateQuestions.length} | 
+                      <strong> Total Marks:</strong> {templateQuestions.reduce((sum, q) => sum + q.marks, 0)}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -397,7 +622,10 @@ const QuestionPaperTemplates: React.FC = () => {
 
             <div className="flex justify-end space-x-3 mt-6">
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setTemplateQuestions([]);
+                }}
                 className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
                 Cancel
@@ -406,7 +634,7 @@ const QuestionPaperTemplates: React.FC = () => {
                 onClick={handleCreateTemplate}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                Create
+                Create Template
               </button>
             </div>
           </div>
@@ -612,13 +840,13 @@ const QuestionPaperTemplates: React.FC = () => {
               <div>
                 <h4 className="font-semibold mb-4">Questions:</h4>
                 <div className="space-y-4">
-                  {selectedTemplate.questions.map((question, index) => (
+                  {selectedTemplate.questions.map((question) => (
                     <div key={question.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="font-medium">Q{index + 1}. {question.question}</span>
+                        <span className="font-medium">{question.questionNo}</span>
                         <div className="flex space-x-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
-                            {question.difficulty}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty || 'medium')}`}>
+                            {question.difficulty || 'medium'}
                           </span>
                           <span className="text-sm text-gray-500">[{question.marks} marks]</span>
                         </div>

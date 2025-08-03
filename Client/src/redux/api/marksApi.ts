@@ -6,6 +6,7 @@ export interface CreateQuestionFormatRequest {
   questions: Array<{
     label: string;
     maxMark: number;
+    course_outcome: string;
   }>;
 }
 
