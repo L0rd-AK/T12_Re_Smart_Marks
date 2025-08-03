@@ -18,6 +18,8 @@ import {
   ASSIGNMENT_CRITERIA,
   PRESENTATION_CRITERIA
 } from '../../utils/markCalculations';
+import SectionInformation from '../../components/SectionInformation';
+import { useAppSelector } from '../../redux/hooks';
 
 
 const MarksEntry: React.FC = () => {
@@ -47,7 +49,7 @@ const MarksEntry: React.FC = () => {
   const { data: questionFormats } = useGetQuestionFormatsQuery();
   const [createStudentMarks] = useCreateStudentMarksMutation();
   const [createQuestionFormat] = useCreateQuestionFormatMutation();
-
+  const { isSubmitted, batch, courseCode, courseTitle, department, section, semester, year } = useAppSelector((state) => state.sectionInformation);
   const resetState = () => {
     setState({
       type: null,
@@ -612,6 +614,9 @@ const MarksEntry: React.FC = () => {
     );
   };
 
+
+
+
   return (
     <div className="p-6  bg-white min-h-screen">
       {
@@ -626,7 +631,7 @@ const MarksEntry: React.FC = () => {
 
       {/* Instructions */}
       {!state.type && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg collapse collapse-plus">
           <h2 className="text-lg font-semibold text-blue-800 mb-2">Instructions:</h2>
           <ul className="text-blue-700 space-y-2 text-sm">
             <li><strong>Assignment (5 marks):</strong>
@@ -649,9 +654,50 @@ const MarksEntry: React.FC = () => {
           </div>
         </div>
       )}
+      {/* section information */}
+      {
+        !isSubmitted &&
+        <SectionInformation  from={"mark-entry"} />
+      }
+      {
+        isSubmitted && <section>
 
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Batch:</p>
+                <p className="font-medium text-gray-900">{batch}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Course Code:</p>
+                <p className="font-medium text-gray-900">{courseCode}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Course Title:</p>
+                <p className="font-medium text-gray-900">{courseTitle}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Department:</p>
+                <p className="font-medium text-gray-900">{department}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Section:</p>
+                <p className="font-medium text-gray-900">{section}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Semester:</p>
+                <p className="font-medium text-gray-900">{semester}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Year:</p>
+                <p className="font-medium text-gray-900">{year}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      }
       {/* Mark Type Selection */}
-      {!state.type && (
+      {isSubmitted && !state.type && (
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 text-gray-900">Select Mark Entry Type:</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -857,8 +903,8 @@ const MarksEntry: React.FC = () => {
                 key={num}
                 onClick={() => setState(prev => ({ ...prev, selectedQuizNumber: num }))}
                 className={`px-4 py-2 rounded transition-colors ${state.selectedQuizNumber === num
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                   }`}
               >
                 Quiz {num}
@@ -1021,8 +1067,8 @@ const MarksEntry: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {ASSIGNMENT_CRITERIA.map((criteria, index) => (
               <div key={criteria.key} className={`p-2 rounded ${index < currentCriteriaIndex ? 'bg-green-100 text-green-800' :
-                  index === currentCriteriaIndex ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-600'
+                index === currentCriteriaIndex ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-gray-100 text-gray-600'
                 }`}>
                 <span className="font-medium">{criteria.label}</span>
                 <span className="text-sm ml-2">({criteria.maxMark} marks)</span>
@@ -1044,8 +1090,8 @@ const MarksEntry: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {PRESENTATION_CRITERIA.map((criteria, index) => (
               <div key={criteria.key} className={`p-2 rounded ${index < currentCriteriaIndex ? 'bg-green-100 text-green-800' :
-                  index === currentCriteriaIndex ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-600'
+                index === currentCriteriaIndex ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-gray-100 text-gray-600'
                 }`}>
                 <span className="font-medium">{criteria.label}</span>
                 <span className="text-sm ml-2">({criteria.maxMark} marks)</span>
