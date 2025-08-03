@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../redux/hooks';
 import { useGetCurrentUserQuery } from '../redux/api/authApi';
-import { setCredentials } from '../redux/features/authSlice';
+import { setCredentials, initializeAuth } from '../redux/features/authSlice';
 import Cookies from 'js-cookie';
 
 interface AuthInitializerProps {
@@ -10,11 +10,18 @@ interface AuthInitializerProps {
 
 const AuthInitializer: React.FC<AuthInitializerProps> = ({ children }) => {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, isInitialized } = useAppSelector((state) => state.auth);
+  
+  // Initialize auth state on app startup
+  useEffect(() => {
+    if (!isInitialized) {
+      dispatch(initializeAuth());
+    }
+  }, [dispatch, isInitialized]);
   
   // Check if we have a token but no user data (edge case)
   const hasToken = !!Cookies.get('accessToken');
-  const needsUserData = hasToken && !user;
+  const needsUserData = hasToken && !user && isInitialized;
   
   // Fetch current user only if we have a token but no user data
   const { 
@@ -33,7 +40,7 @@ const AuthInitializer: React.FC<AuthInitializerProps> = ({ children }) => {
       
       if (accessToken && refreshToken) {
         dispatch(setCredentials({
-          user: currentUser,
+          user: currentUser.user, // API returns { user: {...} }
           accessToken,
           refreshToken
         }));
