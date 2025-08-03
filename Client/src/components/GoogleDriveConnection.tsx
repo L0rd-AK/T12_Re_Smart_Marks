@@ -5,8 +5,10 @@ import { GoogleDriveService } from '../services/googleDriveService';
 
 interface CourseInfo {
   courseCode: string;
+  batch: string;
+  department: string;
+  semester: string;
   courseSection: string;
-  batch?: string;
 }
 
 interface GoogleDriveConnectionProps {
@@ -60,7 +62,9 @@ const GoogleDriveConnection: React.FC<GoogleDriveConnectionProps> = ({
         const baseFolderId = await GoogleDriveService.createCourseFolder({
           courseCode: courseInfo.courseCode,
           courseSection: courseInfo.courseSection,
-          batch: courseInfo.batch || '61'
+          batch: courseInfo.batch,
+          department: courseInfo.department,
+          semester: courseInfo.semester
         });
         
         console.log('✅ Course base folder created:', baseFolderId);
@@ -82,7 +86,9 @@ const GoogleDriveConnection: React.FC<GoogleDriveConnectionProps> = ({
         // Notify parent component
         onFoldersCreated?.(theoryId, labId);
         
-        const folderPath = `smart-mark/${courseInfo.courseCode.split('-')[0]?.toLowerCase() || courseInfo.courseCode.toLowerCase()}/${courseInfo.courseCode.toLowerCase().replace(/\s+/g, '-')}/batch-${courseInfo.batch || '61'}/section-${courseInfo.courseSection.toLowerCase()}`;
+        const batchFormatted = courseInfo.batch ? `batch-${courseInfo.batch}` : 'batch';
+        const folderPath = `smart-mark/${courseInfo.department}/${courseInfo.semester}/${batchFormatted}/${courseInfo.courseCode}/${courseInfo.courseSection}/`;
+        console.log('📂 Course folder structure created at:', folderPath);
         toast.success(`Course folders created successfully!\nPath: ${folderPath}\n- Theory folder\n- Lab folder`);
         
       } catch (error) {
