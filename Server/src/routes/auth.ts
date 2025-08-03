@@ -11,6 +11,7 @@ import {
   verifyEmailSchema,
   googleLoginSchema,
   refreshTokenSchema,
+  updateProfileSchema,
 } from '../schemas/auth';
 
 const router = express.Router();
@@ -98,6 +99,7 @@ router.get('/me',
 
 router.put('/profile', 
   authenticate, 
+  validateRequest(updateProfileSchema),
   AuthController.updateProfile
 );
 

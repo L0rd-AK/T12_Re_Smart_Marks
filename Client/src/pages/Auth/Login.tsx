@@ -33,7 +33,11 @@ const LoginRTK = () => {
         try {
             await login(data).unwrap();
             toast.success("Login successful!");
-            navigate("/");
+            
+            // Give a moment for the state to update
+            setTimeout(() => {
+                navigate("/");
+            }, 100);
         } catch (error) {
             console.error('Login error:', error);
             const err = error as {
@@ -65,7 +69,11 @@ const LoginRTK = () => {
             try {
                 await googleLogin({ credential: credentialResponse.credential }).unwrap();
                 toast.success("Google login successful!");
-                navigate("/");
+                
+                // Give a moment for the state to update
+                setTimeout(() => {
+                    navigate("/");
+                }, 100);
             } catch (error) {
                 console.error('Google login error:', error);
                 const err = error as {

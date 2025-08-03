@@ -57,12 +57,11 @@ api.interceptors.response.use(
 
 export interface User {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   avatar?: string;
   isEmailVerified: boolean;
-  role: 'user' | 'admin';
+  role: 'admin' | 'teacher' | 'module-leader';
   createdAt: string;
   updatedAt: string;
 }

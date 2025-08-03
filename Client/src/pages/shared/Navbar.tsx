@@ -2,8 +2,11 @@ import { NavLink, useNavigate } from "react-router";
 import { useAppSelector } from "../../redux/hooks";
 import { useLogoutMutation } from "../../redux/api/authApi";
 import toast from "react-hot-toast";
+import type { User } from "@/redux/features/authSlice";
 
-const links = (user?: any) => (
+
+
+const links = (user:User) => (
     <>
         <li>
             <NavLink to="/marks-entry">Marks Entry</NavLink>
@@ -40,7 +43,7 @@ const NavbarRTK = () => {
 
     // Ensure user object has required properties before rendering user UI
     const isUserDataComplete =
-        user && user.firstName && user.lastName && user.email;
+        user && user?.name && user?.email;
 
     const handleLogout = async () => {
         try {
@@ -84,7 +87,7 @@ const NavbarRTK = () => {
                         tabIndex={0}
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
                     >
-                        {links(user)}
+                        {links(user!)}
                     </ul>
                 </div>
                 <NavLink to="/" className="btn btn-ghost text-xl">
@@ -93,7 +96,7 @@ const NavbarRTK = () => {
             </div>
 
             <div className="navbar-center hidden lg:flex">
-                <ul className="menu menu-horizontal px-1">{links(user)}</ul>
+                <ul className="menu menu-horizontal px-1">{links(user!)}</ul>
             </div>
 
             <div className="navbar-end">
@@ -114,12 +117,10 @@ const NavbarRTK = () => {
                                 ) : (
                                     <div className="bg-neutral text-neutral-content rounded-full w-full h-full flex items-center justify-center">
                                         <span className="text-sm font-semibold">
-                                            {user.firstName
+                                            {user.name
                                                 ?.charAt(0)
                                                 ?.toUpperCase() || "U"}
-                                            {user.lastName
-                                                ?.charAt(0)
-                                                ?.toUpperCase() || "U"}
+                                            
                                         </span>
                                     </div>
                                 )}
@@ -131,8 +132,8 @@ const NavbarRTK = () => {
                         >
                             <li className="menu-title">
                                 <span>
-                                    {user.firstName || "User"}{" "}
-                                    {user.lastName || ""}
+                                    {user.name || "User"}{" "}
+                                
                                     {!user.isEmailVerified && (
                                         <div className="badge badge-warning badge-xs ml-1">
                                             Unverified

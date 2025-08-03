@@ -33,7 +33,11 @@ const RegisterRTK = () => {
         try {
             await register(data).unwrap();
             toast.success("Account created successfully!");
-            navigate("/");
+            
+            // Give a moment for the state to update
+            setTimeout(() => {
+                navigate("/");
+            }, 100);
         } catch (error) {
             const err = error as { data?: { message?: string; errors?: Record<string, string> } };
             if (err?.data?.errors) {
@@ -52,7 +56,11 @@ const RegisterRTK = () => {
             try {
                 await googleLogin({ credential: credentialResponse.credential }).unwrap();
                 toast.success("Google registration successful!");
-                navigate("/");
+                
+                // Give a moment for the state to update
+                setTimeout(() => {
+                    navigate("/");
+                }, 100);
             } catch (error) {
                 const err = error as { data?: { message?: string } };
                 toast.error(err?.data?.message || "Google registration failed");
@@ -87,41 +95,26 @@ const RegisterRTK = () => {
                 <div className="card bg-base-100 shadow-xl">
                     <div className="card-body">
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                         
                                 <div>
                                     <label className="label">
-                                        <span className="label-text">First Name</span>
+                                        <span className="label-text">Name</span>
                                     </label>
                                     <input
                                         type="text"
-                                        {...registerField("firstName")}
-                                        className={`input input-bordered w-full ${errors.firstName ? 'input-error' : ''}`}
-                                        placeholder="First name"
+                                        {...registerField("name")}
+                                        className={`input input-bordered w-full ${errors.name ? 'input-error' : ''}`}
+                                        placeholder="Name"
                                     />
-                                    {errors.firstName && (
+                                    {errors.name && (
                                         <label className="label">
-                                            <span className="label-text-alt text-error">{errors.firstName.message}</span>
+                                            <span className="label-text-alt text-error">{errors.name.message}</span>
                                         </label>
                                     )}
                                 </div>
 
-                                <div>
-                                    <label className="label">
-                                        <span className="label-text">Last Name</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        {...registerField("lastName")}
-                                        className={`input input-bordered w-full ${errors.lastName ? 'input-error' : ''}`}
-                                        placeholder="Last name"
-                                    />
-                                    {errors.lastName && (
-                                        <label className="label">
-                                            <span className="label-text-alt text-error">{errors.lastName.message}</span>
-                                        </label>
-                                    )}
-                                </div>
-                            </div>
+                                
+                            
 
                             <div>
                                 <label className="label">

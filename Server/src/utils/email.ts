@@ -22,7 +22,7 @@ export class EmailService {
             from: `"Smart Marks" <${process.env.EMAIL_FROM}>`,
             to: user.email,
             subject: 'Verify Your Email Address',
-            html: this.getEmailVerificationTemplate(user.firstName, verificationUrl),
+            html: this.getEmailVerificationTemplate(user.name, verificationUrl),
         };
 
         try {
@@ -42,7 +42,7 @@ export class EmailService {
             from: `"Smart Marks" <${process.env.EMAIL_FROM}>`,
             to: user.email,
             subject: 'Password Reset Request',
-            html: this.getPasswordResetTemplate(user.firstName, resetUrl),
+            html: this.getPasswordResetTemplate(user.name, resetUrl),
         };
 
         try {
@@ -60,7 +60,7 @@ export class EmailService {
             from: `"Smart Marks" <${process.env.EMAIL_FROM}>`,
             to: user.email,
             subject: 'Welcome to Smart Marks!',
-            html: this.getWelcomeTemplate(user.firstName),
+            html: this.getWelcomeTemplate(user.name),
         };
 
         try {
@@ -73,7 +73,7 @@ export class EmailService {
     }
 
     // Email verification template
-    private static getEmailVerificationTemplate(firstName: string, verificationUrl: string): string {
+    private static getEmailVerificationTemplate(name: string, verificationUrl: string): string {
         return `
       <!DOCTYPE html>
       <html lang="en">
@@ -95,7 +95,7 @@ export class EmailService {
           <h2>Verify Your Email Address</h2>
         </div>
         <div class="content">
-          <p>Hi ${firstName},</p>
+          <p>Hi ${name},</p>
           <p>Thank you for registering with Smart Marks! To complete your registration and start using our platform, please verify your email address by clicking the button below:</p>
           <div style="text-align: center;">
             <a href="${verificationUrl}" class="button">Verify Email Address</a>
@@ -115,7 +115,7 @@ export class EmailService {
     }
 
     // Password reset template
-    private static getPasswordResetTemplate(firstName: string, resetUrl: string): string {
+    private static getPasswordResetTemplate(name: string, resetUrl: string): string {
         return `
       <!DOCTYPE html>
       <html lang="en">
@@ -137,7 +137,7 @@ export class EmailService {
           <h2>Password Reset Request</h2>
         </div>
         <div class="content">
-          <p>Hi ${firstName},</p>
+          <p>Hi ${name},</p>
           <p>We received a request to reset your password for your Smart Marks account. Click the button below to reset your password:</p>
           <div style="text-align: center;">
             <a href="${resetUrl}" class="button">Reset Password</a>
@@ -157,7 +157,7 @@ export class EmailService {
     }
 
     // Welcome email template
-    private static getWelcomeTemplate(firstName: string): string {
+    private static getWelcomeTemplate(name: string): string {
         return `
       <!DOCTYPE html>
       <html lang="en">
@@ -179,7 +179,7 @@ export class EmailService {
           <p>Your journey to better grade management starts here</p>
         </div>
         <div class="content">
-          <p>Hi ${firstName},</p>
+          <p>Hi ${name},</p>
           <p>Welcome to Smart Marks! We're excited to have you on board. Your email has been verified and your account is now active.</p>
           
           <h3>What you can do with Smart Marks:</h3>

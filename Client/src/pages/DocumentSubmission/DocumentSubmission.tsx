@@ -4,6 +4,9 @@ import toast from 'react-hot-toast';
 import { toast as sonnerToast } from 'sonner';
 import GoogleDriveConnection from '../../components/GoogleDriveConnection';
 import { GoogleDriveService } from '../../services/googleDriveService';
+import { useGetCurrentUserQuery } from '../../redux/api/authApi';
+import { useAppSelector } from '../../redux/hooks';
+import SectionInformation from '../../components/SectionInformation';
 
 
 interface CourseInfo {
@@ -231,24 +234,33 @@ const DocumentSubmission: React.FC = () => {
     };
 
     const initialDocuments = getInitialDocuments();
-
-    const [courseInfo, setCourseInfo] = useState<CourseInfo>({
-        semester: 'Spring 2025',
-        courseCode: 'CSE-101',
-        courseTitle: 'Web Engineering',
-        creditHours: '3',
-        courseSection: 'S',
-        classCount: '32',
-    });
-
+    const { isSubmitted, courseCode, courseTitle, section, semester, year, courseCredit, noOfClassConducted, batch, department } = useAppSelector((state) => state.sectionInformation);
+    const courseInfo: CourseInfo = {
+        semester: semester + '-' + year || '',
+        courseCode: courseCode || '',
+        courseTitle: courseTitle || '',
+        courseSection: section || '',
+        creditHours: courseCredit || '',
+        classCount: noOfClassConducted || '',
+    };
+    const { data: userResponse, isLoading } = useGetCurrentUserQuery();
+    const user = userResponse?.user;
     const [teacherInfo, setTeacherInfo] = useState<TeacherInfo>({
-        teacherName: 'Mehedi Hasan',
-        employeeId: '342353',
-        designation: 'Lecturer',
-        emailId: 'mehedi15-4680@diu.edu.bd',
-        mobileNumber: '+8801767705251',
+        teacherName: user?.name || '',
+        employeeId: user?.employeeId || '',
+        designation: user?.designation || '',
+        emailId: user?.emailId || user?.email || '',
+        mobileNumber: user?.mobileNumber || '',
     });
-
+    useEffect(() => {
+        setTeacherInfo({
+            teacherName: user?.name || '',
+            employeeId: user?.employeeId || '',
+            designation: user?.designation || '',
+            emailId: user?.emailId || user?.email || '',
+            mobileNumber: user?.mobileNumber || '',
+        })
+    }, [isLoading, user])
     // Initialize documents based on the checklist from the attachment
     const [theoryDocuments, setTheoryDocuments] = useState<DocumentItem[]>(initialDocuments.theory);
 
@@ -265,13 +277,6 @@ const DocumentSubmission: React.FC = () => {
         setLabFolderId(labId);
     };
 
-    const handleCourseInfoChange = (field: keyof CourseInfo, value: string) => {
-        setCourseInfo(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleTeacherInfoChange = (field: keyof TeacherInfo, value: string) => {
-        setTeacherInfo(prev => ({ ...prev, [field]: value }));
-    };
 
     const handleFileUpload = async (documentId: string, file: File, fileType: string, category: 'theory' | 'lab') => {
         // First, update the local state
@@ -448,84 +453,84 @@ const DocumentSubmission: React.FC = () => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // const handleSubmit = async (e: React.FormEvent) => {
+    //     e.preventDefault();
 
-        try {
-            // Create FormData for file uploads
-            const formData = new FormData();
+    //     try {
+    //         // Create FormData for file uploads
+    //         const formData = new FormData();
 
-            // Add course and teacher info
-            formData.append('courseInfo', JSON.stringify(courseInfo));
-            formData.append('teacherInfo', JSON.stringify(teacherInfo));
+    //         // Add course and teacher info
+    //         formData.append('courseInfo', JSON.stringify(courseInfo));
+    //         formData.append('teacherInfo', JSON.stringify(teacherInfo));
 
-            let hasFilesToSubmit = false;
+    //         let hasFilesToSubmit = false;
 
-            // Add theory documents that haven't been submitted yet
-            theoryDocuments.forEach((doc, index) => {
-                if (doc.files && doc.status !== 'yes') {
-                    Object.entries(doc.files).forEach(([fileType, file]) => {
-                        if (file) {
-                            formData.append(`theoryFiles`, file);
-                            formData.append(`theoryFileData_${index}_${fileType}`, JSON.stringify({
-                                id: doc.id,
-                                name: doc.name,
-                                fileType,
-                                status: doc.status,
-                            }));
-                            hasFilesToSubmit = true;
-                        }
-                    });
-                }
-            });
+    //         // Add theory documents that haven't been submitted yet
+    //         theoryDocuments.forEach((doc, index) => {
+    //             if (doc.files && doc.status !== 'yes') {
+    //                 Object.entries(doc.files).forEach(([fileType, file]) => {
+    //                     if (file) {
+    //                         formData.append(`theoryFiles`, file);
+    //                         formData.append(`theoryFileData_${index}_${fileType}`, JSON.stringify({
+    //                             id: doc.id,
+    //                             name: doc.name,
+    //                             fileType,
+    //                             status: doc.status,
+    //                         }));
+    //                         hasFilesToSubmit = true;
+    //                     }
+    //                 });
+    //             }
+    //         });
 
-            // Add lab documents that haven't been submitted yet
-            labDocuments.forEach((doc, index) => {
-                if (doc.files && doc.status !== 'yes') {
-                    Object.entries(doc.files).forEach(([fileType, file]) => {
-                        if (file) {
-                            formData.append(`labFiles`, file);
-                            formData.append(`labFileData_${index}_${fileType}`, JSON.stringify({
-                                id: doc.id,
-                                name: doc.name,
-                                fileType,
-                                status: doc.status,
-                            }));
-                            hasFilesToSubmit = true;
-                        }
-                    });
-                }
-            });
+    //         // Add lab documents that haven't been submitted yet
+    //         labDocuments.forEach((doc, index) => {
+    //             if (doc.files && doc.status !== 'yes') {
+    //                 Object.entries(doc.files).forEach(([fileType, file]) => {
+    //                     if (file) {
+    //                         formData.append(`labFiles`, file);
+    //                         formData.append(`labFileData_${index}_${fileType}`, JSON.stringify({
+    //                             id: doc.id,
+    //                             name: doc.name,
+    //                             fileType,
+    //                             status: doc.status,
+    //                         }));
+    //                         hasFilesToSubmit = true;
+    //                     }
+    //                 });
+    //             }
+    //         });
 
-            if (!hasFilesToSubmit) {
-                toast.error('No new documents to submit. All documents have already been submitted or no files uploaded.');
-                return;
-            }
+    //         if (!hasFilesToSubmit) {
+    //             toast.error('No new documents to submit. All documents have already been submitted or no files uploaded.');
+    //             return;
+    //         }
 
-            await submitDocuments(formData).unwrap();
-            toast.success('All remaining documents submitted successfully!');
+    //         await submitDocuments(formData).unwrap();
+    //         toast.success('All remaining documents submitted successfully!');
 
-            // Mark all submitted documents as 'yes'
-            setTheoryDocuments(prev =>
-                prev.map(doc =>
-                    doc.files && Object.keys(doc.files).length > 0
-                        ? { ...doc, status: 'yes' as const }
-                        : doc
-                )
-            );
-            setLabDocuments(prev =>
-                prev.map(doc =>
-                    doc.files && Object.keys(doc.files).length > 0
-                        ? { ...doc, status: 'yes' as const }
-                        : doc
-                )
-            );
+    //         // Mark all submitted documents as 'yes'
+    //         setTheoryDocuments(prev =>
+    //             prev.map(doc =>
+    //                 doc.files && Object.keys(doc.files).length > 0
+    //                     ? { ...doc, status: 'yes' as const }
+    //                     : doc
+    //             )
+    //         );
+    //         setLabDocuments(prev =>
+    //             prev.map(doc =>
+    //                 doc.files && Object.keys(doc.files).length > 0
+    //                     ? { ...doc, status: 'yes' as const }
+    //                     : doc
+    //             )
+    //         );
 
-        } catch (error) {
-            console.error('Error submitting documents:', error);
-            toast.error('Failed to submit documents. Please try again.');
-        }
-    };
+    //     } catch (error) {
+    //         console.error('Error submitting documents:', error);
+    //         toast.error('Failed to submit documents. Please try again.');
+    //     }
+    // };
 
     const renderDocumentTable = (documents: DocumentItem[], category: 'theory' | 'lab', title: string) => (
         <div className="mb-8">
@@ -680,142 +685,131 @@ const DocumentSubmission: React.FC = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
+        <div className="min-h-screen bg-white py-8">
             <div className="container mx-auto px-4 max-w-7xl">
-                <div className="bg-white rounded-lg p-6">
+                <div className=" rounded-lg p-6">
                     <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
                         OBE File Submission System
                     </h1>
                     {/* Single Google Drive Connection */}
-                    <div className="mb-8">
+                    {isSubmitted && <div className="mb-8">
                         <GoogleDriveConnection
                             courseInfo={{
-                                courseCode: courseInfo.courseCode || 'CSE-101',
-                                courseSection: courseInfo.courseSection || 'A',
-                                batch: '61'
+                                courseCode: courseInfo.courseCode,
+                                courseSection: courseInfo.courseSection,
+                                batch: batch,
+                                department: department,
+                                semester: courseInfo.semester,
                             }}
                             onFoldersCreated={handleFoldersCreated}
                         />
-                    </div>
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                        {/* Course Information and Teacher Information Side by Side */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                             {/* Teacher Information */}
-                            <div className="border border-gray-200 rounded-lg p-6">
-                                <h2 className="text-xl font-semibold mb-4 text-gray-800 bg-orange-100 p-3 rounded border">
-                                    Course Teacher Information
-                                </h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <h3 className=" font-medium text-gray-700 mb-2">
-                                            Course Teacher Name with Initial : <span className='font-normal'>{teacherInfo.teacherName}</span>
-                                        </h3>
+                    </div>}
+                    {!isSubmitted &&
+                        <SectionInformation from={"file-submission"} />
+                    }
+                    {
+                        isSubmitted &&
+                        <div className="space-y-8">
+                            {/* Course Information and Teacher Information Side by Side */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* Teacher Information */}
+                                <div className="border border-gray-200 rounded-lg p-6">
+                                    <h2 className="text-xl font-semibold mb-4 text-gray-800 bg-orange-100 p-3 rounded border">
+                                        Course Teacher Information
+                                    </h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h3 className=" font-medium text-gray-700 mb-2">
+                                                Course Teacher Name with Initial : <span className='font-normal'>{teacherInfo.teacherName}</span>
+                                            </h3>
 
-                                    </div>
-                                    <div>
-                                        <h3 className=" font-medium text-gray-700 mb-2">
-                                            Employee ID : <span className='font-normal'>{teacherInfo.employeeId}</span>
-                                        </h3>
+                                        </div>
+                                        <div>
+                                            <h3 className=" font-medium text-gray-700 mb-2">
+                                                Employee ID : <span className='font-normal'>{teacherInfo.employeeId}</span>
+                                            </h3>
 
-                                    </div>
-                                    <div>
-                                        <h3 className=" font-medium text-gray-700 mb-2">
-                                            Designation : <span className='font-normal'>{teacherInfo.designation}</span>
-                                        </h3>
+                                        </div>
+                                        <div>
+                                            <h3 className=" font-medium text-gray-700 mb-2">
+                                                Designation : <span className='font-normal'>{teacherInfo.designation}</span>
+                                            </h3>
 
-                                    </div>
-                                    <div>
-                                        <h3 className=" font-medium text-gray-700 mb-2">
-                                            Email ID : <span className='font-normal'>{teacherInfo.emailId}</span>
-                                        </h3>
+                                        </div>
+                                        <div>
+                                            <h3 className=" font-medium text-gray-700 mb-2">
+                                                Email ID : <span className='font-normal'>{teacherInfo.emailId}</span>
+                                            </h3>
 
-                                    </div>
-                                    <div>
-                                        <h3 className=" font-medium text-gray-700 mb-2">
-                                            Mobile Number : <span className='font-normal'>{teacherInfo.mobileNumber}</span>
-                                        </h3>
+                                        </div>
+                                        <div>
+                                            <h3 className=" font-medium text-gray-700 mb-2">
+                                                Mobile Number : <span className='font-normal'>{teacherInfo.mobileNumber}</span>
+                                            </h3>
 
-                                    </div>
-                                </div>
-                            </div>
-                            {/* Course Information */}
-                            <div className="border border-gray-200 rounded-lg p-6">
-                                <h2 className="text-xl font-semibold mb-4 text-gray-800 bg-orange-100 p-3 rounded border">
-                                    Course Information
-                                </h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <h3 className="font-medium text-gray-700 mb-2">
-                                            Semester : <span className='font-normal'>{courseInfo.semester}</span>
-                                        </h3>
-
-                                    </div>
-                                    <div>
-                                        <h3 className="font-medium text-gray-700 mb-2">
-                                            Course Code : <span className='font-normal'>{courseInfo.courseCode}</span>
-                                        </h3>
-
-                                    </div>
-                                    <div>
-                                        <h3 className="font-medium text-gray-700 mb-2">
-                                            Course Title : <span className='font-normal'>{courseInfo.courseTitle}</span>
-                                        </h3>
-
-                                    </div>
-                                    <div>
-                                        <h3 className=" font-medium text-gray-700 mb-2">
-                                            Credit Hours : <span className='font-normal'>{courseInfo.creditHours}</span>
-                                        </h3>
-
-                                    </div>
-                                    <div>
-                                        <h3 className=" font-medium text-gray-700 mb-2">
-                                            Course Section : <span className='font-normal'>{courseInfo.courseSection}</span>
-                                        </h3>
-
-                                    </div>
-                                    <div>
-                                        <h3 className=" font-medium text-gray-700 mb-2">
-                                            Number of Class Conducted :
-                                            <span className='font-normal'>{courseInfo.classCount}</span>
-                                        </h3>
-
+                                        </div>
                                     </div>
                                 </div>
+                                {/* Course Information */}
+                                <div className="border border-gray-200 rounded-lg p-6">
+                                    <h2 className="text-xl font-semibold mb-4 text-gray-800 bg-orange-100 p-3 rounded border">
+                                        Course Information
+                                    </h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h3 className="font-medium text-gray-700 mb-2">
+                                                Semester : <span className='font-normal'>{courseInfo.semester}</span>
+                                            </h3>
+
+                                        </div>
+                                        <div>
+                                            <h3 className="font-medium text-gray-700 mb-2">
+                                                Course Code : <span className='font-normal'>{courseInfo.courseCode}</span>
+                                            </h3>
+
+                                        </div>
+                                        <div>
+                                            <h3 className="font-medium text-gray-700 mb-2">
+                                                Course Title : <span className='font-normal'>{courseInfo.courseTitle}</span>
+                                            </h3>
+
+                                        </div>
+                                        <div>
+                                            <h3 className=" font-medium text-gray-700 mb-2">
+                                                Credit Hours : <span className='font-normal'>{courseInfo.creditHours}</span>
+                                            </h3>
+
+                                        </div>
+                                        <div>
+                                            <h3 className=" font-medium text-gray-700 mb-2">
+                                                Course Section : <span className='font-normal'>{courseInfo.courseSection}</span>
+                                            </h3>
+
+                                        </div>
+                                        <div>
+                                            <h3 className=" font-medium text-gray-700 mb-2">
+                                                Number of Class Conducted :
+                                                <span className='font-normal'>{courseInfo.classCount}</span>
+                                            </h3>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+
                             </div>
 
-                          
+
+
+                            {/* Theory Documents */}
+                            {renderDocumentTable(theoryDocuments, 'theory', 'OBE File Submission Checklist (Theory)')}
+
+                            {/* Lab Documents */}
+                            {renderDocumentTable(labDocuments, 'lab', 'OBE File Submission Checklist (Lab)')}
+
+
                         </div>
-
-
-
-                        {/* Theory Documents */}
-                        {renderDocumentTable(theoryDocuments, 'theory', 'OBE File Submission Checklist (Theory)')}
-
-                        {/* Lab Documents */}
-                        {renderDocumentTable(labDocuments, 'lab', 'OBE File Submission Checklist (Lab)')}
-
-                        {/* Submit Button */}
-                        {/* <div className="flex justify-center pt-6">
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="px-8 py-3 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white inline" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Submitting...
-                                    </>
-                                ) : (
-                                    'Submit All Remaining Documents'
-                                )}
-                            </button>
-                        </div> */}
-                    </form>
+                    }
                 </div>
             </div>
         </div>
