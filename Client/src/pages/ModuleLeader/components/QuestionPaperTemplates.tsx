@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { templatesService, type QuestionTemplateData } from '../../../services/templatesService';
 
 interface QuestionTemplate {
   id: string;
@@ -85,6 +86,8 @@ const QuestionPaperTemplates: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTemplateData, setEditingTemplateData] = useState<QuestionTemplate | null>(null);
 
   const [newTemplate, setNewTemplate] = useState({
     name: '',
@@ -117,6 +120,25 @@ const QuestionPaperTemplates: React.FC = () => {
     { name: 'Software Engineering', code: 'CS401' },
   ];
 
+  const courseOutcomes = [
+    'CO1', 'CO2', 'CO3', 'CO4', 'CO5', 'CO6'
+  ];
+
+  // Load templates on component mount
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      const fetchedTemplates = await templatesService.getTemplates();
+      setTemplates(fetchedTemplates);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+      // Keep using local state if API fails
+    }
+  };
+
   const [newQuestion, setNewQuestion] = useState<Partial<Question>>({
     type: 'mcq',
     question: '',
@@ -128,7 +150,7 @@ const QuestionPaperTemplates: React.FC = () => {
     rubric: '',
   });
 
-  const handleCreateTemplate = () => {
+  const handleCreateTemplate = async () => {
     console.log('Creating template with data:', newTemplate);
     if (!newTemplate.name.trim() || !newTemplate.description.trim() || !newTemplate.courseName.trim() || !newTemplate.courseCode.trim()) {
       console.error('Please fill in all required fields');
@@ -142,48 +164,87 @@ const QuestionPaperTemplates: React.FC = () => {
       return;
     }
 
-    const questions = templateQuestions.map(q => ({
-      id: q.id,
-      questionNo: q.questionNo,
-      marks: q.marks,
-      courseOutcomeStatements: q.courseOutcomeStatements,
-    }));
-
-    const template: QuestionTemplate = {
-      id: Date.now().toString(),
-      ...newTemplate,
-      questions,
-      totalMarks: templateQuestions.reduce((sum, q) => sum + q.marks, 0),
-      createdAt: new Date().toISOString().split('T')[0],
-      usageCount: 0,
+    const templateData: QuestionTemplateData = {
+      name: newTemplate.name,
+      type: newTemplate.type,
+      year: newTemplate.year,
+      courseName: newTemplate.courseName,
+      courseCode: newTemplate.courseCode,
+      description: newTemplate.description,
+      duration: newTemplate.duration,
+      instructions: newTemplate.instructions,
+      isStandard: newTemplate.isStandard,
+      questions: templateQuestions.map(q => ({
+        id: q.id,
+        questionNo: q.questionNo,
+        marks: q.marks,
+        courseOutcomeStatements: q.courseOutcomeStatements,
+      })),
     };
 
-    setTemplates(prev => [...prev, template]);
-    setNewTemplate({
-      name: '',
-      type: 'midterm',
-      year: '2025',
-      courseName: '',
-      courseCode: '',
-      description: '',
-      duration: 90,
-      instructions: '',
-      isStandard: false,
-    });
-    setTemplateQuestions([]);
-    setShowCreateModal(false);
-    toast.success('Template created successfully');
+    try {
+      toast.loading('Creating template...', { id: 'create-template' });
+      
+      const createdTemplate = await templatesService.createTemplate(templateData);
+      
+      // Update local state with the created template
+      setTemplates(prev => [...prev, createdTemplate]);
+      
+      // Reset form
+      setNewTemplate({
+        name: '',
+        type: 'midterm',
+        year: '2025',
+        courseName: '',
+        courseCode: '',
+        description: '',
+        duration: 90,
+        instructions: '',
+        isStandard: false,
+      });
+      setTemplateQuestions([]);
+      setShowCreateModal(false);
+      
+      toast.success('Template created successfully!', { id: 'create-template' });
 
-    // Log the structured JSON format for backend
-    console.log('Template Data for Backend:', {
-      template,
-      questions,
-      metadata: {
-        totalQuestions: questions.length,
-        totalMarks: template.totalMarks,
-        createdAt: template.createdAt
+      // Log the structured JSON format for debugging
+      console.log('Template created successfully:', createdTemplate);
+    } catch (error: unknown) {
+      console.error('Failed to create template:', error);
+      let errorMessage = 'Failed to create template';
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        errorMessage = axiosError.response?.data?.message || 'Failed to create template';
       }
-    });
+      toast.error(errorMessage, { id: 'create-template' });
+      
+      // Fallback to local state if API fails
+      const fallbackTemplate: QuestionTemplate = {
+        id: Date.now().toString(),
+        ...newTemplate,
+        questions: templateQuestions,
+        totalMarks: templateQuestions.reduce((sum, q) => sum + q.marks, 0),
+        createdAt: new Date().toISOString().split('T')[0],
+        usageCount: 0,
+      };
+      
+      setTemplates(prev => [...prev, fallbackTemplate]);
+      setNewTemplate({
+        name: '',
+        type: 'midterm',
+        year: '2025',
+        courseName: '',
+        courseCode: '',
+        description: '',
+        duration: 90,
+        instructions: '',
+        isStandard: false,
+      });
+      setTemplateQuestions([]);
+      setShowCreateModal(false);
+      
+      toast.success('Template created locally (offline mode)');
+    }
   };
 
   const handleAddQuestionToTemplate = () => {
@@ -573,13 +634,17 @@ const QuestionPaperTemplates: React.FC = () => {
                               />
                             </td>
                             <td className="px-4 py-3">
-                              <input
-                                type="text"
+                              <select
                                 value={question.courseOutcomeStatements || ''}
                                 onChange={(e) => handleUpdateQuestion(index, 'courseOutcomeStatements', e.target.value)}
                                 className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                placeholder="e.g., CO1"
-                              />
+                                title="Course Outcome"
+                              >
+                                <option value="">Select CO</option>
+                                {courseOutcomes.map(co => (
+                                  <option key={co} value={co}>{co}</option>
+                                ))}
+                              </select>
                             </td>
                             <td className="px-4 py-3">
                               <button
@@ -813,12 +878,24 @@ const QuestionPaperTemplates: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto text-black">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-semibold">Preview: {selectedTemplate.name}</h3>
-              <button
-                onClick={() => setShowPreviewModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => {
+                    setEditingTemplateData(selectedTemplate);
+                    setShowEditModal(true);
+                    setShowPreviewModal(false);
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  Edit Template
+                </button>
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             
             <div className="space-y-6">
@@ -871,6 +948,225 @@ const QuestionPaperTemplates: React.FC = () => {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Template Modal */}
+      {showEditModal && editingTemplateData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto text-black">
+            <h3 className="text-lg font-semibold mb-4">Edit Template: {editingTemplateData.name}</h3>
+            
+            <div className="space-y-6">
+              {/* Template Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Template Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingTemplateData.name}
+                    onChange={(e) => setEditingTemplateData(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 2025_Summer_61_T2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Year *
+                  </label>
+                  <select
+                    value={editingTemplateData.year}
+                    onChange={(e) => setEditingTemplateData(prev => prev ? { ...prev, year: e.target.value } : null)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Select year"
+                  >
+                    {years.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Course Name *
+                  </label>
+                  <select
+                    value={editingTemplateData.courseName}
+                    onChange={(e) => {
+                      const selectedCourse = courses.find(c => c.name === e.target.value);
+                      setEditingTemplateData(prev => prev ? { 
+                        ...prev, 
+                        courseName: e.target.value,
+                        courseCode: selectedCourse?.code || prev.courseCode
+                      } : null);
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Select course"
+                  >
+                    <option value="">Select Course</option>
+                    {courses.map(course => (
+                      <option key={course.code} value={course.name}>{course.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Course Code *
+                  </label>
+                  <select
+                    value={editingTemplateData.courseCode}
+                    onChange={(e) => setEditingTemplateData(prev => prev ? { ...prev, courseCode: e.target.value } : null)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Select course code"
+                  >
+                    <option value="">Select Code</option>
+                    {courses.map(course => (
+                      <option key={course.code} value={course.code}>{course.code}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Template Type *
+                  </label>
+                  <select
+                    value={editingTemplateData.type}
+                    onChange={(e) => setEditingTemplateData(prev => prev ? { ...prev, type: e.target.value as QuestionTemplate['type'] } : null)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Template type"
+                  >
+                    <option value="quiz">Quiz</option>
+                    <option value="midterm">Midterm</option>
+                    <option value="final">Final</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    placeholder='Enter duration in minutes'
+                    type="number"
+                    value={editingTemplateData.duration}
+                    onChange={(e) => setEditingTemplateData(prev => prev ? { ...prev, duration: parseInt(e.target.value) || 90 } : null)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description *
+                </label>
+                <textarea
+                  value={editingTemplateData.description}
+                  onChange={(e) => setEditingTemplateData(prev => prev ? { ...prev, description: e.target.value } : null)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  placeholder="Enter template description"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Instructions
+                </label>
+                <textarea
+                  value={editingTemplateData.instructions}
+                  onChange={(e) => setEditingTemplateData(prev => prev ? { ...prev, instructions: e.target.value } : null)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={2}
+                  placeholder="Enter instructions for students"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={editingTemplateData.isStandard}
+                    onChange={(e) => setEditingTemplateData(prev => prev ? { ...prev, isStandard: e.target.checked } : null)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">Mark as standard template</span>
+                </label>
+              </div>
+
+              {/* Questions Display (Read-only in edit mode) */}
+              <div className="border-t pt-6">
+                <h4 className="text-lg font-semibold mb-4">Questions ({editingTemplateData.questions.length})</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Total Questions: {editingTemplateData.questions.length} | Total Marks: {editingTemplateData.totalMarks}
+                  </p>
+                  <div className="space-y-2">
+                    {editingTemplateData.questions.map((question) => (
+                      <div key={question.id} className="bg-white p-3 rounded border text-sm">
+                        <div className="flex justify-between items-center">
+                          <span><strong>{question.questionNo}</strong> - {question.marks} marks</span>
+                          {question.courseOutcomeStatements && (
+                            <span className="text-blue-600 text-xs">{question.courseOutcomeStatements}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingTemplateData(null);
+                }}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (editingTemplateData) {
+                    try {
+                      toast.loading('Updating template...', { id: 'update-template' });
+                      
+                      const updatedTemplate = await templatesService.updateTemplate(editingTemplateData.id, {
+                        name: editingTemplateData.name,
+                        type: editingTemplateData.type,
+                        year: editingTemplateData.year,
+                        courseName: editingTemplateData.courseName,
+                        courseCode: editingTemplateData.courseCode,
+                        description: editingTemplateData.description,
+                        duration: editingTemplateData.duration,
+                        instructions: editingTemplateData.instructions,
+                        isStandard: editingTemplateData.isStandard,
+                        questions: editingTemplateData.questions,
+                      });
+                      
+                      setTemplates(prev => prev.map(t => t.id === updatedTemplate.id ? updatedTemplate : t));
+                      setShowEditModal(false);
+                      setEditingTemplateData(null);
+                      toast.success('Template updated successfully!', { id: 'update-template' });
+                    } catch (error) {
+                      console.error('Failed to update template:', error);
+                      toast.error('Failed to update template', { id: 'update-template' });
+                    }
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Update Template
+              </button>
             </div>
           </div>
         </div>
