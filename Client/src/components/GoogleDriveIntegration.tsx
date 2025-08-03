@@ -8,6 +8,8 @@ interface CourseInfo {
   courseCode: string;
   courseSection: string;
   batch?: string;
+  department?: string;
+  semester?: string;
 }
 
 interface GoogleDriveIntegrationProps {
@@ -75,12 +77,14 @@ const GoogleDriveIntegration: React.FC<GoogleDriveIntegrationProps> = ({
       setIsCreatingFolders(true);
 
       try {
-        // Create structured folder path: smart-mark/cse/cse-321/batch-61/section-s
+        // Create structured folder path: smart-mark/department/semester/batch/courseCode/courseSection
         console.log('📁 Creating course folder structure...');
         const baseFolderId = await GoogleDriveService.createCourseFolder({
           courseCode: courseInfo.courseCode,
           courseSection: courseInfo.courseSection,
-          batch: courseInfo.batch || '61'
+          batch: courseInfo.batch ,
+          department: courseInfo.department,
+          semester: courseInfo.semester
         });
 
         console.log('✅ Course folder created successfully:', baseFolderId);
@@ -93,7 +97,8 @@ const GoogleDriveIntegration: React.FC<GoogleDriveIntegrationProps> = ({
         console.log(`✅ ${category} folder created successfully:`, catFolderId);
         setCategoryFolderId(catFolderId);
 
-        const folderPath = `smart-mark/${courseInfo.courseCode.split('-')[0]?.toLowerCase() || courseInfo.courseCode.toLowerCase()}/${courseInfo.courseCode.toLowerCase().replace(/\s+/g, '-')}/batch-${courseInfo.batch || '61'}/section-${courseInfo.courseSection.toLowerCase()}/${category === 'theory' ? 'Theory' : 'Lab'}`;
+        const batchFormatted = courseInfo.batch ? `batch-${courseInfo.batch}` : 'batch';
+        const folderPath = `smart-mark/${courseInfo.department || 'department'}/${courseInfo.semester || 'semester'}/${batchFormatted}/${courseInfo.courseCode}/${courseInfo.courseSection}/${category === 'theory' ? 'Theory' : 'Lab'}`;
         toast.success(`${category.charAt(0).toUpperCase() + category.slice(1)} folder created: ${folderPath}`);
       } catch (error) {
         console.error('❌ Error creating course folder structure:', error);
