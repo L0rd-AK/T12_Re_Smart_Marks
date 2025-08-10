@@ -15,6 +15,7 @@ type TabType = 'overview' | 'folders' | 'documents' | 'templates' | 'submissions
 const ModuleLeaderDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const { user } = useSelector((state: RootState) => state.auth);
+  console.log(user)
 
   // Check if user has module leader permissions
   if (!user) {
@@ -68,10 +69,10 @@ const ModuleLeaderDashboard: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-500">
-                Welcome, {user.firstName} {user.lastName}
+                Welcome, {user?.name}
               </div>
               <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                {user.firstName[0]}{user.lastName[0]}
+                {user?.name}
               </div>
             </div>
           </div>

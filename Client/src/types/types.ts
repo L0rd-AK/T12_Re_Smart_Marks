@@ -6,7 +6,7 @@ export interface QuestionFormat {
     id: string;
     name: string;
     questions: Question[];
-    createdBy: string;
+    createdBy?: string;
     createdAt: string;
     updatedAt: string;
   }
@@ -14,6 +14,7 @@ export interface QuestionFormat {
 export interface Question {
     label: string;
     maxMark: number;
+    course_outcome: string;
   }
   
 export interface StudentMarks {
