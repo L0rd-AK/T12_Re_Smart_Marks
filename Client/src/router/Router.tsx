@@ -22,7 +22,7 @@ const AdminDashboard = lazy(() => import("../pages/Admin/AdminDashboard"));
 const ModuleLeaderDashboard = lazy(() => import("../pages/ModuleLeader/ModuleLeaderDashboard"));
 const Courses = lazy(() => import("../pages/Courses/Courses"));
 const DeveloperInfo = lazy(() => import("../pages/Developer-Info/DeveloperInfo"));
-
+const DocumentSubmissionHistory = lazy(() => import("../pages/DocumentSubmission/DocumentSubmissionHistory"));
 const test= lazy(() => import("../pages/Test/Test"));
 
 // Wrapper component for Suspense - returns a component, not JSX
@@ -60,10 +60,18 @@ export const router = createBrowserRouter([
                 ),
             },
             {
-                path: "document-submissions",
+                path: "document-submissions-list",
                 element: (
                     <RoleBasedRoute allowedRoles={['admin', 'teacher', 'module-leader']}>
                         {withSuspense(DocumentSubmissionsList)()}
+                    </RoleBasedRoute>
+                ),
+            },
+            {
+                path: "document-submissions-history",
+                element: (
+                    <RoleBasedRoute allowedRoles={['admin', 'teacher', 'module-leader']}>
+                        {withSuspense(DocumentSubmissionHistory)()}
                     </RoleBasedRoute>
                 ),
             },
