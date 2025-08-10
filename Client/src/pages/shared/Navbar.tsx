@@ -14,9 +14,12 @@ const links = (user:User) => (
         <li>
             <NavLink to="/document-submission">Document Submission</NavLink>
         </li>
-        {/* <li>
-            <NavLink to="/document-submissions">My Submissions</NavLink>
-        </li> */}
+        <li>
+            <NavLink to="/document-submissions-history">My Submissions</NavLink>
+        </li>
+        <li>
+            <NavLink to="/document-submissions-list">My Submissions List</NavLink>
+        </li>
         <li>
             <NavLink to="/courses">Courses</NavLink>
         </li>
