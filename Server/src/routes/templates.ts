@@ -1,8 +1,15 @@
 import { Router } from 'express';
+<<<<<<< HEAD
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 import { createTemplateSchema, updateTemplateSchema } from '../schemas/templates';
 import { templatesController } from '../controllers/templatesController';
+=======
+import { templatesController } from '../controllers/templatesController';
+import { authenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
+import { createTemplateSchema, updateTemplateSchema } from '../schemas/templates';
+>>>>>>> 5066c4c3ecae49c9f7637bbc78c5a525bf9b0f75
 
 const router = Router();
 

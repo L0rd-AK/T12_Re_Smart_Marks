@@ -85,11 +85,7 @@ export const router = createBrowserRouter([
             },
             {
                 path: "developer-info",
-                element: (
-                    <ProtectedRoute>
-                        {withSuspense(DeveloperInfo)()}
-                    </ProtectedRoute>
-                ),
+                element: withSuspense(DeveloperInfo)(),
             },
             {
                 path: "login",
