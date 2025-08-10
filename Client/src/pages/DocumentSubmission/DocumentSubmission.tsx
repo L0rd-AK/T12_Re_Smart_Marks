@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useSubmitDocumentsMutation } from '../../redux/api/documentApi';
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+    useGetCurrentOrCreateSubmissionQuery,
+    useUpdateDocumentStatusMutation,
+    useSubmitDocumentSubmissionMutation
+} from '../../redux/api/documentApi';
 import toast from 'react-hot-toast';
 import { toast as sonnerToast } from 'sonner';
 import GoogleDriveConnection from '../../components/GoogleDriveConnection';
@@ -37,57 +41,13 @@ interface DocumentItem {
 }
 
 const DocumentSubmission: React.FC = () => {
-    const [submitDocuments] = useSubmitDocumentsMutation();
+    const [updateDocumentStatus] = useUpdateDocumentStatusMutation();
+    const [submitDocumentSubmission] = useSubmitDocumentSubmissionMutation();
     const [theoryFolderId, setTheoryFolderId] = useState<string | null>(null);
     const [labFolderId, setLabFolderId] = useState<string | null>(null);
 
-    // Helper functions for localStorage persistence
-    const saveDocumentsToStorage = (theory: DocumentItem[], lab: DocumentItem[]) => {
-        try {
-            const documentsState = {
-                theory: theory.map(doc => ({
-                    id: doc.id,
-                    name: doc.name,
-                    category: doc.category,
-                    fileTypes: doc.fileTypes,
-                    status: doc.status,
-                    uploadedFiles: doc.uploadedFiles
-                })),
-                lab: lab.map(doc => ({
-                    id: doc.id,
-                    name: doc.name,
-                    category: doc.category,
-                    fileTypes: doc.fileTypes,
-                    status: doc.status,
-                    uploadedFiles: doc.uploadedFiles
-                }))
-            };
-            localStorage.setItem('obe_documents_state', JSON.stringify(documentsState));
-        } catch (error) {
-            console.warn('Failed to save documents state to localStorage:', error);
-        }
-    };
-
-    const loadDocumentsFromStorage = (): { theory: DocumentItem[], lab: DocumentItem[] } | null => {
-        try {
-            const stored = localStorage.getItem('obe_documents_state');
-            if (!stored) return null;
-
-            const parsed = JSON.parse(stored);
-            return {
-                theory: parsed.theory || [],
-                lab: parsed.lab || []
-            };
-        } catch (error) {
-            console.warn('Failed to load documents state from localStorage:', error);
-            return null;
-        }
-    };
-
-    // Initialize documents with localStorage data if available
+    // Initialize documents with database data if available
     const getInitialDocuments = () => {
-        const stored = loadDocumentsFromStorage();
-
         const defaultTheoryDocuments: DocumentItem[] = [
             {
                 id: 'course-outline',
@@ -220,21 +180,33 @@ const DocumentSubmission: React.FC = () => {
             },
         ];
 
-        if (stored) {
-            return {
-                theory: stored.theory.length > 0 ? stored.theory : defaultTheoryDocuments,
-                lab: stored.lab.length > 0 ? stored.lab : defaultLabDocuments
-            };
-        }
-
         return {
             theory: defaultTheoryDocuments,
             lab: defaultLabDocuments
         };
     };
 
-    const initialDocuments = getInitialDocuments();
+    const initialDocuments = useMemo(() => getInitialDocuments(), []);
     const { isSubmitted, courseCode, courseTitle, section, semester, year, courseCredit, noOfClassConducted, batch, department } = useAppSelector((state) => state.sectionInformation);
+    
+    // Get current submission from database
+    const submissionParams = courseCode && section && semester && year ? {
+        courseCode,
+        courseSection: section,
+        semester: `${semester}-${year}`,
+        courseTitle: courseTitle || 'Course Title Not Available',
+        creditHours: courseCredit || '3',
+        classCount: noOfClassConducted || '0',
+        batch: batch || 'Not Specified',
+        department: department || 'Not Specified'
+    } : null;
+    
+    const { data: currentSubmission, isLoading: submissionLoading, refetch: refetchSubmission } = useGetCurrentOrCreateSubmissionQuery(
+        submissionParams!,
+        {
+            skip: !submissionParams
+        }
+    );
     const courseInfo: CourseInfo = {
         semester: semester + '-' + year || '',
         courseCode: courseCode || '',
@@ -261,15 +233,117 @@ const DocumentSubmission: React.FC = () => {
             mobileNumber: user?.mobileNumber || '',
         })
     }, [isLoading, user])
-    // Initialize documents based on the checklist from the attachment
-    const [theoryDocuments, setTheoryDocuments] = useState<DocumentItem[]>(initialDocuments.theory);
 
-    const [labDocuments, setLabDocuments] = useState<DocumentItem[]>(initialDocuments.lab);
+    const [theoryDocuments, setTheoryDocuments] = useState<DocumentItem[]>([]);
+    const [labDocuments, setLabDocuments] = useState<DocumentItem[]>([]);
 
-    // Save to localStorage whenever documents change
+    // Update documents when submission data changes or initial documents change
     useEffect(() => {
-        saveDocumentsToStorage(theoryDocuments, labDocuments);
-    }, [theoryDocuments, labDocuments]);
+        const getDocsFromSubmission = (): { theory: DocumentItem[], lab: DocumentItem[] } => {
+            if (!currentSubmission?.data) {
+                return initialDocuments;
+            }
+
+            const submission = currentSubmission.data;
+            const submissionDocs = submission.documents;
+
+            const theory = initialDocuments.theory.map(doc => {
+                const submissionDoc = submissionDocs.theory.find(d => d.id === doc.id);
+                return {
+                    ...doc,
+                    status: submissionDoc?.status || 'pending',
+                    uploadedFiles: submissionDoc?.uploadedFiles || {}
+                };
+            });
+
+            const lab = initialDocuments.lab.map(doc => {
+                const submissionDoc = submissionDocs.lab.find(d => d.id === doc.id);
+                return {
+                    ...doc,
+                    status: submissionDoc?.status || 'pending',
+                    uploadedFiles: submissionDoc?.uploadedFiles || {}
+                };
+            });
+
+            return { theory, lab };
+        };
+
+        const updatedDocs = getDocsFromSubmission();
+        setTheoryDocuments(updatedDocs.theory);
+        setLabDocuments(updatedDocs.lab);
+        
+        // Update folder IDs from submission
+        if (currentSubmission?.data?.googleDriveFolders) {
+            setTheoryFolderId(currentSubmission.data.googleDriveFolders.theoryFolderId || null);
+            setLabFolderId(currentSubmission.data.googleDriveFolders.labFolderId || null);
+        }
+    }, [currentSubmission, initialDocuments]);
+
+    // If course information is not available, show the section information form
+    if (!submissionParams) {
+        return (
+            <div className="min-h-screen bg-white py-8">
+                <div className="container mx-auto px-4 max-w-7xl">
+                    <div className="rounded-lg p-6">
+                        <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
+                            OBE File Submission System
+                        </h1>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                            <div className="text-blue-600 mb-4 text-center">
+                                <svg className="w-12 h-12 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-semibold text-blue-800 mb-2 text-center">Course Setup Required</h3>
+                            <p className="text-blue-700 text-center mb-6">
+                                Please provide your course information below to continue with document submission.
+                            </p>
+                        </div>
+                        <SectionInformation from={"file-submission"} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Save to database instead of localStorage when documents change
+    const updateDocumentInDatabase = async (
+        documentId: string, 
+        category: 'theory' | 'lab', 
+        status: 'yes' | 'no' | 'pending', 
+        uploadedFiles?: Record<string, { name: string; size: number; type: string; lastModified: number; googleDriveId?: string; url?: string }>
+    ) => {
+        if (!submissionParams) {
+            return;
+        }
+        
+        try {
+            console.log('🔄 Updating document status in database:', {
+                submissionId: currentSubmission?.data._id,
+                documentId,
+                category,
+                status,
+                hasUploadedFiles: !!uploadedFiles
+            });
+            
+            const result = await updateDocumentStatus({
+                submissionId: currentSubmission?.data._id || '',
+                documentId,
+                category,
+                status,
+                uploadedFiles
+            }).unwrap();
+            
+            console.log('✅ Document status updated, new completion:', result.data.completionPercentage);
+            
+            // Refetch submission to get updated data
+            await refetchSubmission();
+            console.log('🔄 Submission data refetched');
+        } catch (error) {
+            console.error('Failed to update document status:', error);
+            toast.error('Failed to update document status');
+        }
+    };
 
     const handleFoldersCreated = (theoryId: string, labId: string) => {
         console.log('📁 Folders created successfully:', { theoryId, labId });
@@ -279,69 +353,66 @@ const DocumentSubmission: React.FC = () => {
 
 
     const handleFileUpload = async (documentId: string, file: File, fileType: string, category: 'theory' | 'lab') => {
-        // First, update the local state
+        // Get the current document state
+        const currentDocs = category === 'theory' ? theoryDocuments : labDocuments;
+        const doc = currentDocs.find(d => d.id === documentId);
+        if (!doc) return;
+
+        // Create updated file metadata
+        const updatedFileMetadata = {
+            ...doc.uploadedFiles,
+            [fileType]: {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: file.lastModified
+            }
+        };
+
+        // Check if all required files are now uploaded (check both local files and uploaded files)
+        const allFilesUploaded = doc.fileTypes.every(ft => 
+            doc.files?.[ft] || updatedFileMetadata[ft] || doc.uploadedFiles?.[ft]
+        );
+        const newStatus = allFilesUploaded ? 'yes' : doc.status;
+
+        console.log('📊 Document completion check:', {
+            documentId,
+            documentName: doc.name,
+            requiredFileTypes: doc.fileTypes,
+            currentFiles: Object.keys(doc.files || {}),
+            newFiles: Object.keys(updatedFileMetadata),
+            existingUploaded: Object.keys(doc.uploadedFiles || {}),
+            allFilesUploaded,
+            currentStatus: doc.status,
+            newStatus
+        });
+
+        // Update local state first for immediate UI feedback
         if (category === 'theory') {
             setTheoryDocuments(prev =>
-                prev.map(doc => {
-                    if (doc.id === documentId) {
-                        const updatedFiles = {
-                            ...doc.files,
-                            [fileType]: file
-                        };
-                        const updatedFileMetadata = {
-                            ...doc.uploadedFiles,
-                            [fileType]: {
-                                name: file.name,
-                                size: file.size,
-                                type: file.type,
-                                lastModified: file.lastModified
-                            }
-                        };
-                        // Check if all required files are now uploaded (including previously uploaded ones)
-                        const allFilesUploaded = doc.fileTypes.every(ft => updatedFiles[ft] || updatedFileMetadata[ft]);
-                        return {
-                            ...doc,
-                            files: updatedFiles,
-                            uploadedFiles: updatedFileMetadata,
-                            status: allFilesUploaded ? 'yes' as const : doc.status
-                        };
-                    }
-                    return doc;
-                })
+                prev.map(d => d.id === documentId ? {
+                    ...d,
+                    files: { ...d.files, [fileType]: file },
+                    uploadedFiles: updatedFileMetadata,
+                    status: newStatus
+                } : d)
             );
         } else {
             setLabDocuments(prev =>
-                prev.map(doc => {
-                    if (doc.id === documentId) {
-                        const updatedFiles = {
-                            ...doc.files,
-                            [fileType]: file
-                        };
-                        const updatedFileMetadata = {
-                            ...doc.uploadedFiles,
-                            [fileType]: {
-                                name: file.name,
-                                size: file.size,
-                                type: file.type,
-                                lastModified: file.lastModified
-                            }
-                        };
-                        // Check if all required files are now uploaded (including previously uploaded ones)
-                        const allFilesUploaded = doc.fileTypes.every(ft => updatedFiles[ft] || updatedFileMetadata[ft]);
-                        return {
-                            ...doc,
-                            files: updatedFiles,
-                            uploadedFiles: updatedFileMetadata,
-                            status: allFilesUploaded ? 'yes' as const : doc.status
-                        };
-                    }
-                    return doc;
-                })
+                prev.map(d => d.id === documentId ? {
+                    ...d,
+                    files: { ...d.files, [fileType]: file },
+                    uploadedFiles: updatedFileMetadata,
+                    status: newStatus
+                } : d)
             );
         }
 
-        // Then, upload to Google Drive if user is signed in and folder exists
         try {
+            // Upload to Google Drive if available
+            let googleDriveId = undefined;
+            let url = undefined;
+
             if (GoogleDriveService.isSignedIn()) {
                 const targetFolderId = category === 'theory' ? theoryFolderId : labFolderId;
 
@@ -353,18 +424,67 @@ const DocumentSubmission: React.FC = () => {
 
                 console.log(`📤 Uploading ${fileType} to Google Drive (${category} folder: ${targetFolderId})...`);
 
-                // Upload file directly to the pre-created category folder
                 const fileName = `${fileType}_${file.name}`;
                 const uploadedFile = await GoogleDriveService.uploadFile(file, fileName, targetFolderId);
+                
+                googleDriveId = uploadedFile.id;
+                url = uploadedFile.webViewLink;
 
                 console.log(`✅ File uploaded to Google Drive:`, uploadedFile);
                 sonnerToast.success(`${fileType} uploaded to Google Drive ${category} folder successfully!`);
             } else {
                 console.log('ℹ️ Google Drive not connected, file stored locally only');
             }
+
+            // Update database with file metadata including Google Drive info
+            const finalFileMetadata = {
+                ...updatedFileMetadata,
+                [fileType]: {
+                    ...updatedFileMetadata[fileType],
+                    googleDriveId,
+                    url
+                }
+            };
+
+            // Call database update first, then refetch to get the updated completion status
+            console.log('🔄 Updating document in database...');
+            await updateDocumentInDatabase(documentId, category, newStatus, finalFileMetadata);
+
+            console.log('🎯 File upload completed successfully:', {
+                documentId,
+                newStatus,
+                allFilesUploaded,
+                completionShouldUpdate: newStatus === 'yes'
+            });
+
         } catch (error) {
-            console.error('❌ Error uploading to Google Drive:', error);
-            sonnerToast.error('File saved locally, but failed to upload to Google Drive. You can connect to Google Drive later.');
+            console.error('❌ Error uploading to Google Drive or updating database:', error);
+            sonnerToast.error('File saved locally, but failed to upload to Google Drive or save to database.');
+            
+            // Revert local state on error
+            if (category === 'theory') {
+                setTheoryDocuments(prev =>
+                    prev.map(d => d.id === documentId ? {
+                        ...d,
+                        files: Object.fromEntries(
+                            Object.entries(d.files || {}).filter(([key]) => key !== fileType)
+                        ),
+                        uploadedFiles: doc.uploadedFiles,
+                        status: doc.status
+                    } : d)
+                );
+            } else {
+                setLabDocuments(prev =>
+                    prev.map(d => d.id === documentId ? {
+                        ...d,
+                        files: Object.fromEntries(
+                            Object.entries(d.files || {}).filter(([key]) => key !== fileType)
+                        ),
+                        uploadedFiles: doc.uploadedFiles,
+                        status: doc.status
+                    } : d)
+                );
+            }
         }
     };
 
@@ -405,51 +525,58 @@ const DocumentSubmission: React.FC = () => {
         return colors[fileType] || 'bg-gray-50 text-gray-700 hover:bg-gray-100';
     };
 
-    const handleStatusChange = (documentId: string, status: 'yes' | 'no', category: 'theory' | 'lab') => {
+    const handleStatusChange = async (documentId: string, status: 'yes' | 'no', category: 'theory' | 'lab') => {
+        // Get the current document
+        const currentDocs = category === 'theory' ? theoryDocuments : labDocuments;
+        const doc = currentDocs.find(d => d.id === documentId);
+        if (!doc) return;
+
+        // If setting to 'yes', check if all files are uploaded
+        if (status === 'yes') {
+            const allFilesUploaded = doc.fileTypes.every(ft => doc.files?.[ft] || doc.uploadedFiles?.[ft]);
+            if (!allFilesUploaded) {
+                toast.error('Please upload all required files before marking as submitted.');
+                return;
+            }
+        }
+
+        // Update local state first for immediate UI feedback
+        const updateDoc = (d: DocumentItem) => d.id === documentId ? {
+            ...d,
+            status,
+            ...(status === 'no' && { files: undefined, uploadedFiles: undefined })
+        } : d;
+
         if (category === 'theory') {
-            setTheoryDocuments(prev =>
-                prev.map(doc => {
-                    if (doc.id === documentId) {
-                        // If setting to 'yes', check if all files are uploaded
-                        if (status === 'yes') {
-                            const allFilesUploaded = doc.fileTypes.every(ft => doc.files?.[ft] || doc.uploadedFiles?.[ft]);
-                            if (!allFilesUploaded) {
-                                toast.error('Please upload all required files before marking as submitted.');
-                                return doc; // Don't change status
-                            }
-                        }
-
-                        return {
-                            ...doc,
-                            status,
-                            ...(status === 'no' && { files: undefined, uploadedFiles: undefined })
-                        };
-                    }
-                    return doc;
-                })
-            );
+            setTheoryDocuments(prev => prev.map(updateDoc));
         } else {
-            setLabDocuments(prev =>
-                prev.map(doc => {
-                    if (doc.id === documentId) {
-                        // If setting to 'yes', check if all files are uploaded
-                        if (status === 'yes') {
-                            const allFilesUploaded = doc.fileTypes.every(ft => doc.files?.[ft] || doc.uploadedFiles?.[ft]);
-                            if (!allFilesUploaded) {
-                                toast.error('Please upload all required files before marking as submitted.');
-                                return doc; // Don't change status
-                            }
-                        }
+            setLabDocuments(prev => prev.map(updateDoc));
+        }
 
-                        return {
-                            ...doc,
-                            status,
-                            ...(status === 'no' && { files: undefined, uploadedFiles: undefined })
-                        };
-                    }
-                    return doc;
-                })
-            );
+        // Update database
+        try {
+            const uploadedFiles = status === 'no' ? {} : doc.uploadedFiles;
+            await updateDocumentInDatabase(documentId, category, status, uploadedFiles);
+        } catch (error) {
+            console.error('Failed to update document status in database:', error);
+            toast.error('Failed to save changes to database');
+        }
+    };
+
+    // Handle final submission
+    const handleFinalSubmit = async () => {
+        if (!currentSubmission?.data) {
+            toast.error('No submission found to submit');
+            return;
+        }
+
+        try {
+            await submitDocumentSubmission(currentSubmission.data._id).unwrap();
+            toast.success('Documents submitted successfully for review!');
+            refetchSubmission(); // Refresh submission data
+        } catch (error) {
+            console.error('Failed to submit documents:', error);
+            toast.error('Failed to submit documents. Please try again.');
         }
     };
 
@@ -637,7 +764,7 @@ const DocumentSubmission: React.FC = () => {
                                                             type="checkbox"
                                                             checked={hasFile}
                                                             readOnly
-                                                            className={`h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 ${hasFile
+                                                            className={`h-4 w-4 rounded border-gray-300 focus:ring-2 bg-white focus:ring-blue-500 ${hasFile
                                                                 ? 'text-green-600 bg-green-50'
                                                                 : 'text-gray-400'
                                                                 }`}
@@ -691,6 +818,15 @@ const DocumentSubmission: React.FC = () => {
                     <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
                         OBE File Submission System
                     </h1>
+
+                    {/* Loading State */}
+                    {submissionLoading && (
+                        <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                            <span className="ml-3 text-gray-600">Loading submission data...</span>
+                        </div>
+                    )}
+
                     {/* Single Google Drive Connection */}
                     {isSubmitted && <div className="mb-8">
                         <GoogleDriveConnection
@@ -801,11 +937,80 @@ const DocumentSubmission: React.FC = () => {
 
 
 
+                            {/* Submission Progress */}
+                            {currentSubmission?.data && (
+                                <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold mb-4 text-blue-800">Submission Progress</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-blue-700">Completion Status:</span>
+                                            <span className="font-semibold text-blue-800">
+                                                {currentSubmission.data.completionPercentage}%
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-blue-200 rounded-full h-2">
+                                            <div 
+                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${currentSubmission.data.completionPercentage}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-blue-600">
+                                                Status: {currentSubmission.data.submissionStatus.toUpperCase()}
+                                            </span>
+                                            <span className="text-blue-600">
+                                                Last Modified: {new Date(currentSubmission.data.lastModifiedAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Theory Documents */}
                             {renderDocumentTable(theoryDocuments, 'theory', 'OBE File Submission Checklist (Theory)')}
 
                             {/* Lab Documents */}
                             {renderDocumentTable(labDocuments, 'lab', 'OBE File Submission Checklist (Lab)')}
+
+                            {/* Final Submit Button */}
+                            {currentSubmission?.data && currentSubmission.data.submissionStatus !== 'submitted' && (
+                                <div className="mt-8 text-center">
+                                    <button
+                                        onClick={handleFinalSubmit}
+                                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200"
+                                        disabled={submissionLoading}
+                                    >
+                                        {submissionLoading ? 'Submitting...' : 'Submit All Documents for Review'}
+                                    </button>
+                                    <p className="text-sm text-gray-600 mt-2">
+                                        Once submitted, documents will be sent for review and cannot be modified.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Submission Status */}
+                            {currentSubmission?.data?.submissionStatus === 'submitted' && (
+                                <div className="mt-8 text-center bg-green-50 border border-green-200 rounded-lg p-6">
+                                    <div className="text-green-800">
+                                        <svg className="w-12 h-12 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                        <h3 className="text-xl font-semibold mb-2">Documents Submitted Successfully!</h3>
+                                        <p className="text-green-700">
+                                            Your documents have been submitted for review on{' '}
+                                            {currentSubmission.data.submittedAt ? 
+                                                new Date(currentSubmission.data.submittedAt).toLocaleDateString() : 
+                                                'Unknown date'
+                                            }
+                                        </p>
+                                        {currentSubmission.data.completionPercentage !== undefined && (
+                                            <p className="text-green-700 mt-2">
+                                                Completion: {currentSubmission.data.completionPercentage}%
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
 
                         </div>

@@ -1,3 +1,6 @@
+// Import Template type from questionFormatApi for better type safety
+import type { Template } from '../redux/api/questionFormatApi';
+
 export interface QuestionFormat {
     _id: string;
     id: string;
@@ -74,7 +77,7 @@ export interface MarkEntryState {
   type: MarkEntryType | null;
   currentStudentId: string;
   currentQuestionNumber: number;
-  questionFormat: QuestionFormat | null;
+  questionFormat: Template | null; // Use proper Template type instead of any
   selectedQuizNumber: number;
   tempMarks: { [key: string]: number[] };
   savedMarks: StudentMarkEntry[];

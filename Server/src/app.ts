@@ -6,9 +6,9 @@ import authRoutes from "./routes/auth";
 import marksRoutes from "./routes/marks";
 import googleDriveRoutes from "./routes/googleDrive";
 import adminRoutes from "./routes/admin";
-import templatesRoutes from "./routes/templates";
+import documentRoutes from "./routes/documents";
 import { errorHandler } from "./middleware/errorHandler";
-
+import templatesRoutes from "./routes/templates";
 const app: Application = express();
 
 // Security middleware
@@ -16,7 +16,7 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173","https://t12resmartmarks.vercel.app"],
+    origin: ["http://localhost:5173", "https://t12resmartmarks.vercel.app"],
     credentials: true,
   })
 );
@@ -34,8 +34,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/marks", marksRoutes);
 app.use("/api/google-drive", googleDriveRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/documents", documentRoutes);
 app.use("/api/templates", templatesRoutes);
-
 // Global error handler
 app.use(errorHandler);
 
