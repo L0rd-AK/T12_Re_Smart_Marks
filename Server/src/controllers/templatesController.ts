@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Template, { ITemplate } from '../models/Template';
-import { CreateTemplateRequest, UpdateTemplateRequest } from '../schemas/templates';
+import { CreateTemplateRequest,UpdateTemplateRequest } from '../schemas/templates';
+
 
 export const templatesController = {
   // Create a new template
@@ -46,6 +47,88 @@ export const templatesController = {
     } catch (error) {
       console.error('Error fetching templates:', error);
       res.status(500).json({ message: 'Failed to fetch templates' });
+    }
+  },
+
+  // Get midterm templates for users
+  getMidtermTemplates: async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+
+      const { courseCode, year } = req.query;
+      
+      const query: any = {
+        type: 'midterm',
+        // $or: [
+        // //   { createdBy: req.user._id },
+        //   { isStandard: true }
+        // ]
+      };
+
+    //   if (courseCode) {
+    //     query.courseCode = courseCode;
+    //   }
+      
+    //   if (year) {
+    //     query.year = year;
+    //   }
+
+      const templates = await Template.find(query).sort({ createdAt: -1 });
+
+      res.json({
+        success: true,
+        data: templates
+      });
+    } catch (error) {
+      console.error('Error fetching midterm templates:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to fetch midterm templates' 
+      });
+    }
+  },
+
+  // Get final templates for users
+  getFinalTemplates: async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+
+    //   const { courseCode, year } = req.query;
+      
+      const query: any = {
+        type: 'final',
+        // $or: [
+        // //   { createdBy: req.user._id },
+        // //   { isStandard: true }
+        // ]
+      };
+
+    //   if (courseCode) {
+    //     query.courseCode = courseCode;
+    //   }
+      
+    //   if (year) {
+    //     query.year = year;
+    //   }
+
+      const templates = await Template.find(query).sort({ createdAt: -1 });
+
+      res.json({
+        success: true,
+        data: templates
+      });
+    } catch (error) {
+      console.error('Error fetching final templates:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to fetch final templates' 
+      });
     }
   },
 

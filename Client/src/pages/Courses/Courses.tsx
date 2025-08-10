@@ -305,10 +305,6 @@ export default function CoursesPage() {
     }
 
 
-
-
-  
-
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "approved":
@@ -339,7 +335,9 @@ export default function CoursesPage() {
     }
 
     return (
-        <div className="space-y-6 bg-gray-50 min-h-[calc(100vh-64px)] p-6">
+        <div className=" bg-gray-50 min-h-[calc(100vh-64px)] p-6">
+            <div className="container mx-auto space-y-6">
+
             {/* Header */}
             <div className="text-center">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent mb-2">
@@ -378,25 +376,7 @@ export default function CoursesPage() {
                         Access Requests
                     </button>
 
-                    {/* {user?.role === "module-leader" && (
-                        <button
-                            role="tab"
-                            className={`tab flex items-center gap-2 ${activeTab === "module-leader" ? "tab-active !bg-yellow-500 !text-white" : "!text-gray-700 hover:!bg-yellow-100"}`}
-                            onClick={() => setActiveTab("module-leader")}
-                        >
-                            <Settings className="w-4 h-4" />
-                            Module Leader
-                        </button>
-                    )} */}
-
-                    {/* <button
-                        role="tab"
-                        className={`tab flex items-center gap-2 ${activeTab === "materials" ? "tab-active !bg-pink-600 !text-white" : "!text-gray-700 hover:!bg-pink-100"}`}
-                        onClick={() => setActiveTab("materials")}
-                    >
-                        <FileText className="w-4 h-4" />
-                        Materials
-                    </button> */}
+            
                 </div>
                 <div className="mt-10">
 
@@ -439,7 +419,7 @@ export default function CoursesPage() {
                                                                     course.moduleLeader === user?.name) && (
                                                                         <button
                                                                             onClick={() => handleViewCourseDetails(course.id)}
-                                                                            className="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white px-5"
+                                                                            className="btn btn-sm border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white px-5"
                                                                         >
                                                                             <ExternalLink className="w-4 h-4 mr-2" />
                                                                             View Details
@@ -449,7 +429,7 @@ export default function CoursesPage() {
                                                                     course.moduleLeader !== user?.name && (
                                                                         <button
                                                                             onClick={() => handleRequestAccess(course)}
-                                                                            className="btn btn-sm bg-indigo-600 hover:bg-indigo-700 text-white"
+                                                                            className="btn btn-sm border-indigo-600 bg-indigo-600 hover:bg-indigo-700 text-white"
                                                                         >
                                                                             <Send className="w-4 h-4 mr-2" />
                                                                             Request Access
@@ -514,7 +494,7 @@ export default function CoursesPage() {
                                                     <td>
                                                         <button
                                                             onClick={() => handleViewCourseDetails(course.id)}
-                                                            className="btn btn-sm bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                            className="btn btn-sm border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white"
                                                         >
                                                             <ExternalLink className="w-4 h-4 mr-2" />
                                                             View Details
@@ -548,7 +528,7 @@ export default function CoursesPage() {
                                             <div key={request.id} className="border border-purple-200 rounded-lg p-4 space-y-3 bg-purple-50/30">
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <h4 className="font-medium">{request.courseName}</h4>
+                                                        <h4 className="font-medium text-purple-600">{request.courseName}</h4>
                                                         <p className="text-sm text-gray-600">{request.courseCode}</p>
                                                         <p className="text-sm text-gray-600">To: {request.moduleLeader}</p>
                                                     </div>
@@ -611,6 +591,7 @@ export default function CoursesPage() {
                     </div>
                 </div>
             )}
+            </div>
 
 
 

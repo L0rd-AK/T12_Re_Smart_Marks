@@ -80,7 +80,21 @@ const SectionInformation: React.FC<SectionInformationProps> = ({ from, onSubmit 
         'Summer',
         'Fall'
     ];
-
+    const batch = [
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'
+    ]
+    const courseCredit = [
+        '1', '2', '3', '4', '5', '6',
+    ]
+    const courseCode = [
+        'CSE-111', 'CSE-112', 'CSE-113', 'CSE-114', 'CSE-115', 'CSE-116',
+        'CSE-211', 'CSE-212', 'CSE-213', 'CSE-214', 'CSE-215', 'CSE-216',
+        'CSE-311', 'CSE-312', 'CSE-313', 'CSE-314', 'CSE-315', 'CSE-316',
+        'CSE-411', 'CSE-412', 'CSE-413', 'CSE-414', 'CSE-415', 'CSE-416'
+    ]
+    const sections = [
+        'A', 'B', 'C', 'D', 'E', 'F'
+    ];
     return (
         <div className="card  shadow-md w-full bg-white border">
             <div className="card-body">
@@ -115,20 +129,22 @@ const SectionInformation: React.FC<SectionInformationProps> = ({ from, onSubmit 
                             <label className="label">
                                 <span className="label-text">Section</span>
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 id="section"
                                 name="section"
                                 value={formData.section}
                                 onChange={handleInputChange}
-                                placeholder="A"
-                                className="input input-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
+                                className="select select-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
                                 required
-                                pattern="[A-Za-z]"
-                                title="Section should be a single letter"
-                            />
-                        </div>
-                    </div>
+                            >
+                                <option value="">Select Section</option>
+                                {sections.map((section) => (
+                                    <option key={section} value={section}>
+                                        {section}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         {/* Batch */}
@@ -136,17 +152,22 @@ const SectionInformation: React.FC<SectionInformationProps> = ({ from, onSubmit 
                             <label className="label">
                                 <span className="label-text">Batch</span>
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 id="batch"
                                 name="batch"
                                 value={formData.batch}
                                 onChange={handleInputChange}
-                                placeholder="52"
-                                className="input input-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
+                                className="select select-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
                                 required
                                 title="Batch should be a number between 1 and 999"
-                            />
+                            >
+                                <option value="">Select Batch</option>
+                                {batch.map((b) => (
+                                    <option key={b} value={b}>
+                                        {b}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         {/* Semester */}
@@ -178,16 +199,26 @@ const SectionInformation: React.FC<SectionInformationProps> = ({ from, onSubmit 
                             <label className="label">
                                 <span className="label-text">Course Title</span>
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 id="courseTitle"
                                 name="courseTitle"
                                 value={formData.courseTitle}
                                 onChange={handleInputChange}
-                                placeholder="Web Engineering"
-                                className="input input-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
+                                className="select select-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
                                 required
-                            />
+                            >
+                                <option value="">Select Course Title</option>
+                                {/* Example course titles, replace/add as needed */}
+                                <option value="Web Engineering">Web Engineering</option>
+                                <option value="Database Systems">Database Systems</option>
+                                <option value="Software Engineering">Software Engineering</option>
+                                <option value="Computer Networks">Computer Networks</option>
+                                <option value="Operating Systems">Operating Systems</option>
+                                <option value="Data Structures">Data Structures</option>
+                                <option value="Algorithms">Algorithms</option>
+                                <option value="Artificial Intelligence">Artificial Intelligence</option>
+                                <option value="Machine Learning">Machine Learning</option>
+                            </select>
                         </div>
 
                         {/* Course Code */}
@@ -195,20 +226,23 @@ const SectionInformation: React.FC<SectionInformationProps> = ({ from, onSubmit 
                             <label className="label">
                                 <span className="label-text">Course Code</span>
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 id="courseCode"
                                 name="courseCode"
                                 value={formData.courseCode}
                                 onChange={handleInputChange}
-                                placeholder="SE-333"
-                                className="input input-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
+                                className="select select-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
                                 required
-                                pattern="[A-Z]{2,3}-[0-9]{3}"
                                 title="Course code should be in format: XX-111 or XXX-111"
-                            />
-                        </div>
-                    </div>
+                            >
+                                <option value="">Select Course Code</option>
+                                {courseCode.map((code) => (
+                                    <option key={code} value={code}>
+                                        {code}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         {/* Year */}
@@ -235,16 +269,21 @@ const SectionInformation: React.FC<SectionInformationProps> = ({ from, onSubmit 
                             <label className="label">
                                 <span className="label-text">Course credit</span>
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 id="courseCredit"
                                 name="courseCredit"
                                 value={formData.courseCredit}
                                 onChange={handleInputChange}
-                                placeholder="3"
-                                className="input input-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
+                                className="select select-bordered w-full bg-white text-black border-gray-300 focus:outline-none focus:ring-0"
                                 required
-                            />
+                            >
+                                <option value="">Select Course Credit</option>
+                                {courseCredit.map((credit) => (
+                                    <option key={credit} value={credit}>
+                                        {credit}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                     </div>
