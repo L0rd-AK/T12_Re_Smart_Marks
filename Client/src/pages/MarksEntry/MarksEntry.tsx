@@ -3,15 +3,12 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import type {
   MarkEntryType,
-  QuestionFormat,
   AssignmentMarks,
   PresentationMarks,
   MarkEntryState
 } from '../../types/types';
 import {
-  useGetQuestionFormatsQuery,
-  useCreateStudentMarksMutation,
-  useCreateQuestionFormatMutation
+  useCreateStudentMarksMutation
 } from '../../redux/api/marksApi';
 import {
   MARK_TYPES,
@@ -20,6 +17,12 @@ import {
 } from '../../utils/markCalculations';
 import SectionInformation from '../../components/SectionInformation';
 import { useAppSelector } from '../../redux/hooks';
+import {
+  useGetMidtermTemplatesQuery,
+  useGetFinalTemplatesQuery,
+  type Template,
+  type Question
+} from '../../redux/api/questionFormatApi';
 
 
 const MarksEntry: React.FC = () => {
@@ -46,10 +49,23 @@ const MarksEntry: React.FC = () => {
   ]);
   const [isAwaitingQuestionNumber, setIsAwaitingQuestionNumber] = useState(false);
 
-  const { data: questionFormats } = useGetQuestionFormatsQuery();
-  const [createStudentMarks] = useCreateStudentMarksMutation();
-  const [createQuestionFormat] = useCreateQuestionFormatMutation();
   const { isSubmitted, batch, courseCode, courseTitle, department, section, semester, year } = useAppSelector((state) => state.sectionInformation);
+  
+  const { data: midtermTemplates } = useGetMidtermTemplatesQuery({ courseCode, year });
+  const { data: finalTemplates } = useGetFinalTemplatesQuery({ courseCode, year });
+  const [createStudentMarks] = useCreateStudentMarksMutation();
+
+  // Get the appropriate question formats based on exam type
+  const getQuestionFormats = () => {
+    if (state.type === 'midterm') {
+      return midtermTemplates?.data || [];
+    } else if (state.type === 'final') {
+      return finalTemplates?.data || [];
+    }
+    return [];
+  };
+
+  const questionFormats = getQuestionFormats();
   const resetState = () => {
     setState({
       type: null,
@@ -85,7 +101,7 @@ const MarksEntry: React.FC = () => {
     }
   };
 
-  const handleQuestionFormatSelect = (format: QuestionFormat) => {
+  const handleQuestionFormatSelect = (format: Template) => {
     setState(prev => ({ ...prev, questionFormat: format }));
     setIsSelectingFormat(false);
   };
@@ -108,37 +124,125 @@ const MarksEntry: React.FC = () => {
     );
   };
 
-  const createNewQuestionFormat = async () => {
-    if (!newFormatName.trim()) {
-      toast.error('Please enter a format name');
-      return;
-    }
+  // const createNewQuestionFormat = async () => {
+  //   if (!newFormatName.trim()) {
+  //     toast.error('Please enter a format name');
+  //     return;
+  //   }
 
-    const validQuestions = newFormatQuestions.filter(q => q.label.trim() && q.maxMark > 0);
-    if (validQuestions.length === 0) {
-      toast.error('Please add at least one valid question');
-      return;
-    }
+  //   const validQuestions = newFormatQuestions.filter(q => q.label.trim() && q.maxMark > 0);
+  //   if (validQuestions.length === 0) {
+  //     toast.error('Please add at least one valid question');
+  //     return;
+  //   }
 
-    try {
-      const result = await createQuestionFormat({
-        name: newFormatName.trim(),
-        questions: validQuestions
-      }).unwrap();
+  //   // Convert questions to proper Question format
+  //   const templateQuestions: Question[] = validQuestions.map((q, index) => ({
+  //     id: `q${index + 1}`,
+  //     questionNo: q.label || `Question ${index + 1}`,
+  //     marks: q.maxMark,
+  //     courseOutcomeStatements: ''
+  //   }));
 
-      setState(prev => ({ ...prev, questionFormat: result }));
-      setIsCreatingFormat(false);
-      setIsSelectingFormat(false);
-      setNewFormatName('');
-      setNewFormatQuestions([{ label: '', maxMark: 0 }]);
-      toast.success('Question format created successfully!');
-    } catch (error) {
-      toast.error('Error creating format: ' + (error as Error).message);
-    }
-  };
+  //   try {
+  //     const result = await createQuestionFormat({
+  //       name: newFormatName.trim(),
+  //       type: (state.type === 'midterm' || state.type === 'final') ? state.type : 'midterm',
+  //       year: year || new Date().getFullYear().toString(),
+  //       courseName: courseTitle || '',
+  //       courseCode: courseCode || '',
+  //       description: `Template for ${state.type} exam`,
+  //       duration: 120, // Default 2 hours
+  //       instructions: 'Please follow the marking scheme carefully',
+  //       isStandard: false,
+  //       questions: templateQuestions
+  //     }).unwrap();
+
+  //     setState(prev => ({ ...prev, questionFormat: result.data }));
+  //     setIsCreatingFormat(false);
+  //     setIsSelectingFormat(false);
+  //     setNewFormatName('');
+  //     setNewFormatQuestions([{ label: '', maxMark: 0 }]);
+  //     toast.success('Question format created successfully!');
+  //   } catch (error) {
+  //     toast.error('Error creating format: ' + (error as Error).message);
+  //   }
+  // };
 
   const handleInputSubmit = async () => {
     if (!state.type) return;
+
+    // Handle question number selection mode specifically
+    if (isAwaitingQuestionNumber) {
+      const questionInput = inputValue.trim();
+      
+      // Handle save command (0)
+      if (questionInput === '0') {
+        // Save current student's marks
+        if (state.currentStudentId && state.tempMarks[state.currentStudentId]) {
+          const marks = state.tempMarks[state.currentStudentId];
+          const total = marks.reduce((sum, mark) => sum + mark, 0);
+
+          try {
+            await createStudentMarks({
+              formatId: state.questionFormat?._id,
+              studentId: state.currentStudentId,
+              marks,
+              examType: state.type as 'midterm' | 'final'
+            }).unwrap();
+
+            setState(prev => ({
+              ...prev,
+              savedMarks: [...prev.savedMarks, {
+                studentId: state.currentStudentId,
+                marks,
+                total
+              }],
+              currentStudentId: '',
+              currentQuestionNumber: 1,
+              tempMarks: { ...prev.tempMarks, [state.currentStudentId]: [] }
+            }));
+
+            setIsAwaitingQuestionNumber(false);
+            toast.success(`${state.type} marks saved successfully!`);
+          } catch (error) {
+            toast.error('Error saving marks: ' + (error as Error).message);
+          }
+        } else {
+          toast.error('No marks to save for this student.');
+        }
+        setInputValue('');
+        return;
+      }
+      
+      // Find question by questionNo (e.g., "1a", "1b", "2a")
+      const questionIndex = state.questionFormat?.questions.findIndex(q => q.questionNo === questionInput);
+      if (questionIndex !== undefined && questionIndex >= 0) {
+        setState(prev => ({ ...prev, currentQuestionNumber: questionIndex + 1 }));
+        setIsAwaitingQuestionNumber(false);
+        setInputValue('');
+        toast.success(`Switched to question ${questionInput}`);
+        return;
+      } else {
+        const availableQuestions = state.questionFormat?.questions.map(q => q.questionNo).join(', ') || '';
+        toast.error(`Please enter a valid question number (${availableQuestions}) or 0 to save`);
+        return;
+      }
+    }
+
+    // Handle student ID input (text) for midterm/final/quiz
+    if (!state.currentStudentId && (state.type === 'midterm' || state.type === 'final' || state.type === 'quiz')) {
+      setState(prev => ({ ...prev, currentStudentId: inputValue.trim() }));
+      
+      // For midterm/final exams, immediately switch to question selection mode
+      if (state.type === 'midterm' || state.type === 'final') {
+        setIsAwaitingQuestionNumber(true);
+        toast.success(`Student ID set. Now enter question number (1-${state.questionFormat?.questions.length || 0}) or 0 to save.`);
+      }
+      
+      setInputValue('');
+      return;
+    }
 
     const value = parseFloat(inputValue);
     if (isNaN(value)) {
@@ -333,20 +437,9 @@ const MarksEntry: React.FC = () => {
   const handleExamInput = async (value: number) => {
     if (!state.questionFormat) return;
 
-    // If we're awaiting question number input
-    if (isAwaitingQuestionNumber) {
-      const qNum = Math.floor(value);
-      if (qNum >= 1 && qNum <= state.questionFormat.questions.length) {
-        setState(prev => ({ ...prev, currentQuestionNumber: qNum }));
-        setIsAwaitingQuestionNumber(false);
-        setInputValue('');
-      } else {
-        toast.error(`Invalid question number. Please enter between 1 and ${state.questionFormat.questions.length}`);
-        setInputValue('');
-      }
-      return;
-    }
-
+    // Question number selection is now handled in handleInputSubmit
+    // This function only handles numeric mark values
+    
     if (value === 0) {
       // Save current student's marks
       if (state.currentStudentId && state.tempMarks[state.currentStudentId]) {
@@ -389,8 +482,8 @@ const MarksEntry: React.FC = () => {
     } else if (state.currentQuestionNumber <= state.questionFormat.questions.length) {
       // Validate mark range for current question
       const currentQuestion = state.questionFormat.questions[state.currentQuestionNumber - 1];
-      if (value < 0 || value > currentQuestion.maxMark) {
-        toast.error(`Mark must be between 0 and ${currentQuestion.maxMark} for this question`);
+      if (value < 0 || value > currentQuestion.marks) {
+        toast.error(`Mark must be between 0 and ${currentQuestion.marks} for this question`);
         return;
       }
 
@@ -404,9 +497,15 @@ const MarksEntry: React.FC = () => {
 
       setState(prev => ({
         ...prev,
-        tempMarks: { ...prev.tempMarks, [state.currentStudentId]: newMarks },
-        currentQuestionNumber: prev.currentQuestionNumber + 1
+        tempMarks: { ...prev.tempMarks, [state.currentStudentId]: newMarks }
+        // Remove auto-increment - user will manually select next question
       }));
+
+      // After entering mark, switch to question selection mode
+      setIsAwaitingQuestionNumber(true);
+      setInputValue('');
+      toast.success(`Mark ${value} entered for Question ${state.currentQuestionNumber}. Enter next question number or 0 to save.`);
+      return;
     }
   };
 
@@ -440,18 +539,21 @@ const MarksEntry: React.FC = () => {
         return `Quiz ${state.selectedQuizNumber} - Enter mark (will auto-save):`;
 
       case 'midterm':
-      case 'final':
+      case 'final': {
         if (!state.currentStudentId) {
           return 'Enter Student ID:';
         }
         if (isAwaitingQuestionNumber) {
-          return `Enter question number (1-${state.questionFormat?.questions.length || 0}):`;
+          const availableQuestions = state.questionFormat?.questions.map(q => q.questionNo).join(', ') || '';
+          return `Enter question number (${availableQuestions}) or 0 to save marks:`;
         }
         if (state.currentQuestionNumber <= (state.questionFormat?.questions.length || 0)) {
           const question = state.questionFormat?.questions[state.currentQuestionNumber - 1];
-          return `Q${state.currentQuestionNumber}: ${question?.label} (Max: ${question?.maxMark}) - Enter mark (0 to save, -1 to jump to question):`;
+          return `Q${question?.questionNo}: ${question?.questionNo} (Max: ${question?.marks} marks) - Enter mark:`;
         }
-        return 'Enter 0 to save marks for this student:';
+        const availableQuestions = state.questionFormat?.questions.map(q => q.questionNo).join(', ') || '';
+        return `Enter question number (${availableQuestions}) or 0 to save marks:`;
+      }
 
       default:
         return '';
@@ -522,7 +624,7 @@ const MarksEntry: React.FC = () => {
 
     const maxMarks = state.type === 'assignment' ? 5 :
       state.type === 'presentation' ? 8 :
-        state.questionFormat?.questions.reduce((sum, q) => sum + q.maxMark, 0) || 0;
+        state.questionFormat?.questions.reduce((sum, q) => sum + q.marks, 0) || 0;
 
     return (
       <div className="mt-8">
@@ -552,8 +654,8 @@ const MarksEntry: React.FC = () => {
                 ))}
                 {(state.type === 'midterm' || state.type === 'final') && state.questionFormat?.questions.map((question, index) => (
                   <th key={index} className="px-4 py-3 border-b text-center font-semibold text-gray-900">
-                    Q{index + 1}
-                    <div className="text-xs text-gray-500">({question.maxMark})</div>
+                    {question?.courseOutcomeStatements}({question?.questionNo})
+                    <div className="text-xs text-gray-500">({question.marks})</div>
                   </th>
                 ))}
                 <th className="px-4 py-3 border-b text-center font-semibold bg-blue-50 text-gray-900">
@@ -615,10 +717,15 @@ const MarksEntry: React.FC = () => {
   };
 
 
-
+console.log("midterm templates:", midtermTemplates?.data);
+console.log("final templates:", finalTemplates?.data);
+console.log("current type:", state.type);
+console.log("questionFormats:", questionFormats);
 
   return (
     <div className="p-6  bg-white min-h-screen">
+      <div className="container mx-auto ">
+
       {
         state.type == null ?
           <h1 className="text-3xl font-bold mb-2 text-gray-900">Marks Entry System</h1> :
@@ -644,12 +751,12 @@ const MarksEntry: React.FC = () => {
               <br />• Select quiz number (1-3) → Enter Student ID → Enter mark (auto-saves and asks for next student)
             </li>
             <li><strong>Midterm/Final (25/40 marks):</strong>
-              <br />• Select question format → Enter Student ID → Question marks → -1 to jump to specific question → 0 to save student
+              <br />• Select question format → Enter Student ID → Enter Question Number → 0 to save student
             </li>
           </ul>
           <div className="mt-3 p-3 bg-blue-100 rounded">
             <p className="text-blue-800 text-sm font-medium">
-              ⚠️ Key Commands: Enter <strong>0</strong> to save current student | Enter <strong>-1</strong> to jump to any question number (exams only)
+              ⚠️ Key Commands: Enter <strong>0</strong> to save current student (exams only)
             </p>
           </div>
         </div>
@@ -723,16 +830,15 @@ const MarksEntry: React.FC = () => {
           </h2>
           <div className="space-y-2 mb-4">
             {questionFormats
-              ?.filter((format) => {
-                const formatName = format.name.toLowerCase();
+              ?.filter((format: Template) => {
                 if (state.type === 'midterm') {
-                  return formatName.includes('midterm') || formatName.includes('mid-term') || formatName.includes('mid term');
+                  return format.type=='midterm';
                 } else if (state.type === 'final') {
-                  return formatName.includes('final') || formatName.includes('finals');
+                  return format.type=='final';
                 }
                 return false;
               })
-              ?.map((format) => (
+              ?.map((format: Template) => (
                 <button
                   key={format._id}
                   onClick={() => handleQuestionFormatSelect(format)}
@@ -740,17 +846,16 @@ const MarksEntry: React.FC = () => {
                 >
                   <div className="font-medium text-gray-900">{format.name}</div>
                   <div className="text-sm text-gray-600">
-                    {format.questions.length} questions - Total: {format.questions.reduce((sum, q) => sum + q.maxMark, 0)} marks
+                    {format.questions.length} questions - Total: {format.questions.reduce((sum: number, q: Question) => sum + q.marks, 0)} marks
                   </div>
                 </button>
               ))}
             {questionFormats
-              ?.filter((format) => {
-                const formatName = format.name.toLowerCase();
+              ?.filter((format: Template) => {
                 if (state.type === 'midterm') {
-                  return formatName.includes('midterm') || formatName.includes('mid-term') || formatName.includes('mid term');
+                  return format.type=='midterm';
                 } else if (state.type === 'final') {
-                  return formatName.includes('final') || formatName.includes('finals');
+                  return format.type=='final';
                 }
                 return false;
               })?.length === 0 && (
@@ -852,7 +957,7 @@ const MarksEntry: React.FC = () => {
             {/* Action Buttons */}
             <div className="flex gap-2">
               <button
-                onClick={createNewQuestionFormat}
+                // onClick={createNewQuestionFormat}
                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
               >
                 Create Format
@@ -923,10 +1028,23 @@ const MarksEntry: React.FC = () => {
 
           <div className="flex gap-2">
             <input
-              type={!state.currentStudentId && (state.type === 'midterm' || state.type === 'final' || state.type === 'quiz' || state.type === 'assignment' || state.type === 'presentation') ? "text" : "number"}
+              type={
+                // Use text input for student ID entry
+                (!state.currentStudentId && (state.type === 'midterm' || state.type === 'final' || state.type === 'quiz' || state.type === 'assignment' || state.type === 'presentation')) ||
+                // Use text input when waiting for question number (to allow 1a, 1b, 2a, etc.)
+                isAwaitingQuestionNumber
+                  ? "text" 
+                  : "number"
+              }
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder={!state.currentStudentId && (state.type === 'midterm' || state.type === 'final' || state.type === 'quiz' || state.type === 'assignment' || state.type === 'presentation') ? "Enter Student ID" : "Enter value"}
+              placeholder={
+                !state.currentStudentId && (state.type === 'midterm' || state.type === 'final' || state.type === 'quiz' || state.type === 'assignment' || state.type === 'presentation') 
+                  ? "Enter Student ID" 
+                  : isAwaitingQuestionNumber 
+                    ? "Enter question number (e.g., 1a, 1b, 2a) or 0 to save"
+                    : "Enter value"
+              }
               className="flex-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
@@ -1014,13 +1132,13 @@ const MarksEntry: React.FC = () => {
               <p className="text-green-700"><strong>Student ID:</strong> {state.currentStudentId}</p>
               {(state.type === 'midterm' || state.type === 'final') && (
                 <p className="text-green-700">
-                  <strong>Question:</strong> {state.currentQuestionNumber} / {state.questionFormat?.questions.length || 0}
+                  <strong>Current Question:</strong> {state.questionFormat?.questions[state.currentQuestionNumber - 1]?.questionNo || state.currentQuestionNumber} / {state.questionFormat?.questions.length || 0}
                   {isAwaitingQuestionNumber && (
-                    <span className="ml-2 text-orange-600 font-bold">(Awaiting Question Number)</span>
+                    <span className="ml-2 text-orange-600 font-bold">(Enter question number like 1a, 1b, 2a, etc.)</span>
                   )}
                   {!isAwaitingQuestionNumber && state.currentQuestionNumber <= (state.questionFormat?.questions.length || 0) && (
                     <span className="ml-2 text-sm">
-                      ({state.questionFormat?.questions[state.currentQuestionNumber - 1]?.label})
+                      (Max: {state.questionFormat?.questions[state.currentQuestionNumber - 1]?.marks} marks)
                     </span>
                   )}
                 </p>
@@ -1048,11 +1166,14 @@ const MarksEntry: React.FC = () => {
               <div>
                 <p className="text-green-700"><strong>Current Marks:</strong></p>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {state.tempMarks[state.currentStudentId].map((mark, index) => (
-                    <span key={index} className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">
-                      {state.type === 'quiz' ? `Mark: ${mark}` : `Q${index + 1}: ${mark}`}
-                    </span>
-                  ))}
+                  {state.tempMarks[state.currentStudentId].map((mark, index) => {
+                    const questionNo = state.questionFormat?.questions[index]?.questionNo || (index + 1).toString();
+                    return (
+                      <span key={index} className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">
+                        {state.type === 'quiz' ? `Mark: ${mark}` : `${questionNo}: ${mark}`}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1108,6 +1229,7 @@ const MarksEntry: React.FC = () => {
 
       {/* Marks Table */}
       {renderMarksTable()}
+      </div>
     </div>
   );
 };
