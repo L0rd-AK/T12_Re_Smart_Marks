@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import crypto from 'crypto';
 import User from '../models/User';
 import { JWTService } from '../utils/jwt';
 import { EmailService } from '../utils/email';
@@ -202,19 +201,41 @@ export class AuthController {
 
   // Logout user
   static logout = asyncHandler(async (req: Request, res: Response) => {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    try {
+      const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
-    if (refreshToken && req.user) {
-      // Remove refresh token from user
-      req.user.refreshTokens = req.user.refreshTokens.filter(token => token !== refreshToken);
-      await req.user.save();
+      if (refreshToken && req.user && Array.isArray(req.user.refreshTokens)) {
+        // Remove refresh token from user
+        req.user.refreshTokens = req.user.refreshTokens.filter(token => token !== refreshToken);
+        await req.user.save();
+      }
+
+      // Clear cookies regardless of user state
+      res.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+
+      res.json({ 
+        success: true,
+        message: 'Logout successful' 
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, clear cookies and respond successfully
+      res.clearCookie('accessToken');
+      res.clearCookie('refreshToken');
+      res.json({ 
+        success: true,
+        message: 'Logout successful' 
+      });
     }
-
-    // Clear cookies
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
-
-    res.json({ message: 'Logout successful' });
   });
 
   // Refresh access token
