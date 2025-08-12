@@ -7,7 +7,7 @@ import {
     Filter,
 } from "lucide-react"
 import CourseDetailsPage from "../CourseDetails/CourseDetails"
-import { useGetCoursesQuery } from "../../redux/api/courseApi"
+import { useGetCoursesQuery, type CourseWithDetails } from "../../redux/api/courseApi"
 
 
 
@@ -82,7 +82,7 @@ export default function CoursesPage() {
     const { data: apiCourses, isLoading, error } = useGetCoursesQuery()
 
     // Transform API data to display format
-    const transformAPICourseToCourse = (apiCourse: any): Course => {
+    const transformAPICourseToCourse = (apiCourse: CourseWithDetails): Course => {
         return {
             id: apiCourse._id,
             code: apiCourse.code,

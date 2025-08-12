@@ -346,3 +346,6 @@ export const {
   useBulkUpdateCoursesMutation,
   useImportCoursesMutation,
 } = courseApi;
+
+// Export types
+export type { Course, CourseWithDetails, CreateCourseRequest, UpdateCourseRequest, CourseFilters, CourseStatistics };
