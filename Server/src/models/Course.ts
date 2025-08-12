@@ -58,9 +58,8 @@ const courseSchema = new Schema<ICourse>({
   timestamps: true
 });
 
-// Indexes
+// Indexes (code already has unique index)
 courseSchema.index({ name: 1 });
-courseSchema.index({ code: 1 });
 courseSchema.index({ department: 1 });
 courseSchema.index({ isActive: 1 });
 
