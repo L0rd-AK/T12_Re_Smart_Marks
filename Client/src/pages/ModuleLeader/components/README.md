@@ -78,6 +78,59 @@ Displays teacher status information including performance metrics and login stat
 />
 ```
 
+## TeacherRequests Component
+
+The `TeacherRequests` component provides a comprehensive interface for module leaders to manage teacher course requests and document submission requests.
+
+### Features
+
+#### Course Assignment Requests
+- View all teacher requests for course assignments
+- See teacher details (name, email, employee ID)
+- Course information (code, title, semester, batch, department)
+- Request reason and status
+- Approve or reject pending requests
+- View review comments for processed requests
+
+#### Document Submission Requests
+- Monitor teacher document submissions
+- Track completion percentage with visual progress bars
+- View submission status and overall review status
+- Approve or reject completed submissions
+- Add review comments for feedback
+
+### API Integration
+
+The component integrates with the following API endpoints:
+
+- `GET /api/module-leader/course-requests` - Fetch course requests
+- `PATCH /api/module-leader/course-requests/:id/status` - Update request status
+- `GET /api/module-leader/document-submissions` - Fetch document submissions
+- `PATCH /api/module-leader/document-submissions/:id/status` - Update submission status
+
+### Usage
+
+The component is integrated into the Module Leader Dashboard as a new tab called "Teacher Requests". It provides:
+
+1. **Tabbed Interface**: Separate tabs for course requests and document submissions
+2. **Real-time Counts**: Shows pending requests count in tab labels
+3. **Action Buttons**: Approve/Reject buttons for pending items
+4. **Status Badges**: Color-coded status indicators
+5. **Loading States**: Spinner animations during API calls
+6. **Responsive Design**: Works on all screen sizes
+
+### Data Types
+
+- `TeacherCourseRequest`: Course assignment request data
+- `DocumentSubmissionRequest`: Document submission review data
+
+### Future Enhancements
+
+- Add filtering and search capabilities
+- Implement bulk actions for multiple requests
+- Add email notifications for status changes
+- Include request history and audit trails
+
 ## Types
 
 All components use shared TypeScript types defined in `types.ts`:
