@@ -7,6 +7,7 @@ import {
     Filter,
 } from "lucide-react"
 import CourseDetailsPage from "../CourseDetails/CourseDetails"
+import { useGetCoursesQuery } from "../../redux/api/courseApi"
 
 
 
@@ -19,6 +20,9 @@ import CourseDetailsPage from "../CourseDetails/CourseDetails"
 // };
 
 
+
+
+// Interface for display course data
 interface Course {
     id: string
     code: string
@@ -74,179 +78,29 @@ export default function CoursesPage() {
     const years = ["all", "2025", "2024", "2023", "2022"]
     const semesters = ["all", "spring", "summer", "fall"]
 
-    // Mock data - in real app this would come from API
-    const [courses, setCourses] = useState<Course[]>([
-        // Computer Science Courses
-        {
-            id: "1",
-            code: "CSE101",
-            title: "Introduction to Programming",
-            department: "Computer Science",
-            semester: "spring",
-            year: "2025",
-            creditHours: 3,
-            moduleLeader: "Dr. Alice Johnson",
-            moduleLeaderEmail: "alice.johnson@university.edu",
-            enrolledTeachers: ["Dr. John Smith", "Prof. Sarah Wilson"],
-            status: "active",
-            documentProgress: 85,
-        },
-        {
-            id: "2",
-            code: "CSE201",
-            title: "Data Structures and Algorithms",
-            department: "Computer Science",
-            semester: "spring",
-            year: "2025",
-            creditHours: 4,
-            moduleLeader: "Dr. Bob Chen",
-            moduleLeaderEmail: "bob.chen@university.edu",
-            enrolledTeachers: ["Dr. John Smith"],
-            status: "active",
-            documentProgress: 60,
-        },
-        {
-            id: "3",
-            code: "CSE202",
-            title: "Object Oriented Programming",
-            department: "Computer Science",
-            semester: "fall",
-            year: "2024",
-            creditHours: 3,
-            moduleLeader: "Dr. Alice Johnson",
-            moduleLeaderEmail: "alice.johnson@university.edu",
-            enrolledTeachers: ["Prof. Sarah Wilson", "Dr. Mike Davis"],
-            status: "active",
-            documentProgress: 75,
-        },
-        {
-            id: "4",
-            code: "CSE301",
-            title: "Database Management Systems",
-            department: "Computer Science",
-            semester: "summer",
-            year: "2024",
-            creditHours: 3,
-            moduleLeader: "Dr. Carol White",
-            moduleLeaderEmail: "carol.white@university.edu",
-            enrolledTeachers: ["Prof. Sarah Wilson", "Dr. Mike Davis"],
-            status: "active",
-            documentProgress: 92,
-        },
-        {
-            id: "5",
-            code: "CSE302",
-            title: "Computer Networks",
-            department: "Computer Science",
-            semester: "spring",
-            year: "2025",
-            creditHours: 3,
-            moduleLeader: "Dr. Bob Chen",
-            moduleLeaderEmail: "bob.chen@university.edu",
-            enrolledTeachers: ["Dr. Mike Davis"],
-            status: "active",
-            documentProgress: 45,
-        },
-        {
-            id: "6",
-            code: "CSE303",
-            title: "Operating Systems",
-            department: "Computer Science",
-            semester: "fall",
-            year: "2024",
-            creditHours: 3,
-            moduleLeader: "Dr. Alice Johnson",
-            moduleLeaderEmail: "alice.johnson@university.edu",
-            enrolledTeachers: ["Dr. John Smith", "Dr. Mike Davis"],
-            status: "active",
-            documentProgress: 68,
-        },
-        {
-            id: "7",
-            code: "CSE401",
-            title: "Software Engineering",
-            department: "Computer Science",
-            semester: "spring",
-            year: "2025",
-            creditHours: 3,
-            moduleLeader: "Dr. Carol White",
-            moduleLeaderEmail: "carol.white@university.edu",
-            enrolledTeachers: [],
-            status: "active",
-            documentProgress: 0,
-        },
-        {
-            id: "8",
-            code: "CSE403",
-            title: "Machine Learning",
-            department: "Computer Science",
-            semester: "summer",
-            year: "2024",
-            creditHours: 4,
-            moduleLeader: "Dr. Bob Chen",
-            moduleLeaderEmail: "bob.chen@university.edu",
-            enrolledTeachers: ["Prof. Sarah Wilson"],
-            status: "active",
-            documentProgress: 30,
-        },
-        // Electrical Engineering Courses
-        {
-            id: "9",
-            code: "EEE101",
-            title: "Circuit Analysis",
-            department: "Electrical Engineering",
-            semester: "spring",
-            year: "2025",
-            creditHours: 3,
-            moduleLeader: "Prof. David Lee",
-            moduleLeaderEmail: "david.lee@university.edu",
-            enrolledTeachers: ["Dr. Lisa Brown"],
-            status: "active",
-            documentProgress: 78,
-        },
-        {
-            id: "10",
-            code: "EEE201",
-            title: "Digital Electronics",
-            department: "Electrical Engineering",
-            semester: "fall",
-            year: "2024",
-            creditHours: 4,
-            moduleLeader: "Prof. David Lee",
-            moduleLeaderEmail: "david.lee@university.edu",
-            enrolledTeachers: ["Dr. Lisa Brown"],
-            status: "active",
-            documentProgress: 55,
-        },
-        {
-            id: "11",
-            code: "EEE202",
-            title: "Electromagnetic Fields",
-            department: "Electrical Engineering",
-            semester: "spring",
-            year: "2025",
-            creditHours: 3,
-            moduleLeader: "Prof. David Lee",
-            moduleLeaderEmail: "david.lee@university.edu",
-            enrolledTeachers: [],
-            status: "active",
-            documentProgress: 0,
-        },
-        {
-            id: "12",
-            code: "EEE301",
-            title: "Power Systems",
-            department: "Electrical Engineering",
-            semester: "summer",
-            year: "2024",
-            creditHours: 4,
-            moduleLeader: "Prof. David Lee",
-            moduleLeaderEmail: "david.lee@university.edu",
-            enrolledTeachers: ["Dr. Lisa Brown"],
-            status: "active",
-            documentProgress: 82,
-        },
-    ])
+    // API call to fetch courses
+    const { data: apiCourses, isLoading, error } = useGetCoursesQuery()
+
+    // Transform API data to display format
+    const transformAPICourseToCourse = (apiCourse: any): Course => {
+        return {
+            id: apiCourse._id,
+            code: apiCourse.code,
+            title: apiCourse.name,
+            department: apiCourse.department?.name || "Unknown Department",
+            semester: apiCourse.semester || "Not specified",
+            year: apiCourse.year || "Not specified",
+            creditHours: apiCourse.creditHours,
+            moduleLeader: apiCourse.moduleLeader?.name || "Not assigned",
+            moduleLeaderEmail: apiCourse.moduleLeader?.email || "",
+            enrolledTeachers: [], // This would need to come from a separate API or be added to the course model
+            status: apiCourse.isActive ? "active" : "inactive",
+            documentProgress: Math.floor(Math.random() * 100), // Mock progress - would come from actual data
+        }
+    }
+
+    // Transform API courses to display format
+    const courses: Course[] = apiCourses?.map(transformAPICourseToCourse) || []
 
     const [accessRequests, setAccessRequests] = useState<AccessRequest[]>([
         {
@@ -356,6 +210,35 @@ export default function CoursesPage() {
     const handleViewCourseDetails = (courseId: string) => {
         setSelectedCourseId(courseId)
         setShowCourseDetails(true)
+    }
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="bg-gray-50 min-h-[calc(100vh-64px)] p-6">
+                <div className="container mx-auto">
+                    <div className="text-center">
+                        <div className="loading loading-spinner loading-lg"></div>
+                        <p className="mt-4 text-gray-600">Loading courses...</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className="bg-gray-50 min-h-[calc(100vh-64px)] p-6">
+                <div className="container mx-auto">
+                    <div className="text-center">
+                        <div className="alert alert-error">
+                            <span>Error loading courses. Please try again later.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     if (showCourseDetails) {
