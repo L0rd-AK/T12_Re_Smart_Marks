@@ -18,7 +18,7 @@ export const teacherRequestsApi = baseApi.injectEndpoints({
     // Get all course requests for module leader
     getCourseRequests: builder.query<{ success: boolean; data: TeacherCourseRequest[] }, void>({
       query: () => ({
-        url: '/api/module-leader/course-requests',
+        url: '/module-leader/course-requests',
         method: 'GET',
       }),
       providesTags: ['DocumentSubmission'],
@@ -46,7 +46,7 @@ export const teacherRequestsApi = baseApi.injectEndpoints({
       void
     >({
       query: () => ({
-        url: '/api/module-leader/document-submissions',
+        url: '/module-leader/document-submissions',
         method: 'GET',
       }),
       providesTags: ['DocumentSubmission'],

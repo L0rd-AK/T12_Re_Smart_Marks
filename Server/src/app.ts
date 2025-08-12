@@ -7,6 +7,8 @@ import marksRoutes from "./routes/marks";
 import googleDriveRoutes from "./routes/googleDrive";
 import adminRoutes from "./routes/admin";
 import documentRoutes from "./routes/documents";
+import notificationRoutes from "./routes/notifications";
+import moduleLeaderRoutes from "./routes/moduleLeader";
 import { errorHandler } from "./middleware/errorHandler";
 import templatesRoutes from "./routes/templates";
 const app: Application = express();
@@ -25,6 +27,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Add request logging middleware
+app.use((req: Request, res: Response, next) => {
+  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
+
 app.get("/", (req: Request, res: Response) => {
   res.send({ message: "Welcome to Smart Marks" });
 });
@@ -36,6 +44,8 @@ app.use("/api/google-drive", googleDriveRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/templates", templatesRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/module-leader", moduleLeaderRoutes);
 // Global error handler
 app.use(errorHandler);
 

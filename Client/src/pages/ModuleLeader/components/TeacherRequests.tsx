@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import type { TeacherCourseRequest, ModuleLeaderDocumentSubmission } from '../../../types/types';
 import {
   useGetCourseRequestsQuery,
   useUpdateCourseRequestStatusMutation,
   useGetDocumentSubmissionRequestsQuery,
   useUpdateDocumentSubmissionStatusMutation,
 } from '../../../redux/api/teacherRequestsApi';
+import { useSocket } from '../../../hooks/useSocket';
 
 const TeacherRequests: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'course' | 'documents'>('course');
+  
+  // Socket hook for real-time updates
+  const { isConnected } = useSocket();
   
   // API hooks
   const { data: courseRequestsData, isLoading: courseRequestsLoading } = useGetCourseRequestsQuery();
@@ -86,8 +89,22 @@ const TeacherRequests: React.FC = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Teacher Requests & Submissions</h2>
-        <p className="text-gray-600">Manage teacher course requests and review document submissions</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Teacher Requests & Submissions</h2>
+            <p className="text-gray-600">Manage teacher course requests and review document submissions</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              isConnected ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              <span className={`w-2 h-2 rounded-full mr-2 ${
+                isConnected ? 'bg-green-400' : 'bg-yellow-400'
+              }`}></span>
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Tab Navigation */}

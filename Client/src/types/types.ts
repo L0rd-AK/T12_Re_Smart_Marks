@@ -136,3 +136,48 @@ export interface ModuleLeaderDocumentSubmission {
   reviewedBy?: string;
   reviewedAt?: string;
 }
+
+// Notification Types
+export interface Notification {
+  _id: string;
+  recipientId: string;
+  senderId?: string;
+  type: 'course_request' | 'document_submission' | 'course_approved' | 'course_rejected' | 'document_approved' | 'document_rejected';
+  title: string;
+  message: string;
+  data: {
+    requestId?: string;
+    submissionId?: string;
+    courseCode?: string;
+    courseTitle?: string;
+    teacherName?: string;
+    department?: string;
+    semester?: string;
+    batch?: string;
+  };
+  isRead: boolean;
+  readAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationResponse {
+  success: boolean;
+  data: {
+    notifications: Notification[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+    unreadCount: number;
+  };
+}
+
+export interface UnreadCountResponse {
+  success: boolean;
+  data: {
+    unreadCount: number;
+  };
+}

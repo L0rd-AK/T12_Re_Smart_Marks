@@ -1,6 +1,7 @@
 import app from "./app";
 import { Server } from "http";
 import connectDB from "./config/database";
+import { initializeSocket } from "./socket";
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -17,6 +18,10 @@ async function main() {
     const server: Server = app.listen(port, () => {
       console.log(`✓ Server running on port ${port}`);
     });
+
+    // Initialize Socket.IO
+    initializeSocket(server);
+    console.log('✓ Socket.IO initialized');
 
     // Graceful shutdown
     process.on('SIGTERM', () => {

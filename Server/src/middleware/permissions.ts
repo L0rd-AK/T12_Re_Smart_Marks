@@ -114,3 +114,22 @@ export const isTeacherOrHigher = (user: IUser): boolean => {
 export const isModuleLeaderOrHigher = (user: IUser): boolean => {
   return ['admin', 'module-leader'].includes(user.role);
 };
+
+// Middleware to check if user has one of the specified roles
+export const checkRole = (roles: UserRole[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    if (!roles.includes(req.user.role as UserRole)) {
+      return res.status(403).json({ 
+        message: 'Insufficient permissions',
+        required: roles,
+        userRole: req.user.role
+      });
+    }
+
+    next();
+  };
+};

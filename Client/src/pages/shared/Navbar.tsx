@@ -3,6 +3,7 @@ import { useAppSelector } from "../../redux/hooks";
 import { useLogoutMutation } from "../../redux/api/authApi";
 import toast from "react-hot-toast";
 import type { User } from "@/redux/features/authSlice";
+import NotificationBell from "../../components/NotificationBell";
 
 
 
@@ -104,7 +105,11 @@ const NavbarRTK = () => {
 
             <div className="navbar-end">
                 {isAuthenticated && isUserDataComplete ? (
-                    <div className="dropdown dropdown-end">
+                    <>
+                        <div className="flex items-center mr-2">
+                            <NotificationBell />
+                        </div>
+                        <div className="dropdown dropdown-end">
                         <div
                             tabIndex={0}
                             role="button"
@@ -184,6 +189,7 @@ const NavbarRTK = () => {
                             </li>
                         </ul>
                     </div>
+                    </>
                 ) : (
                     <div className="flex gap-2">
                         <NavLink to="/login" className="btn btn-ghost btn-sm">
