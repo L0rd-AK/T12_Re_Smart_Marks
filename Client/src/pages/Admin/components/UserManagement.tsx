@@ -37,7 +37,7 @@ const BlockUserModal: React.FC<BlockUserModalProps> = ({ user, onClose, onBlock,
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Block User: {user.firstName} {user.lastName}
+          Block User: {user.firstName || 'Unknown'} {user.lastName || 'User'}
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -79,7 +79,7 @@ const BlockUserModal: React.FC<BlockUserModalProps> = ({ user, onClose, onBlock,
 
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'user' | 'admin' | 'teacher' | 'module-leader' | ''>('');
+  const [roleFilter, setRoleFilter] = useState<'admin' | 'teacher' | 'module-leader' | 'user' | ''>('');
   const [statusFilter, setStatusFilter] = useState<boolean | ''>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [blockingUser, setBlockingUser] = useState<User | null>(null);
@@ -110,7 +110,7 @@ const UserManagement: React.FC = () => {
     }
     // Show confirmation for role changes to admin or from admin
     if (newRole === 'admin' || user.role === 'admin') {
-      if (window.confirm(`Are you sure you want to change ${user.firstName} ${user.lastName}'s role from ${user.role} to ${newRole}? This is a sensitive operation.`)) {
+      if (window.confirm(`Are you sure you want to change ${user.firstName || 'Unknown'} ${user.lastName || 'User'}'s role from ${user.role} to ${newRole}? This is a sensitive operation.`)) {
         await performRoleChange(userId, newRole);
       }
     } else {
@@ -297,7 +297,7 @@ const UserManagement: React.FC = () => {
             </label>
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as 'user' | 'admin' | 'teacher' | 'module-leader' | '')}
+              onChange={(e) => setRoleFilter(e.target.value as 'admin' | 'teacher' | 'module-leader' | 'user' | '')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">All Roles</option>
@@ -369,12 +369,12 @@ const UserManagement: React.FC = () => {
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                         <span className="text-sm font-medium text-gray-600">
-                          {user.firstName[0]}{user.lastName[0]}
+                          {user.firstName?.[0] || 'U'}{user.lastName?.[0] || 'U'}
                         </span>
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {user.firstName} {user.lastName}
+                          {user.firstName || 'Unknown'} {user.lastName || 'User'}
                         </div>
                         <div className="text-sm text-gray-500">{user.email}</div>
                       </div>
@@ -382,7 +382,7 @@ const UserManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="space-y-2">
-                     
+
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleChange(user._id, e.target.value as 'user' | 'admin' | 'teacher' | 'module-leader')}
@@ -434,7 +434,7 @@ const UserManagement: React.FC = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => handleDeleteUser(user._id, `${user.firstName} ${user.lastName}`)}
+                      onClick={() => handleDeleteUser(user._id, `${user.firstName || 'Unknown'} ${user.lastName || 'User'}`)}
                       disabled={isDeleting}
                       className="text-red-600 hover:text-red-900"
                     >

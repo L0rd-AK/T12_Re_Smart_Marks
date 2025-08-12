@@ -9,8 +9,9 @@ import SubmissionTracker from './components/SubmissionTracker';
 import MeetingScheduler from './components/MeetingScheduler';
 import TeacherCommunication from './components/TeacherCommunication';
 import ModuleOverview from './components/ModuleOverview';
+import TeacherRequests from './components/TeacherRequests';
 
-type TabType = 'overview' | 'folders' | 'documents' | 'templates' | 'submissions' | 'meetings' | 'communication';
+type TabType = 'overview' | 'folders' | 'documents' | 'templates' | 'submissions' | 'meetings' | 'communication' | 'requests';
 
 const ModuleLeaderDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -34,6 +35,7 @@ const ModuleLeaderDashboard: React.FC = () => {
     { id: 'submissions', label: 'Submission Tracker', icon: '📋', description: 'Track teacher submissions' },
     { id: 'meetings', label: 'Meetings', icon: '🗓️', description: 'Schedule and coordinate meetings' },
     { id: 'communication', label: 'Communication', icon: '💬', description: 'Message teachers and updates' },
+    { id: 'requests', label: 'Teacher Requests', icon: '📝', description: 'Manage course requests and document submissions' },
   ] as const;
 
   const renderTabContent = () => {
@@ -52,6 +54,8 @@ const ModuleLeaderDashboard: React.FC = () => {
         return <MeetingScheduler />;
       case 'communication':
         return <TeacherCommunication />;
+      case 'requests':
+        return <TeacherRequests />;
       default:
         return <ModuleOverview />;
     }
@@ -83,12 +87,12 @@ const ModuleLeaderDashboard: React.FC = () => {
         {/* Tab Navigation */}
         <div className="mb-8">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 overflow-x-auto">
+            <nav className="-mb-px flex space-x-4">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  className={`whitespace-nowrap py-2 px-0 border-b-2 font-medium text-sm transition-colors duration-200 ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
