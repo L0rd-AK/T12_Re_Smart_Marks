@@ -1,6 +1,47 @@
 import { baseApi } from './baseApi';
 
 // Types
+export interface AssignedModuleLeader {
+  _id: string;
+  course: {
+    _id: string;
+    name: string;
+    code: string;
+    creditHours: number;
+  };
+  department: {
+    _id: string;
+    name: string;
+    code: string;
+  };
+  batch: {
+    _id: string;
+    name: string;
+    year: number;
+    semester: string;
+  };
+  teacher: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  };
+  academicYear: number;
+  semester: 'Spring' | 'Summer' | 'Fall';
+  assignedAt: string;
+  assignedBy: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  isActive: boolean;
+  remarks?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Department {
   _id: string;
   name: string;
@@ -379,19 +420,29 @@ export const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ['Course', 'Admin'],
     }),
 
-    assignCourseModuleLeader: builder.mutation<{ message: string; course: Course }, { id: string; moduleLeaderId?: string }>({
-      query: ({ id, moduleLeaderId }) => ({
+    assignCourseModuleLeader: builder.mutation<{ message: string; course: Course }, {
+      id: string;
+      moduleLeaderId?: string;
+      batchId?: string;
+      academicYear?: number;
+      semester?: 'Spring' | 'Summer' | 'Fall';
+      remarks?: string
+    }>({
+      query: ({ id, moduleLeaderId, batchId, academicYear, semester, remarks }) => ({
         url: `/admin/courses/${id}/assign-module-leader`,
         method: 'POST',
-        body: { moduleLeaderId }
+        body: { moduleLeaderId, batchId, academicYear, semester, remarks }
       }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: 'Course', id }, 'Course', 'Admin']
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Course', id }, 'Course', 'Admin', 'AssignedModuleLeader']
     }),
 
-    getAvailableModuleLeaders: builder.query<{ teachers: User[] }, { search?: string; limit?: number }>({
+    getAvailableModuleLeaders: builder.query<{ teachers: User[] }, { search?: string; limit?: number } | void>({
       query: (params) => ({
         url: '/admin/courses/available-module-leaders',
-        params
+        params: params ? {
+          limit: params.limit || 100,
+          ...(params.search && { search: params.search })
+        } : { limit: 100 }
       }),
       providesTags: ['User']
     }),
@@ -532,7 +583,49 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'DELETE'
       }),
       invalidatesTags: ['User']
-    })
+    }),
+
+    // Assigned Module Leaders
+    getAssignedModuleLeaders: builder.query<{ assignments: AssignedModuleLeader[]; pagination: any }, {
+      page?: number;
+      limit?: number;
+      department?: string;
+      batch?: string;
+      teacher?: string;
+      academicYear?: number;
+      semester?: string;
+      isActive?: boolean
+    }>({
+      query: (params) => ({
+        url: '/admin/assigned-module-leaders',
+        params
+      }),
+      providesTags: ['AssignedModuleLeader'],
+    }),
+
+    getAssignedModuleLeadersByTeacher: builder.query<{ assignments: AssignedModuleLeader[] }, { teacherId: string; isActive?: boolean }>({
+      query: ({ teacherId, isActive }) => ({
+        url: `/admin/assigned-module-leaders/teacher/${teacherId}`,
+        params: { isActive }
+      }),
+      providesTags: (_result, _error, { teacherId }) => [{ type: 'AssignedModuleLeader', id: teacherId }],
+    }),
+
+    getAssignedModuleLeadersByCourse: builder.query<{ assignments: AssignedModuleLeader[] }, { courseId: string; isActive?: boolean }>({
+      query: ({ courseId, isActive }) => ({
+        url: `/admin/assigned-module-leaders/course/${courseId}`,
+        params: { isActive }
+      }),
+      providesTags: (_result, _error, { courseId }) => [{ type: 'AssignedModuleLeader', id: courseId }],
+    }),
+
+    deactivateAssignedModuleLeader: builder.mutation<{ message: string; assignment: AssignedModuleLeader }, string>({
+      query: (id) => ({
+        url: `/admin/assigned-module-leaders/${id}/deactivate`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: 'AssignedModuleLeader', id }, 'AssignedModuleLeader', 'Admin'],
+    }),
   }),
 });
 
@@ -579,5 +672,11 @@ export const {
   useUpdateUserRoleMutation,
   useBlockUserMutation,
   useUnblockUserMutation,
-  useDeleteUserMutation
+  useDeleteUserMutation,
+
+  // Assigned Module Leaders
+  useGetAssignedModuleLeadersQuery,
+  useGetAssignedModuleLeadersByTeacherQuery,
+  useGetAssignedModuleLeadersByCourseQuery,
+  useDeactivateAssignedModuleLeaderMutation
 } = adminApi;
