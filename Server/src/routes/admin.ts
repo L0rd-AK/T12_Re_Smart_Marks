@@ -1,11 +1,22 @@
 import express, { Request, Response } from 'express';
 import { authenticate, requireRole } from '../middleware/auth';
+import { validateRequest } from '../middleware/validation';
 import User from '../models/User';
 import Department from '../models/Department';
 import Course from '../models/Course';
 import Batch from '../models/Batch';
 import Section from '../models/Section';
 import { createError, asyncHandler } from '../middleware/errorHandler';
+import {
+  createDepartmentSchema,
+  updateDepartmentSchema,
+  createCourseSchema,
+  updateCourseSchema,
+  createBatchSchema,
+  updateBatchSchema,
+  createSectionSchema,
+  updateSectionSchema
+} from '../schemas/admin';
 import mongoose from 'mongoose';
 
 const router = express.Router();
@@ -308,7 +319,7 @@ router.get('/departments/:id', asyncHandler(async (req: Request, res: Response) 
   res.json(department);
 }));
 
-router.post('/departments', asyncHandler(async (req: Request, res: Response) => {
+router.post('/departments', validateRequest(createDepartmentSchema), asyncHandler(async (req: Request, res: Response) => {
   const { name, code, description, head, isActive = true } = req.body;
   const adminId = (req as any).user.id;
 
@@ -355,7 +366,7 @@ router.post('/departments', asyncHandler(async (req: Request, res: Response) => 
   });
 }));
 
-router.put('/departments/:id', asyncHandler(async (req: Request, res: Response) => {
+router.put('/departments/:id', validateRequest(updateDepartmentSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, code, description, head, isActive } = req.body;
 
@@ -475,7 +486,7 @@ router.get('/courses/:id', asyncHandler(async (req: Request, res: Response) => {
   res.json(course);
 }));
 
-router.post('/courses', asyncHandler(async (req: Request, res: Response) => {
+router.post('/courses', validateRequest(createCourseSchema), asyncHandler(async (req: Request, res: Response) => {
   const { name, code, description, creditHours, department, prerequisites, isActive = true } = req.body;
   const adminId = (req as any).user.id;
 
@@ -533,7 +544,7 @@ router.post('/courses', asyncHandler(async (req: Request, res: Response) => {
   });
 }));
 
-router.put('/courses/:id', asyncHandler(async (req: Request, res: Response) => {
+router.put('/courses/:id', validateRequest(updateCourseSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, code, description, creditHours, department, prerequisites, isActive } = req.body;
 
@@ -668,7 +679,7 @@ router.get('/batches/:id', asyncHandler(async (req: Request, res: Response) => {
   res.json(batch);
 }));
 
-router.post('/batches', asyncHandler(async (req: Request, res: Response) => {
+router.post('/batches', validateRequest(createBatchSchema), asyncHandler(async (req: Request, res: Response) => {
   const { name, year, semester, startDate, endDate, department, isActive = true } = req.body;
   const adminId = (req as any).user.id;
 
@@ -734,7 +745,7 @@ router.post('/batches', asyncHandler(async (req: Request, res: Response) => {
   });
 }));
 
-router.put('/batches/:id', asyncHandler(async (req: Request, res: Response) => {
+router.put('/batches/:id', validateRequest(updateBatchSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, year, semester, startDate, endDate, department, isActive } = req.body;
 
@@ -877,7 +888,7 @@ router.get('/sections/:id', asyncHandler(async (req: Request, res: Response) => 
   res.json(section);
 }));
 
-router.post('/sections', asyncHandler(async (req: Request, res: Response) => {
+router.post('/sections', validateRequest(createSectionSchema), asyncHandler(async (req: Request, res: Response) => {
   const {
     name,
     batch,
@@ -991,7 +1002,7 @@ router.post('/sections', asyncHandler(async (req: Request, res: Response) => {
   });
 }));
 
-router.put('/sections/:id', asyncHandler(async (req: Request, res: Response) => {
+router.put('/sections/:id', validateRequest(updateSectionSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const {
     name,
