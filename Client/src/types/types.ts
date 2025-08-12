@@ -85,14 +85,54 @@ export interface MarkEntryState {
 }
 
 export interface ProfileFormData {
-
- name: string;
+  name: string;
   email: string;
-
   employeeId?: string;
   designation?: string;
   emailId?: string;
   mobileNumber?: string;
   roomNumber?: string;
   initial?: string;
+}
+
+export interface TeacherCourseRequest {
+  _id: string;
+  teacherId: string;
+  teacherName: string;
+  teacherEmail: string;
+  employeeId: string;
+  courseId: string;
+  courseCode: string;
+  courseTitle: string;
+  semester: string;
+  batch: string;
+  department: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewComments?: string;
+}
+
+export interface ModuleLeaderDocumentSubmission {
+  _id: string;
+  submissionId: string;
+  teacherId: string;
+  teacherName: string;
+  teacherEmail: string;
+  employeeId: string;
+  courseCode: string;
+  courseTitle: string;
+  semester: string;
+  batch: string;
+  department: string;
+  submissionStatus: 'draft' | 'partial' | 'complete' | 'submitted';
+  overallStatus: 'pending' | 'approved' | 'rejected' | 'in-review';
+  completionPercentage: number;
+  submittedAt?: string;
+  lastModifiedAt: string;
+  reviewComments?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
