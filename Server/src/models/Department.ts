@@ -46,9 +46,7 @@ const departmentSchema = new Schema<IDepartment>({
   timestamps: true
 });
 
-// Indexes
-departmentSchema.index({ name: 1 });
-departmentSchema.index({ code: 1 });
+// Indexes (name and code already have unique indexes)
 departmentSchema.index({ isActive: 1 });
 
 export default mongoose.model<IDepartment>('Department', departmentSchema);
