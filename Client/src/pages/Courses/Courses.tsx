@@ -4,6 +4,7 @@ import {
     Users,
     Send,
     ExternalLink,
+    Filter,
 } from "lucide-react"
 import CourseDetailsPage from "../CourseDetails/CourseDetails"
 
@@ -24,6 +25,7 @@ interface Course {
     title: string
     department: string
     semester: string
+    year: string
     creditHours: number
     moduleLeader: string
     moduleLeaderEmail: string
@@ -63,6 +65,14 @@ export default function CoursesPage() {
     const [requestMessage, setRequestMessage] = useState("")
     const [showCourseDetails, setShowCourseDetails] = useState(false)
     const [selectedCourseId, setSelectedCourseId] = useState<string>("")
+    
+    // Filter states
+    const [selectedYear, setSelectedYear] = useState<string>("all")
+    const [selectedSemester, setSelectedSemester] = useState<string>("all")
+
+    // Available years and semesters
+    const years = ["all", "2025", "2024", "2023", "2022"]
+    const semesters = ["all", "spring", "summer", "fall"]
 
     // Mock data - in real app this would come from API
     const [courses, setCourses] = useState<Course[]>([
@@ -72,7 +82,8 @@ export default function CoursesPage() {
             code: "CSE101",
             title: "Introduction to Programming",
             department: "Computer Science",
-            semester: "Spring 2025",
+            semester: "spring",
+            year: "2025",
             creditHours: 3,
             moduleLeader: "Dr. Alice Johnson",
             moduleLeaderEmail: "alice.johnson@university.edu",
@@ -85,7 +96,8 @@ export default function CoursesPage() {
             code: "CSE201",
             title: "Data Structures and Algorithms",
             department: "Computer Science",
-            semester: "Spring 2025",
+            semester: "spring",
+            year: "2025",
             creditHours: 4,
             moduleLeader: "Dr. Bob Chen",
             moduleLeaderEmail: "bob.chen@university.edu",
@@ -98,7 +110,8 @@ export default function CoursesPage() {
             code: "CSE202",
             title: "Object Oriented Programming",
             department: "Computer Science",
-            semester: "Spring 2025",
+            semester: "fall",
+            year: "2024",
             creditHours: 3,
             moduleLeader: "Dr. Alice Johnson",
             moduleLeaderEmail: "alice.johnson@university.edu",
@@ -111,7 +124,8 @@ export default function CoursesPage() {
             code: "CSE301",
             title: "Database Management Systems",
             department: "Computer Science",
-            semester: "Spring 2025",
+            semester: "summer",
+            year: "2024",
             creditHours: 3,
             moduleLeader: "Dr. Carol White",
             moduleLeaderEmail: "carol.white@university.edu",
@@ -124,7 +138,8 @@ export default function CoursesPage() {
             code: "CSE302",
             title: "Computer Networks",
             department: "Computer Science",
-            semester: "Spring 2025",
+            semester: "spring",
+            year: "2025",
             creditHours: 3,
             moduleLeader: "Dr. Bob Chen",
             moduleLeaderEmail: "bob.chen@university.edu",
@@ -137,7 +152,8 @@ export default function CoursesPage() {
             code: "CSE303",
             title: "Operating Systems",
             department: "Computer Science",
-            semester: "Spring 2025",
+            semester: "fall",
+            year: "2024",
             creditHours: 3,
             moduleLeader: "Dr. Alice Johnson",
             moduleLeaderEmail: "alice.johnson@university.edu",
@@ -150,7 +166,8 @@ export default function CoursesPage() {
             code: "CSE401",
             title: "Software Engineering",
             department: "Computer Science",
-            semester: "Spring 2025",
+            semester: "spring",
+            year: "2025",
             creditHours: 3,
             moduleLeader: "Dr. Carol White",
             moduleLeaderEmail: "carol.white@university.edu",
@@ -163,7 +180,8 @@ export default function CoursesPage() {
             code: "CSE403",
             title: "Machine Learning",
             department: "Computer Science",
-            semester: "Spring 2025",
+            semester: "summer",
+            year: "2024",
             creditHours: 4,
             moduleLeader: "Dr. Bob Chen",
             moduleLeaderEmail: "bob.chen@university.edu",
@@ -177,7 +195,8 @@ export default function CoursesPage() {
             code: "EEE101",
             title: "Circuit Analysis",
             department: "Electrical Engineering",
-            semester: "Spring 2025",
+            semester: "spring",
+            year: "2025",
             creditHours: 3,
             moduleLeader: "Prof. David Lee",
             moduleLeaderEmail: "david.lee@university.edu",
@@ -190,7 +209,8 @@ export default function CoursesPage() {
             code: "EEE201",
             title: "Digital Electronics",
             department: "Electrical Engineering",
-            semester: "Spring 2025",
+            semester: "fall",
+            year: "2024",
             creditHours: 4,
             moduleLeader: "Prof. David Lee",
             moduleLeaderEmail: "david.lee@university.edu",
@@ -203,7 +223,8 @@ export default function CoursesPage() {
             code: "EEE202",
             title: "Electromagnetic Fields",
             department: "Electrical Engineering",
-            semester: "Spring 2025",
+            semester: "spring",
+            year: "2025",
             creditHours: 3,
             moduleLeader: "Prof. David Lee",
             moduleLeaderEmail: "david.lee@university.edu",
@@ -216,7 +237,8 @@ export default function CoursesPage() {
             code: "EEE301",
             title: "Power Systems",
             department: "Electrical Engineering",
-            semester: "Spring 2025",
+            semester: "summer",
+            year: "2024",
             creditHours: 4,
             moduleLeader: "Prof. David Lee",
             moduleLeaderEmail: "david.lee@university.edu",
@@ -269,9 +291,17 @@ export default function CoursesPage() {
 
 
 
-    // Filter courses based on user's department
-    const departmentCourses = courses.filter((course) => course.department === user?.department)
-    const myCourses = courses.filter(
+    // Filter courses based on user's department and selected filters
+    const filteredCourses = courses.filter((course) => {
+        const matchesDepartment = course.department === user?.department;
+        const matchesYear = selectedYear === "all" || course.year === selectedYear;
+        const matchesSemester = selectedSemester === "all" || course.semester === selectedSemester;
+        
+        return matchesDepartment && matchesYear && matchesSemester;
+    });
+
+    const departmentCourses = filteredCourses;
+    const myCourses = filteredCourses.filter(
         (course) => course.enrolledTeachers.includes(user?.name) || course.moduleLeader === user?.name,
     )
 
@@ -390,12 +420,64 @@ export default function CoursesPage() {
                                 </h2>
                                 <p className="text-gray-700">All courses available in your department</p>
 
+                                {/* Filter Section */}
+                                <div className="flex flex-wrap gap-4 items-center mt-4 p-4 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <Filter className="w-4 h-4 text-gray-600" />
+                                        <span className="text-sm font-medium text-gray-700">Filters:</span>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap gap-3">
+                                        <div className="form-control">
+                                            <label className="label">
+                                                <span className="label-text text-sm font-medium text-gray-700">Year</span>
+                                            </label>
+                                            <select 
+                                                title="Year"
+                                                className="select select-bordered select-sm w-32 focus:border-indigo-500 focus:ring-indigo-500"
+                                                value={selectedYear}
+                                                onChange={(e) => setSelectedYear(e.target.value)}
+                                            >
+                                                {years.map((year) => (
+                                                    <option key={year} value={year}>
+                                                        {year === "all" ? "All Years" : year}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        
+                                        <div className="form-control">
+                                            <label className="label">
+                                                <span className="label-text text-sm font-medium text-gray-700">Semester</span>
+                                            </label>
+                                            <select 
+                                                title="Semester"
+                                                className="select select-bordered select-sm w-32 focus:border-indigo-500 focus:ring-indigo-500"
+                                                value={selectedSemester}
+                                                onChange={(e) => setSelectedSemester(e.target.value)}
+                                            >
+                                                {semesters.map((semester) => (
+                                                    <option key={semester} value={semester}>
+                                                        {semester === "all" ? "All Semesters" : semester.charAt(0).toUpperCase() + semester.slice(1)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="text-sm text-gray-600">
+                                        Showing {filteredCourses.length} of {courses.filter(c => c.department === user?.department).length} courses
+                                    </div>
+                                </div>
+
                                 <div className="overflow-x-auto mt-4">
                                     <table className="table w-full border-separate border-spacing-0 rounded-lg overflow-hidden">
                                         <thead>
                                             <tr className="bg-indigo-100/80">
                                                 <th className="font-semibold text-indigo-900">Course Code</th>
                                                 <th className="font-semibold text-indigo-900">Course Title</th>
+                                                <th className="font-semibold text-indigo-900">Semester</th>
+                                                <th className="font-semibold text-indigo-900">Year</th>
                                                 <th className="font-semibold text-indigo-900">Credit Hours</th>
                                                 <th className="font-semibold text-indigo-900">Module Leader</th>
                                                 <th className="font-semibold text-indigo-900">Actions</th>
@@ -411,6 +493,10 @@ export default function CoursesPage() {
                                                     >
                                                         <td className={`font-medium text-indigo-700 ${isDisabled ? "opacity-70" : ""}`}>{course.code}</td>
                                                         <td className={`${isDisabled ? "text-gray-400" : "text-gray-900"}`}>{course.title}</td>
+                                                        <td className={`${isDisabled ? "text-gray-400" : "text-gray-900"}`}>
+                                                            <span className="capitalize">{course.semester}</span>
+                                                        </td>
+                                                        <td className={`${isDisabled ? "text-gray-400" : "text-gray-900"}`}>{course.year}</td>
                                                         <td className={`${isDisabled ? "text-gray-400" : "text-gray-900"}`}>{course.creditHours}</td>
                                                         <td className={`${isDisabled ? "text-gray-400" : "text-gray-900"}`}>{course.moduleLeader}</td>
                                                         <td>
@@ -456,12 +542,64 @@ export default function CoursesPage() {
                                 </h2>
                                 <p className="text-gray-700">Courses you are teaching or leading</p>
 
+                                {/* Filter Section for My Courses */}
+                                <div className="flex flex-wrap gap-4 items-center mt-4 p-4 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <Filter className="w-4 h-4 text-gray-600" />
+                                        <span className="text-sm font-medium text-gray-700">Filters:</span>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap gap-3">
+                                        <div className="form-control">
+                                            <label className="label">
+                                                <span className="label-text text-sm font-medium text-gray-700">Year</span>
+                                            </label>
+                                            <select 
+                                                title="Year"
+                                                className="select select-bordered select-sm w-32 bg-transparent text-black focus:border-emerald-500 focus:ring-emerald-500"
+                                                value={selectedYear}
+                                                onChange={(e) => setSelectedYear(e.target.value)}
+                                            >
+                                                {years.map((year) => (
+                                                    <option key={year} value={year}>
+                                                        {year === "all" ? "All Years" : year}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        
+                                        <div className="form-control">
+                                            <label className="label">
+                                                <span className="label-text text-sm font-medium text-gray-700">Semester: </span>
+                                            </label>
+                                            <select 
+                                                title="Semester"
+                                                className="select select-bordered select-sm bg-transparent text-black w-32 focus:border-emerald-500 focus:ring-emerald-500"
+                                                value={selectedSemester}
+                                                onChange={(e) => setSelectedSemester(e.target.value)}
+                                            >
+                                                {semesters.map((semester) => (
+                                                    <option key={semester} value={semester}>
+                                                        {semester === "all" ? "All Semesters" : semester.charAt(0).toUpperCase() + semester.slice(1)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="text-sm text-gray-600">
+                                        Showing {myCourses.length} of {courses.filter(c => c.enrolledTeachers.includes(user?.name) || c.moduleLeader === user?.name).length} courses
+                                    </div>
+                                </div>
+
                                 <div className="overflow-x-auto mt-4">
                                     <table className="table w-full border-separate border-spacing-0 rounded-lg overflow-hidden">
                                         <thead>
                                             <tr className="bg-emerald-100/80">
                                                 <th className="font-semibold text-emerald-900">Course Code</th>
                                                 <th className="font-semibold text-emerald-900">Course Title</th>
+                                                <th className="font-semibold text-emerald-900">Semester</th>
+                                                <th className="font-semibold text-emerald-900">Year</th>
                                                 <th className="font-semibold text-emerald-900">Role</th>
                                                 <th className="font-semibold text-emerald-900">Status</th>
                                                 <th className="font-semibold text-emerald-900">Actions</th>
@@ -475,6 +613,10 @@ export default function CoursesPage() {
                                                 >
                                                     <td className="font-medium text-emerald-700">{course.code}</td>
                                                     <td className="text-gray-900">{course.title}</td>
+                                                    <td className="text-gray-900">
+                                                        <span className="capitalize">{course.semester}</span>
+                                                    </td>
+                                                    <td className="text-gray-900">{course.year}</td>
                                                     <td>
                                                         {course.moduleLeader === user?.name ? (
                                                             <span className="badge bg-purple-600/10 text-purple-800 border border-purple-300">Module Leader</span>
