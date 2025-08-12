@@ -7,6 +7,7 @@ import marksRoutes from "./routes/marks";
 import googleDriveRoutes from "./routes/googleDrive";
 import adminRoutes from "./routes/admin";
 import documentRoutes from "./routes/documents";
+import courseAccessRoutes from "./routes/courseAccess";
 import { errorHandler } from "./middleware/errorHandler";
 import templatesRoutes from "./routes/templates";
 const app: Application = express();
@@ -36,6 +37,7 @@ app.use("/api/google-drive", googleDriveRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/templates", templatesRoutes);
+app.use("/api/course-access", courseAccessRoutes);
 // Global error handler
 app.use(errorHandler);
 
