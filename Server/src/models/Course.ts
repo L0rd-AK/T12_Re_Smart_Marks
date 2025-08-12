@@ -6,6 +6,7 @@ export interface ICourse extends Document {
   description?: string;
   creditHours: number;
   department: mongoose.Types.ObjectId;
+  moduleLeader?: mongoose.Types.ObjectId;
   prerequisites?: mongoose.Types.ObjectId[];
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
@@ -41,6 +42,10 @@ const courseSchema = new Schema<ICourse>({
     ref: 'Department',
     required: true
   },
+  moduleLeader: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   prerequisites: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course'
@@ -61,6 +66,7 @@ const courseSchema = new Schema<ICourse>({
 // Indexes (code already has unique index)
 courseSchema.index({ name: 1 });
 courseSchema.index({ department: 1 });
+courseSchema.index({ moduleLeader: 1 });
 courseSchema.index({ isActive: 1 });
 
 export default mongoose.model<ICourse>('Course', courseSchema);
