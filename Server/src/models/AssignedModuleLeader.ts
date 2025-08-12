@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IAssignedModuleLeader extends Document {
   course: mongoose.Types.ObjectId;
   department: mongoose.Types.ObjectId;
-  batch: mongoose.Types.ObjectId;
+  batch?: mongoose.Types.ObjectId;
   teacher: mongoose.Types.ObjectId;
   academicYear: number;
   semester: 'Spring' | 'Summer' | 'Fall';

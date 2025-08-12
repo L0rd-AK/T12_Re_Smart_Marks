@@ -6,6 +6,7 @@ import Department from '../models/Department';
 import Course from '../models/Course';
 import Batch from '../models/Batch';
 import Section from '../models/Section';
+import AssignedModuleLeader from '../models/AssignedModuleLeader';
 import { createError, asyncHandler } from '../middleware/errorHandler';
 import {
   createDepartmentSchema,
@@ -518,11 +519,10 @@ router.post('/courses', validateRequest(createCourseSchema), asyncHandler(async 
   if (moduleLeader) {
     const moduleLeaderUser = await User.findOne({
       _id: moduleLeader,
-      role: { $in: ['teacher', 'module_leader'] },
       isBlocked: false
     });
     if (!moduleLeaderUser) {
-      throw createError('Module leader must be a teacher and not blocked', 400);
+      throw createError('Module leader must be a valid user and not blocked', 400);
     }
   }
 
@@ -601,11 +601,10 @@ router.put('/courses/:id', validateRequest(updateCourseSchema), asyncHandler(asy
   if (moduleLeader) {
     const moduleLeaderUser = await User.findOne({
       _id: moduleLeader,
-      role: { $in: ['teacher', 'module_leader'] },
       isBlocked: false
     });
     if (!moduleLeaderUser) {
-      throw createError('Module leader must be a teacher and not blocked', 400);
+      throw createError('Module leader must be a valid user and not blocked', 400);
     }
   }
 
@@ -677,29 +676,90 @@ router.delete('/courses/:id', asyncHandler(async (req: Request, res: Response) =
 // Assign Module Leader to Course
 router.post('/courses/:id/assign-module-leader', asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { moduleLeaderId } = req.body;
+  const { moduleLeaderId, batchId, academicYear, semester, remarks } = req.body;
+  const adminUserId = (req as any).user.id;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw createError('Invalid course ID', 400);
   }
 
-  const course = await Course.findById(id);
+  const course = await Course.findById(id).populate('department');
   if (!course) {
     throw createError('Course not found', 404);
   }
 
-  // Validate module leader
-  if (moduleLeaderId) {
-    const moduleLeaderUser = await User.findOne({
-      _id: moduleLeaderId,
-      role: { $in: ['teacher', 'module_leader'] },
-      isBlocked: false
+  // If removing module leader
+  if (!moduleLeaderId) {
+    // Deactivate all existing assignments for this course
+    await AssignedModuleLeader.updateMany(
+      { course: id, isActive: true },
+      { isActive: false }
+    );
+
+    course.moduleLeader = undefined;
+    await course.save();
+    await course.populate([
+      { path: 'department', select: 'name code' },
+      { path: 'moduleLeader', select: 'firstName lastName email role' },
+      { path: 'prerequisites', select: 'name code' },
+      { path: 'createdBy', select: 'firstName lastName' }
+    ]);
+
+    return res.json({
+      message: 'Module leader removed successfully',
+      course
     });
-    if (!moduleLeaderUser) {
-      throw createError('Module leader must be a teacher and not blocked', 400);
-    }
   }
 
+  // Validate module leader
+  const moduleLeaderUser = await User.findOne({
+    _id: moduleLeaderId,
+    isBlocked: false
+  });
+  if (!moduleLeaderUser) {
+    throw createError('Module leader must be a valid user and not blocked', 400);
+  }
+
+  // Validate batch if provided
+  let batch = null;
+  if (batchId) {
+    if (!mongoose.Types.ObjectId.isValid(batchId)) {
+      throw createError('Invalid batch ID', 400);
+    }
+    batch = await Batch.findById(batchId);
+    if (!batch) {
+      throw createError('Batch not found', 404);
+    }
+  } else {
+    // If no batch provided, try to find a default batch for the department
+    batch = await Batch.findOne({
+      department: course.department._id,
+      isActive: true
+    }).sort({ createdAt: -1 }); // Get the most recent active batch
+  }
+
+  // Deactivate existing assignments for this course (regardless of batch)
+  await AssignedModuleLeader.updateMany(
+    { course: id, isActive: true },
+    { isActive: false }
+  );
+
+  // ALWAYS create new assignment record
+  const assignedModuleLeader = new AssignedModuleLeader({
+    course: id,
+    department: course.department._id,
+    batch: batch ? batch._id : null, // Can be null if no batch found
+    teacher: moduleLeaderId,
+    academicYear: academicYear || new Date().getFullYear(),
+    semester: semester || 'Fall',
+    assignedBy: adminUserId,
+    remarks: remarks || `Assigned via course management on ${new Date().toLocaleDateString()}`
+  });
+
+  const savedAssignment = await assignedModuleLeader.save();
+  console.log('Created AssignedModuleLeader document:', savedAssignment._id);
+
+  // Update course record
   course.moduleLeader = moduleLeaderId;
   await course.save();
   await course.populate([
@@ -709,18 +769,28 @@ router.post('/courses/:id/assign-module-leader', asyncHandler(async (req: Reques
     { path: 'createdBy', select: 'firstName lastName' }
   ]);
 
+  // Populate the assignment details
+  await savedAssignment.populate([
+    { path: 'course', select: 'name code' },
+    { path: 'department', select: 'name code' },
+    { path: 'batch', select: 'name year semester' },
+    { path: 'teacher', select: 'firstName lastName email role' },
+    { path: 'assignedBy', select: 'firstName lastName email' }
+  ]);
+
   res.json({
-    message: moduleLeaderId ? 'Module leader assigned successfully' : 'Module leader removed successfully',
-    course
+    message: 'Module leader assigned successfully',
+    course,
+    assignment: savedAssignment
   });
 }));
 
 // Get available teachers for module leader assignment
 router.get('/courses/available-module-leaders', asyncHandler(async (req: Request, res: Response) => {
+  console.log('Available module leaders endpoint called');
   const { search, limit = 50 } = req.query as any;
 
   const filter: any = {
-    role: { $in: ['teacher', 'module_leader'] },
     isBlocked: false,
     isEmailVerified: true
   };
@@ -733,10 +803,14 @@ router.get('/courses/available-module-leaders', asyncHandler(async (req: Request
     ];
   }
 
+  console.log('Filter:', filter);
+
   const teachers = await User.find(filter)
     .select('firstName lastName email role')
     .sort({ firstName: 1, lastName: 1 })
     .limit(parseInt(limit));
+
+  console.log('Found teachers:', teachers.length);
 
   res.json({ teachers });
 }));
@@ -1283,6 +1357,197 @@ router.post('/sections/assign-module-leader', asyncHandler(async (req: Request, 
   res.json({
     message: 'Module leader assigned successfully',
     section
+  });
+}));
+
+// Assigned Module Leaders Routes
+// Get all assigned module leaders with filtering
+router.get('/assigned-module-leaders', asyncHandler(async (req: Request, res: Response) => {
+  const {
+    page = 1,
+    limit = 10,
+    department,
+    batch,
+    teacher,
+    academicYear,
+    semester,
+    isActive = true
+  } = req.query as any;
+
+  const filter: any = {};
+
+  if (isActive !== undefined) {
+    filter.isActive = isActive === 'true';
+  }
+
+  if (department) {
+    filter.department = department;
+  }
+
+  if (batch) {
+    filter.batch = batch;
+  }
+
+  if (teacher) {
+    filter.teacher = teacher;
+  }
+
+  if (academicYear) {
+    filter.academicYear = parseInt(academicYear);
+  }
+
+  if (semester) {
+    filter.semester = semester;
+  }
+
+  const assignments = await AssignedModuleLeader.find(filter)
+    .populate({
+      path: 'course',
+      select: 'name code creditHours'
+    })
+    .populate({
+      path: 'department',
+      select: 'name code'
+    })
+    .populate({
+      path: 'batch',
+      select: 'name year semester'
+    })
+    .populate({
+      path: 'teacher',
+      select: 'firstName lastName email role'
+    })
+    .populate({
+      path: 'assignedBy',
+      select: 'firstName lastName email'
+    })
+    .sort({ assignedAt: -1 })
+    .limit(parseInt(limit))
+    .skip((parseInt(page) - 1) * parseInt(limit));
+
+  const total = await AssignedModuleLeader.countDocuments(filter);
+
+  res.json({
+    assignments,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      pages: Math.ceil(total / parseInt(limit))
+    }
+  });
+}));
+
+// Get assigned module leaders by teacher
+router.get('/assigned-module-leaders/teacher/:teacherId', asyncHandler(async (req: Request, res: Response) => {
+  const { teacherId } = req.params;
+  const { isActive = true } = req.query as any;
+
+  if (!mongoose.Types.ObjectId.isValid(teacherId)) {
+    throw createError('Invalid teacher ID', 400);
+  }
+
+  const filter: any = { teacher: teacherId };
+  if (isActive !== undefined) {
+    filter.isActive = isActive === 'true';
+  }
+
+  const assignments = await AssignedModuleLeader.find(filter)
+    .populate({
+      path: 'course',
+      select: 'name code creditHours'
+    })
+    .populate({
+      path: 'department',
+      select: 'name code'
+    })
+    .populate({
+      path: 'batch',
+      select: 'name year semester'
+    })
+    .sort({ assignedAt: -1 });
+
+  res.json({ assignments });
+}));
+
+// Get assigned module leaders by course
+router.get('/assigned-module-leaders/course/:courseId', asyncHandler(async (req: Request, res: Response) => {
+  const { courseId } = req.params;
+  const { isActive = true } = req.query as any;
+
+  if (!mongoose.Types.ObjectId.isValid(courseId)) {
+    throw createError('Invalid course ID', 400);
+  }
+
+  const filter: any = { course: courseId };
+  if (isActive !== undefined) {
+    filter.isActive = isActive === 'true';
+  }
+
+  const assignments = await AssignedModuleLeader.find(filter)
+    .populate({
+      path: 'department',
+      select: 'name code'
+    })
+    .populate({
+      path: 'batch',
+      select: 'name year semester'
+    })
+    .populate({
+      path: 'teacher',
+      select: 'firstName lastName email role'
+    })
+    .populate({
+      path: 'assignedBy',
+      select: 'firstName lastName email'
+    })
+    .sort({ assignedAt: -1 });
+
+  res.json({ assignments });
+}));
+
+// Deactivate/remove an assignment
+router.patch('/assigned-module-leaders/:id/deactivate', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw createError('Invalid assignment ID', 400);
+  }
+
+  const assignment = await AssignedModuleLeader.findByIdAndUpdate(
+    id,
+    { isActive: false },
+    { new: true }
+  ).populate([
+    { path: 'course', select: 'name code' },
+    { path: 'teacher', select: 'firstName lastName email' },
+    { path: 'batch', select: 'name year semester' }
+  ]);
+
+  if (!assignment) {
+    throw createError('Assignment not found', 404);
+  }
+
+  res.json({
+    message: 'Assignment deactivated successfully',
+    assignment
+  });
+}));
+
+// Test endpoint to view all assignments
+router.get('/test/assigned-module-leaders', asyncHandler(async (req: Request, res: Response) => {
+  const assignments = await AssignedModuleLeader.find({})
+    .populate('course', 'name code')
+    .populate('department', 'name code')
+    .populate('batch', 'name year semester')
+    .populate('teacher', 'firstName lastName email role')
+    .populate('assignedBy', 'firstName lastName email')
+    .sort({ createdAt: -1 });
+
+  res.json({
+    message: `Found ${assignments.length} assignments`,
+    assignments,
+    count: assignments.length
   });
 }));
 
