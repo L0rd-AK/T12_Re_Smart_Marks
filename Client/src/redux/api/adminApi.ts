@@ -33,6 +33,13 @@ export interface Course {
     name: string;
     code: string;
   };
+  moduleLeader?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  };
   prerequisites?: {
     _id: string;
     name: string;
@@ -154,6 +161,7 @@ export interface CreateCourseInput {
   description?: string;
   creditHours: number;
   department: string;
+  moduleLeader?: string;
   prerequisites?: string[];
   isActive?: boolean;
 }
@@ -164,6 +172,7 @@ export interface UpdateCourseInput {
   description?: string;
   creditHours?: number;
   department?: string;
+  moduleLeader?: string;
   prerequisites?: string[];
   isActive?: boolean;
 }
@@ -370,6 +379,23 @@ export const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ['Course', 'Admin'],
     }),
 
+    assignCourseModuleLeader: builder.mutation<{ message: string; course: Course }, { id: string; moduleLeaderId?: string }>({
+      query: ({ id, moduleLeaderId }) => ({
+        url: `/admin/courses/${id}/assign-module-leader`,
+        method: 'POST',
+        body: { moduleLeaderId }
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Course', id }, 'Course', 'Admin']
+    }),
+
+    getAvailableModuleLeaders: builder.query<{ teachers: User[] }, { search?: string; limit?: number }>({
+      query: (params) => ({
+        url: '/admin/courses/available-module-leaders',
+        params
+      }),
+      providesTags: ['User']
+    }),
+
     // Batches
     getBatches: builder.query<Batch[], { department?: string }>({
       query: (params) => ({
@@ -527,6 +553,8 @@ export const {
   useCreateCourseMutation,
   useUpdateCourseMutation,
   useDeleteCourseMutation,
+  useAssignCourseModuleLeaderMutation,
+  useGetAvailableModuleLeadersQuery,
 
   // Batches
   useGetBatchesQuery,
