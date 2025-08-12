@@ -421,7 +421,7 @@ export const adminApi = baseApi.injectEndpoints({
 
     getSection: builder.query<Section, string>({
       query: (id) => `/admin/sections/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Section', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Section', id }],
     }),
 
     createSection: builder.mutation<{ message: string; section: Section }, CreateSectionInput>({
@@ -439,7 +439,7 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Section', id }, 'Section', 'Admin'],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Section', id }, 'Section', 'Admin'],
     }),
 
     deleteSection: builder.mutation<{ message: string }, string>({
