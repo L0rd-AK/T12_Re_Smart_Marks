@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Course, ICourse } from '../models/Course';
 import { Department } from '../models/Department';
-import { User } from '../models/User';
+import User from '../models/User';
 import mongoose from 'mongoose';
 
 // Get all courses with filters

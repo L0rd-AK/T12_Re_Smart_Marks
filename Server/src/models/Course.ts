@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface ICourse extends Document {
   name: string;
@@ -14,6 +14,16 @@ export interface ICourse extends Document {
   semester?: string;
   createdAt: Date;
   updatedAt: Date;
+  addPrerequisites(prerequisiteIds: string[]): Promise<ICourse>;
+  removePrerequisites(prerequisiteIds: string[]): Promise<ICourse>;
+  toggleStatus(): Promise<ICourse>;
+}
+
+export interface ICourseModel extends Model<ICourse> {
+  findByDepartment(departmentId: string): Promise<ICourse[]>;
+  findByModuleLeader(moduleLeaderId: string): Promise<ICourse[]>;
+  findByYearSemester(year: string, semester: string): Promise<ICourse[]>;
+  search(searchTerm: string): Promise<ICourse[]>;
 }
 
 const courseSchema = new Schema<ICourse>(
@@ -27,7 +37,6 @@ const courseSchema = new Schema<ICourse>(
     code: {
       type: String,
       required: [true, 'Course code is required'],
-      unique: true,
       trim: true,
       uppercase: true,
       maxlength: [20, 'Course code cannot exceed 20 characters'],
@@ -96,7 +105,7 @@ const courseSchema = new Schema<ICourse>(
 );
 
 // Indexes for better query performance
-courseSchema.index({ code: 1 });
+courseSchema.index({ code: 1 }, { unique: true });
 courseSchema.index({ department: 1 });
 courseSchema.index({ moduleLeader: 1 });
 courseSchema.index({ isActive: 1 });
@@ -176,4 +185,4 @@ courseSchema.methods.toggleStatus = function() {
   return this.save();
 };
 
-export const Course = mongoose.model<ICourse>('Course', courseSchema);
+export const Course = mongoose.model<ICourse, ICourseModel>('Course', courseSchema);

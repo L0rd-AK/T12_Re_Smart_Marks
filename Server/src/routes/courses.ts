@@ -17,13 +17,13 @@ import {
   bulkCreateCourses,
   exportCourses,
 } from '../controllers/courseController';
-import { authenticateToken } from '../middleware/auth';
-import { checkRole } from '../middleware/permissions';
+import { authenticate } from '../middleware/auth';
+import { requireRole } from '../middleware/auth';
 
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authenticateToken);
+router.use(authenticate);
 
 // Public routes (for authenticated users)
 router.get('/', getCourses);
@@ -36,17 +36,17 @@ router.get('/module-leader/:moduleLeaderId', getCoursesByModuleLeader);
 router.get('/year/:year/semester/:semester', getCoursesByYearSemester);
 
 // Admin and Module Leader routes
-router.post('/', checkRole(['admin', 'module-leader']), createCourse);
-router.put('/:id', checkRole(['admin', 'module-leader']), updateCourse);
-router.delete('/:id', checkRole(['admin']), deleteCourse);
-router.patch('/:id/toggle-status', checkRole(['admin', 'module-leader']), toggleCourseStatus);
-router.patch('/:courseId/assign-module-leader', checkRole(['admin']), assignModuleLeader);
+router.post('/', requireRole(['admin', 'module-leader']), createCourse);
+router.put('/:id', requireRole(['admin', 'module-leader']), updateCourse);
+router.delete('/:id', requireRole(['admin']), deleteCourse);
+router.patch('/:id/toggle-status', requireRole(['admin', 'module-leader']), toggleCourseStatus);
+router.patch('/:courseId/assign-module-leader', requireRole(['admin']), assignModuleLeader);
 
 // Prerequisites management
-router.post('/:courseId/prerequisites', checkRole(['admin', 'module-leader']), addPrerequisites);
-router.delete('/:courseId/prerequisites', checkRole(['admin', 'module-leader']), removePrerequisites);
+router.post('/:courseId/prerequisites', requireRole(['admin', 'module-leader']), addPrerequisites);
+router.delete('/:courseId/prerequisites', requireRole(['admin', 'module-leader']), removePrerequisites);
 
 // Bulk operations (Admin only)
-router.post('/bulk', checkRole(['admin']), bulkCreateCourses);
+router.post('/bulk', requireRole(['admin']), bulkCreateCourses);
 
 export default router;
