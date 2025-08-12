@@ -297,7 +297,7 @@ const UserManagement: React.FC = () => {
             </label>
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as 'admin' | 'teacher' | 'module-leader' | '')}
+              onChange={(e) => setRoleFilter(e.target.value as 'admin' | 'teacher' | 'module-leader' | 'user' | '')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">All Roles</option>
