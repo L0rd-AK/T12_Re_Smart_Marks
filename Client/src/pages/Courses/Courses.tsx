@@ -434,7 +434,7 @@ export default function CoursesPage() {
                                             </label>
                                             <select 
                                                 title="Year"
-                                                className="select select-bordered select-sm w-32 focus:border-indigo-500 focus:ring-indigo-500"
+                                                className="select select-bordered select-sm w-32 bg-transparent text-black focus:border-indigo-500 focus:ring-indigo-500"
                                                 value={selectedYear}
                                                 onChange={(e) => setSelectedYear(e.target.value)}
                                             >
@@ -452,7 +452,7 @@ export default function CoursesPage() {
                                             </label>
                                             <select 
                                                 title="Semester"
-                                                className="select select-bordered select-sm w-32 focus:border-indigo-500 focus:ring-indigo-500"
+                                                className="select select-bordered select-sm w-32 bg-transparent text-black focus:border-indigo-500 focus:ring-indigo-500"
                                                 value={selectedSemester}
                                                 onChange={(e) => setSelectedSemester(e.target.value)}
                                             >
