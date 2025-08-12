@@ -80,6 +80,6 @@ const baseQueryWithReauth: BaseQueryFn<
 export const baseApi = createApi({
   reducerPath: 'baseApi',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['User', 'Auth', 'Marks','QuestionFormat', 'QuestionFormats', 'Templates', 'DocumentSubmission', 'GoogleDriveFiles', 'Admin', 'Department', 'Course', 'Batch', 'Section', 'ModuleLeader'],
+  tagTypes: ['User', 'Auth', 'Marks','QuestionFormat', 'QuestionFormats', 'Templates', 'DocumentSubmission', 'GoogleDriveFiles', 'Admin', 'Department', 'Course', 'Batch', 'Section', 'ModuleLeader', 'AssignedModuleLeader'],
   endpoints: () => ({}),
 });
