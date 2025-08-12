@@ -8,6 +8,7 @@ import {
   useDeleteCourseMutation,
   useAssignCourseModuleLeaderMutation,
   useGetAvailableModuleLeadersQuery,
+  useGetUsersQuery,
   type Course,
   type CreateCourseInput,
   type UpdateCourseInput,
@@ -22,7 +23,6 @@ const CourseManagement: React.FC = () => {
   const [showModuleLeaderModal, setShowModuleLeaderModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedModuleLeader, setSelectedModuleLeader] = useState<string>('');
-  const [moduleLeaderSearch, setModuleLeaderSearch] = useState<string>('');
   const [formData, setFormData] = useState<CreateCourseInput>({
     name: '',
     code: '',
@@ -37,10 +37,19 @@ const CourseManagement: React.FC = () => {
     department: selectedDepartment || undefined
   });
   const { data: departments } = useGetDepartmentsQuery();
-  const { data: availableModuleLeaders } = useGetAvailableModuleLeadersQuery({
-    search: moduleLeaderSearch || undefined,
-    limit: 50
-  });
+  const { data: availableModuleLeaders, isLoading: isLoadingModuleLeaders, error: moduleLeadersError } = useGetAvailableModuleLeadersQuery();
+
+  // Fallback: get all users if module leaders endpoint fails
+  const { data: allUsers } = useGetUsersQuery({ page: 1, limit: 100 });
+
+  // Debug: Log the available module leaders data
+  console.log('Available Module Leaders:', availableModuleLeaders);
+  console.log('All Users:', allUsers);
+  console.log('Loading:', isLoadingModuleLeaders);
+  console.log('Error:', moduleLeadersError);
+
+  // Use module leaders if available, otherwise use all users
+  const usersForDropdown = availableModuleLeaders?.teachers || allUsers?.users || [];
   const [createCourse, { isLoading: isCreating }] = useCreateCourseMutation();
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
   const [deleteCourse, { isLoading: isDeleting }] = useDeleteCourseMutation();
@@ -423,14 +432,31 @@ const CourseManagement: React.FC = () => {
                 value={selectedModuleLeader}
                 onChange={(e) => setSelectedModuleLeader(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                disabled={isLoadingModuleLeaders}
               >
-                <option value="">No Module Leader</option>
-                {availableModuleLeaders?.teachers?.map((leader: User) => (
-                  <option key={leader._id} value={leader._id}>
-                    {leader.firstName} {leader.lastName} ({leader.email})
-                  </option>
-                ))}
+                <option value="">
+                  {isLoadingModuleLeaders ? 'Loading users...' : 'No Module Leader'}
+                </option>
+                {usersForDropdown && usersForDropdown.length > 0 ? (
+                  usersForDropdown.map((leader: User) => (
+                    <option key={leader._id} value={leader._id}>
+                      {leader.firstName} {leader.lastName} ({leader.email}) - {leader.role}
+                    </option>
+                  ))
+                ) : !isLoadingModuleLeaders ? (
+                  <option disabled>No users available</option>
+                ) : null}
               </select>
+              {usersForDropdown.length === 0 && !isLoadingModuleLeaders && (
+                <p className="mt-1 text-sm text-gray-500">
+                  No users found. Make sure there are registered users in the system.
+                  {moduleLeadersError && (
+                    <span className="text-red-500">
+                      {' '}(API Error: {JSON.stringify(moduleLeadersError)})
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end space-x-3">
