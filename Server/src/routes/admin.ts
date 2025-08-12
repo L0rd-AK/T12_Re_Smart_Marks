@@ -460,6 +460,7 @@ router.get('/courses', asyncHandler(async (req: Request, res: Response) => {
 
   const courses = await Course.find(filter)
     .populate('department', 'name code')
+    .populate('moduleLeader', 'firstName lastName email role')
     .populate('prerequisites', 'name code')
     .populate('createdBy', 'firstName lastName')
     .sort({ createdAt: -1 });
@@ -476,6 +477,7 @@ router.get('/courses/:id', asyncHandler(async (req: Request, res: Response) => {
 
   const course = await Course.findById(id)
     .populate('department', 'name code')
+    .populate('moduleLeader', 'firstName lastName email role')
     .populate('prerequisites', 'name code')
     .populate('createdBy', 'firstName lastName');
 
@@ -487,7 +489,7 @@ router.get('/courses/:id', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 router.post('/courses', validateRequest(createCourseSchema), asyncHandler(async (req: Request, res: Response) => {
-  const { name, code, description, creditHours, department, prerequisites, isActive = true } = req.body;
+  const { name, code, description, creditHours, department, moduleLeader, prerequisites, isActive = true } = req.body;
   const adminId = (req as any).user.id;
 
   // Validate required fields
@@ -512,6 +514,18 @@ router.post('/courses', validateRequest(createCourseSchema), asyncHandler(async 
     throw createError('Invalid department', 400);
   }
 
+  // Validate module leader if provided
+  if (moduleLeader) {
+    const moduleLeaderUser = await User.findOne({
+      _id: moduleLeader,
+      role: { $in: ['teacher', 'module_leader'] },
+      isBlocked: false
+    });
+    if (!moduleLeaderUser) {
+      throw createError('Module leader must be a teacher and not blocked', 400);
+    }
+  }
+
   // Validate prerequisites if provided
   if (prerequisites && prerequisites.length > 0) {
     const prereqCourses = await Course.find({ _id: { $in: prerequisites } });
@@ -526,6 +540,7 @@ router.post('/courses', validateRequest(createCourseSchema), asyncHandler(async 
     description: description?.trim(),
     creditHours,
     department,
+    moduleLeader,
     prerequisites: prerequisites || [],
     isActive,
     createdBy: adminId
@@ -534,6 +549,7 @@ router.post('/courses', validateRequest(createCourseSchema), asyncHandler(async 
   await course.save();
   await course.populate([
     { path: 'department', select: 'name code' },
+    { path: 'moduleLeader', select: 'firstName lastName email role' },
     { path: 'prerequisites', select: 'name code' },
     { path: 'createdBy', select: 'firstName lastName' }
   ]);
@@ -546,7 +562,7 @@ router.post('/courses', validateRequest(createCourseSchema), asyncHandler(async 
 
 router.put('/courses/:id', validateRequest(updateCourseSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, code, description, creditHours, department, prerequisites, isActive } = req.body;
+  const { name, code, description, creditHours, department, moduleLeader, prerequisites, isActive } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw createError('Invalid course ID', 400);
@@ -581,6 +597,18 @@ router.put('/courses/:id', validateRequest(updateCourseSchema), asyncHandler(asy
     }
   }
 
+  // Validate module leader if provided
+  if (moduleLeader) {
+    const moduleLeaderUser = await User.findOne({
+      _id: moduleLeader,
+      role: { $in: ['teacher', 'module_leader'] },
+      isBlocked: false
+    });
+    if (!moduleLeaderUser) {
+      throw createError('Module leader must be a teacher and not blocked', 400);
+    }
+  }
+
   // Validate prerequisites if provided
   if (prerequisites) {
     if (prerequisites.length > 0) {
@@ -597,12 +625,14 @@ router.put('/courses/:id', validateRequest(updateCourseSchema), asyncHandler(asy
   if (description !== undefined) course.description = description?.trim();
   if (creditHours) course.creditHours = creditHours;
   if (department) course.department = department;
+  if (moduleLeader !== undefined) course.moduleLeader = moduleLeader;
   if (prerequisites !== undefined) course.prerequisites = prerequisites;
   if (isActive !== undefined) course.isActive = isActive;
 
   await course.save();
   await course.populate([
     { path: 'department', select: 'name code' },
+    { path: 'moduleLeader', select: 'firstName lastName email role' },
     { path: 'prerequisites', select: 'name code' },
     { path: 'createdBy', select: 'firstName lastName' }
   ]);
@@ -642,6 +672,73 @@ router.delete('/courses/:id', asyncHandler(async (req: Request, res: Response) =
   res.json({
     message: 'Course deleted successfully'
   });
+}));
+
+// Assign Module Leader to Course
+router.post('/courses/:id/assign-module-leader', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { moduleLeaderId } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw createError('Invalid course ID', 400);
+  }
+
+  const course = await Course.findById(id);
+  if (!course) {
+    throw createError('Course not found', 404);
+  }
+
+  // Validate module leader
+  if (moduleLeaderId) {
+    const moduleLeaderUser = await User.findOne({
+      _id: moduleLeaderId,
+      role: { $in: ['teacher', 'module_leader'] },
+      isBlocked: false
+    });
+    if (!moduleLeaderUser) {
+      throw createError('Module leader must be a teacher and not blocked', 400);
+    }
+  }
+
+  course.moduleLeader = moduleLeaderId;
+  await course.save();
+  await course.populate([
+    { path: 'department', select: 'name code' },
+    { path: 'moduleLeader', select: 'firstName lastName email role' },
+    { path: 'prerequisites', select: 'name code' },
+    { path: 'createdBy', select: 'firstName lastName' }
+  ]);
+
+  res.json({
+    message: moduleLeaderId ? 'Module leader assigned successfully' : 'Module leader removed successfully',
+    course
+  });
+}));
+
+// Get available teachers for module leader assignment
+router.get('/courses/available-module-leaders', asyncHandler(async (req: Request, res: Response) => {
+  const { search, limit = 50 } = req.query as any;
+
+  const filter: any = {
+    role: { $in: ['teacher', 'module_leader'] },
+    isBlocked: false,
+    isEmailVerified: true
+  };
+
+  if (search) {
+    filter.$or = [
+      { firstName: { $regex: search, $options: 'i' } },
+      { lastName: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  const teachers = await User.find(filter)
+    .select('firstName lastName email role')
+    .sort({ firstName: 1, lastName: 1 })
+    .limit(parseInt(limit));
+
+  res.json({ teachers });
 }));
 
 // Batch Routes
