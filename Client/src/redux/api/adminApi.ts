@@ -233,7 +233,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role:  'admin' | 'teacher' | 'module-leader';
+  role:  'admin' | 'teacher' | 'module-leader' | 'user';
   isBlocked: boolean;
   blockedAt?: string;
   blockedBy?: {
@@ -269,7 +269,7 @@ export interface UserStats {
 }
 
 export interface UpdateUserRoleInput {
-  role: 'admin' | 'teacher' | 'module-leader';
+  role: 'admin' | 'teacher' | 'module-leader' | 'user';
 }
 
 export interface BlockUserInput {
@@ -280,7 +280,7 @@ export interface GetUsersQuery {
   page?: number;
   limit?: number;
   search?: string;
-  role?: 'admin' | 'teacher' | 'module-leader';
+  role?: 'admin' | 'teacher' | 'module-leader' | 'user';
   isBlocked?: boolean;
 }
 
@@ -301,7 +301,7 @@ export const adminApi = baseApi.injectEndpoints({
 
     getDepartment: builder.query<Department, string>({
       query: (id) => `/admin/departments/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Department', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Department', id }],
     }),
 
     createDepartment: builder.mutation<{ message: string; department: Department }, CreateDepartmentInput>({
@@ -319,7 +319,7 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Department', id }, 'Department', 'Admin'],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Department', id }, 'Department', 'Admin'],
     }),
 
     deleteDepartment: builder.mutation<{ message: string }, string>({
@@ -341,7 +341,7 @@ export const adminApi = baseApi.injectEndpoints({
 
     getCourse: builder.query<Course, string>({
       query: (id) => `/admin/courses/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Course', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Course', id }],
     }),
 
     createCourse: builder.mutation<{ message: string; course: Course }, CreateCourseInput>({
@@ -359,7 +359,7 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Course', id }, 'Course', 'Admin'],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Course', id }, 'Course', 'Admin'],
     }),
 
     deleteCourse: builder.mutation<{ message: string }, string>({
@@ -381,7 +381,7 @@ export const adminApi = baseApi.injectEndpoints({
 
     getBatch: builder.query<Batch, string>({
       query: (id) => `/admin/batches/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Batch', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Batch', id }],
     }),
 
     createBatch: builder.mutation<{ message: string; batch: Batch }, CreateBatchInput>({
@@ -399,7 +399,7 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Batch', id }, 'Batch', 'Admin'],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Batch', id }, 'Batch', 'Admin'],
     }),
 
     deleteBatch: builder.mutation<{ message: string }, string>({
@@ -508,58 +508,6 @@ export const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ['User']
     })
   }),
-});
-
-// User Management API
-export const userApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
-    getUsers: builder.query<GetUsersResponse, GetUsersQuery>({
-      query: (params) => ({
-        url: '/admin/users',
-        params
-      }),
-      providesTags: ['User']
-    }),
-
-    getUserStats: builder.query<UserStats, void>({
-      query: () => '/admin/users/stats',
-      providesTags: ['User']
-    }),
-
-    updateUserRole: builder.mutation<{ message: string; user: User }, { id: string; data: UpdateUserRoleInput }>({
-      query: ({ id, data }) => ({
-        url: `/admin/users/${id}/role`,
-        method: 'PUT',
-        body: data
-      }),
-      invalidatesTags: ['User']
-    }),
-
-    blockUser: builder.mutation<{ message: string; user: User }, { id: string; data: BlockUserInput }>({
-      query: ({ id, data }) => ({
-        url: `/admin/users/${id}/block`,
-        method: 'PUT',
-        body: data
-      }),
-      invalidatesTags: ['User']
-    }),
-
-    unblockUser: builder.mutation<{ message: string; user: User }, string>({
-      query: (id) => ({
-        url: `/admin/users/${id}/unblock`,
-        method: 'PUT'
-      }),
-      invalidatesTags: ['User']
-    }),
-
-    deleteUser: builder.mutation<{ message: string }, string>({
-      query: (id) => ({
-        url: `/admin/users/${id}`,
-        method: 'DELETE'
-      }),
-      invalidatesTags: ['User']
-    })
-  })
 });
 
 export const {
