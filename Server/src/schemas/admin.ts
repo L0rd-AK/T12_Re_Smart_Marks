@@ -63,6 +63,7 @@ export const createCourseSchema = z.object({
       .min(1, 'Credit hours must be at least 1')
       .max(10, 'Credit hours cannot exceed 10'),
     department: z.string().min(1, 'Department is required'),
+    moduleLeader: z.string().optional(),
     prerequisites: z.array(z.string()).optional(),
     isActive: z.boolean().optional()
   })
@@ -90,6 +91,7 @@ export const updateCourseSchema = z.object({
       .max(10, 'Credit hours cannot exceed 10')
       .optional(),
     department: z.string().optional(),
+    moduleLeader: z.string().optional(),
     prerequisites: z.array(z.string()).optional(),
     isActive: z.boolean().optional()
   })
