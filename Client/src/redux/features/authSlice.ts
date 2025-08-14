@@ -13,6 +13,7 @@ export interface User {
   mobileNumber?: string;
   roomNumber?: string;
   initial?: string;
+  department?: string;
   isEmailVerified: boolean;
   role:  'admin' | 'teacher' | 'module-leader';
   createdAt: string;

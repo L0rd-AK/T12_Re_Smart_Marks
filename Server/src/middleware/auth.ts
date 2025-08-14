@@ -52,7 +52,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
 
     if (token) {
       const decoded = JWTService.verifyAccessToken(token);
-      const user = await User.findById(decoded.userId);
+      const user = await User.findById(decoded.userId).select('+refreshTokens');
       req.user = user || undefined;
     }
 
@@ -82,7 +82,9 @@ export const requireRole = (roles: string[]) => {
     }
 
     if (!roles.includes(req.user.role)) {
-      res.status(403).json({ message: 'Insufficient permissions' });
+      res.status(403).json({
+        message: 'Insufficient permissions'
+      });
       return;
     }
 

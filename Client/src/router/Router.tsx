@@ -23,7 +23,6 @@ const ModuleLeaderDashboard = lazy(() => import("../pages/ModuleLeader/ModuleLea
 const Courses = lazy(() => import("../pages/Courses/Courses"));
 const DeveloperInfo = lazy(() => import("../pages/Developer-Info/DeveloperInfo"));
 const DocumentSubmissionHistory = lazy(() => import("../pages/DocumentSubmission/DocumentSubmissionHistory"));
-const test= lazy(() => import("../pages/Test/Test"));
 
 // Wrapper component for Suspense - returns a component, not JSX
 const withSuspense = (Component: React.ComponentType) => {
@@ -131,14 +130,7 @@ export const router = createBrowserRouter([
                     </RoleBasedRoute>
                 ),
             },
-            {
-                path: "test",
-                element: (
-                    <ProtectedRoute>
-                        {withSuspense(test)()}
-                    </ProtectedRoute>
-                ),
-            }
+            
         ],
     },
 ]);
