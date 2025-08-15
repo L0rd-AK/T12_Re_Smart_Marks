@@ -386,18 +386,17 @@ export const getDepartmentCourses = async (req: Request, res: Response): Promise
           (section.moduleLeader as any)?._id.toString() === userId.toString()
         );
 
+        return {
+          ...course.toObject(),
+          sections,
+          hasAccess
+        };
+      })
+    );
 
-    const department = (req as any).user?.department;
-
-    // Get all courses in the department
-    const allCourses = await Course.find()
-      .populate('department', 'name code').populate('moduleLeader');
-
-
-    // const courses = allCourses.filter(course => course.department?.name === department)
     res.status(200).json({
       success: true,
-      data: allCourses
+      data: coursesWithAccess
     });
 
   } catch (error) {
