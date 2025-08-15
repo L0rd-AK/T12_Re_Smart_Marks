@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { CourseAccessRequest } from '../models/CourseAccessRequest';
-import { Course, Section } from '../models/Academic';
+import Course from '../models/Course';
+import Section from '../models/Section';
 import User from '../models/User';
 import { body, param, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
@@ -365,6 +366,26 @@ export const getAccessibleCourses = async (req: Request, res: Response): Promise
 // Get all courses in user's department
 export const getDepartmentCourses = async (req: Request, res: Response): Promise<void> => {
   try {
+    const userId = (req as any).user?._id;
+    
+    // For now, return all active courses since users don't have department field
+    // In the future, this can be enhanced to filter by department
+    const allCourses = await Course.find({ isActive: true })
+      .populate('department', 'name code');
+
+    // Get sections for each course to determine access
+    const coursesWithAccess = await Promise.all(
+      allCourses.map(async (course) => {
+        const sections = await Section.find({ course: course._id })
+          .populate('instructor', 'name email')
+          .populate('moduleLeader', 'name email')
+          .populate('batch', 'semester year');
+
+        const hasAccess = sections.some(section => 
+          (section.instructor as any)?._id.toString() === userId.toString() ||
+          (section.moduleLeader as any)?._id.toString() === userId.toString()
+        );
+
 
     const department = (req as any).user?.department;
 
@@ -372,8 +393,8 @@ export const getDepartmentCourses = async (req: Request, res: Response): Promise
     const allCourses = await Course.find()
       .populate('department', 'name code').populate('moduleLeader');
 
-    // const courses = allCourses.filter(course => course.department?.name === department)
 
+    // const courses = allCourses.filter(course => course.department?.name === department)
     res.status(200).json({
       success: true,
       data: allCourses
