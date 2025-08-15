@@ -20,8 +20,8 @@ export class DepartmentController {
   // Get all departments
   static getDepartments = asyncHandler(async (req: Request, res: Response) => {
     const departments = await Department.find({ isActive: true })
-      .populate('head', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName')
+      .populate('head', 'name email')
+      .populate('createdBy', 'name')
       .sort({ name: 1 });
 
     res.json(departments);
@@ -30,8 +30,8 @@ export class DepartmentController {
   // Get single department
   static getDepartment = asyncHandler(async (req: Request, res: Response) => {
     const department = await Department.findById(req.params.id)
-      .populate('head', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName');
+      .populate('head', 'name email')
+      .populate('createdBy', 'name');
 
     if (!department) {
       throw createError('Department not found', 404);
@@ -68,7 +68,7 @@ export class DepartmentController {
     });
 
     await department.save();
-    await department.populate('head', 'firstName lastName email');
+    await department.populate('head', 'name email');
 
     res.status(201).json({
       message: 'Department created successfully',
@@ -103,7 +103,7 @@ export class DepartmentController {
       req.params.id,
       { name, code, description, head, isActive },
       { new: true, runValidators: true }
-    ).populate('head', 'firstName lastName email');
+    ).populate('head', 'name email');
 
     if (!department) {
       throw createError('Department not found', 404);
@@ -145,7 +145,7 @@ export class CourseController {
     const courses = await Course.find(filter)
       .populate('department', 'name code')
       .populate('prerequisites', 'name code')
-      .populate('createdBy', 'firstName lastName')
+      .populate('createdBy', 'name')
       .sort({ code: 1 });
 
     res.json(courses);
@@ -156,7 +156,7 @@ export class CourseController {
     const course = await Course.findById(req.params.id)
       .populate('department', 'name code')
       .populate('prerequisites', 'name code')
-      .populate('createdBy', 'firstName lastName');
+      .populate('createdBy', 'name');
 
     if (!course) {
       throw createError('Course not found', 404);
@@ -300,7 +300,7 @@ export class BatchController {
 
     const batches = await Batch.find(filter)
       .populate('department', 'name code')
-      .populate('createdBy', 'firstName lastName')
+      .populate('createdBy', 'name')
       .sort({ year: -1, semester: 1 });
 
     res.json(batches);
@@ -310,7 +310,7 @@ export class BatchController {
   static getBatch = asyncHandler(async (req: Request, res: Response) => {
     const batch = await Batch.findById(req.params.id)
       .populate('department', 'name code')
-      .populate('createdBy', 'firstName lastName');
+      .populate('createdBy', 'name');
 
     if (!batch) {
       throw createError('Batch not found', 404);
@@ -432,9 +432,9 @@ export class SectionController {
     const sections = await Section.find(filter)
       .populate('batch', 'name year semester')
       .populate('course', 'name code creditHours')
-      .populate('instructor', 'firstName lastName email')
-      .populate('moduleLeader', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName')
+      .populate('instructor', 'name email')
+      .populate('moduleLeader', 'name email')
+      .populate('createdBy', 'name')
       .sort({ name: 1 });
 
     res.json(sections);
@@ -445,9 +445,9 @@ export class SectionController {
     const section = await Section.findById(req.params.id)
       .populate('batch', 'name year semester')
       .populate('course', 'name code creditHours')
-      .populate('instructor', 'firstName lastName email')
-      .populate('moduleLeader', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName');
+      .populate('instructor', 'name email')
+      .populate('moduleLeader', 'name email')
+      .populate('createdBy', 'name');
 
     if (!section) {
       throw createError('Section not found', 404);
@@ -503,8 +503,8 @@ export class SectionController {
     await section.populate([
       { path: 'batch', select: 'name year semester' },
       { path: 'course', select: 'name code creditHours' },
-      { path: 'instructor', select: 'firstName lastName email' },
-      { path: 'moduleLeader', select: 'firstName lastName email' }
+      { path: 'instructor', select: 'name email' },
+      { path: 'moduleLeader', select: 'name email' }
     ]);
 
     res.status(201).json({
@@ -568,8 +568,8 @@ export class SectionController {
     ).populate([
       { path: 'batch', select: 'name year semester' },
       { path: 'course', select: 'name code creditHours' },
-      { path: 'instructor', select: 'firstName lastName email' },
-      { path: 'moduleLeader', select: 'firstName lastName email' }
+      { path: 'instructor', select: 'name email' },
+      { path: 'moduleLeader', select: 'name email' }
     ]);
 
     if (!section) {
@@ -621,8 +621,8 @@ export class SectionController {
     ).populate([
       { path: 'batch', select: 'name year semester' },
       { path: 'course', select: 'name code creditHours' },
-      { path: 'instructor', select: 'firstName lastName email' },
-      { path: 'moduleLeader', select: 'firstName lastName email' }
+      { path: 'instructor', select: 'name email' },
+      { path: 'moduleLeader', select: 'name email' }
     ]);
 
     res.json({
@@ -705,7 +705,7 @@ export class UserController {
     const [users, total] = await Promise.all([
       User.find(filter)
         .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
-        .populate('blockedBy', 'firstName lastName email')
+        .populate('blockedBy', 'name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -761,7 +761,7 @@ export class UserController {
 
     const updatedUser = await User.findById(id)
       .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
-      .populate('blockedBy', 'firstName lastName email');
+      .populate('blockedBy', 'name email');
 
     res.json({
       message: 'User role updated successfully',
@@ -800,7 +800,7 @@ export class UserController {
 
     const updatedUser = await User.findById(id)
       .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
-      .populate('blockedBy', 'firstName lastName email');
+      .populate('blockedBy', 'name email');
 
     res.json({
       message: 'User blocked successfully',
@@ -832,7 +832,7 @@ export class UserController {
 
     const updatedUser = await User.findById(id)
       .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
-      .populate('blockedBy', 'firstName lastName email');
+      .populate('blockedBy', 'name email');
 
     res.json({
       message: 'User unblocked successfully',
