@@ -2,8 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   password: string;
   avatar?: string;
@@ -13,6 +12,7 @@ export interface IUser extends Document {
   mobileNumber?: string;
   roomNumber?: string;
   initial?: string;
+  department?: string;
   isEmailVerified: boolean;
   role: 'admin' | 'teacher' | 'module-leader' | 'user';
   isBlocked: boolean;
@@ -34,14 +34,7 @@ export interface IUser extends Document {
 }
 
 const userSchema = new Schema<IUser>({
-  firstName: {
-    type: String,
-    required: [true, 'First name is required'],
-    trim: true,
-    minlength: [2, 'First name must be at least 2 characters'],
-    maxlength: [50, 'First name must be less than 50 characters']
-  },
-  lastName: {
+  name: {
     type: String,
     required: [true, 'Last name is required'],
     trim: true,
@@ -99,6 +92,11 @@ const userSchema = new Schema<IUser>({
     type: String,
     trim: true,
     maxlength: [10, 'Initial must be less than 10 characters']
+  },
+  department: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Department must be less than 50 characters']
   },
   isEmailVerified: {
     type: Boolean,
