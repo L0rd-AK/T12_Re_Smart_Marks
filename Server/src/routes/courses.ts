@@ -22,6 +22,11 @@ import { requireRole } from '../middleware/auth';
 
 const router = express.Router();
 
+// Test route without authentication (temporary)
+router.get('/test', (req, res) => {
+  res.json({ message: 'Course API is working!' });
+});
+
 // Apply authentication middleware to all routes
 router.use(authenticate);
 
