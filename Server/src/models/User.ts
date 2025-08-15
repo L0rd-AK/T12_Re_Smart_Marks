@@ -12,6 +12,7 @@ export interface IUser extends Document {
   mobileNumber?: string;
   roomNumber?: string;
   initial?: string;
+  department?: string;
   isEmailVerified: boolean;
   role: 'admin' | 'teacher' | 'module-leader' | 'user';
   isBlocked: boolean;
@@ -39,6 +40,7 @@ const userSchema = new Schema<IUser>({
     trim: true,
     minlength: [2, 'Name must be at least 2 characters'],
     maxlength: [50, 'Name must be less than 50 characters']
+
   },
 
   email: {
@@ -91,6 +93,11 @@ const userSchema = new Schema<IUser>({
     type: String,
     trim: true,
     maxlength: [10, 'Initial must be less than 10 characters']
+  },
+  department: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Department must be less than 50 characters']
   },
   isEmailVerified: {
     type: Boolean,

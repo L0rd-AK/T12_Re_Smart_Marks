@@ -287,3 +287,4 @@
 // export const Course = mongoose.model<ICourse>('Course', courseSchema);
 // export const Batch = mongoose.model<IBatch>('Batch', batchSchema);
 // export const Section = mongoose.model<ISection>('Section', sectionSchema);
+

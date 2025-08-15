@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import {
@@ -50,6 +51,7 @@ const ModuleLeaderAssignment: React.FC<ModuleLeaderAssignmentProps> = ({ section
       toast.success('Module leader assigned successfully');
       onClose();
     } catch (error) {
+      console.log(error);
       toast.error('Failed to assign module leader');
     }
   };
@@ -60,6 +62,7 @@ const ModuleLeaderAssignment: React.FC<ModuleLeaderAssignmentProps> = ({ section
       // In a real app, you'd have a removeModuleLeader mutation
       toast.success('Module leader removed successfully');
     } catch (error) {
+      console.log(error);
       toast.error('Failed to remove module leader');
     }
   };
@@ -69,7 +72,7 @@ const ModuleLeaderAssignment: React.FC<ModuleLeaderAssignmentProps> = ({ section
       <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">
-            Manage Module Leaders - {section.name}
+            Manage Module Leaders - {section?.name}
           </h3>
           <button
             onClick={onClose}
@@ -84,7 +87,7 @@ const ModuleLeaderAssignment: React.FC<ModuleLeaderAssignmentProps> = ({ section
           <h4 className="font-medium mb-2">Current Module Leader:</h4>
           {section.moduleLeader ? (
             <div className="bg-gray-50 p-2 rounded flex items-center justify-between">
-              <span>{section.moduleLeader.firstName} {section.moduleLeader.lastName}</span>
+              <span>{section.moduleLeader.name}</span>
               <button
                 onClick={() => handleRemove()}
                 className="text-red-600 hover:text-red-800 text-sm"
@@ -321,7 +324,7 @@ const SectionManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {section.course.name} ({section.course.code})
+                      {section?.course?.name} ({section?.course?.code})
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -331,7 +334,7 @@ const SectionManagement: React.FC = () => {
                     <div className="text-sm text-gray-900">
                       {section.moduleLeader ? (
                         <div className="text-xs">
-                          {section.moduleLeader.firstName} {section.moduleLeader.lastName}
+                      {section.moduleLeader.name}
                         </div>
                       ) : (
                         <span className="text-gray-500 text-sm">No leader assigned</span>
