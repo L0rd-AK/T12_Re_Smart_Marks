@@ -99,13 +99,13 @@ export const createDocumentDistribution = async (req: Request, res: Response) =>
         section,
         classCount
       },
-      moduleLeader: {
-        userId: user._id,
-        name: user.name,
-        email: user.email,
-        employeeId: user.employeeId || '',
-        department: user.department || ''
-      },
+             moduleLeader: {
+         userId: user._id,
+         name: user.name,
+         email: user.email,
+         ...(user.employeeId && { employeeId: user.employeeId }),
+         ...(user.department && { department: user.department })
+       },
       permissions: permissions || {
         teachers: { canView: true, canDownload: true, canComment: true, canEdit: false },
         students: { canView: true, canDownload: true, canComment: false, canEdit: false },
