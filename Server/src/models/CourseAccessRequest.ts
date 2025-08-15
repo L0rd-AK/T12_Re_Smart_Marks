@@ -5,6 +5,9 @@ export interface ICourseAccessRequest extends Document {
   teacher: mongoose.Types.ObjectId;
   moduleLeader: mongoose.Types.ObjectId;
   status: 'pending' | 'approved' | 'rejected';
+  batch: number;
+  semester: string;
+  section: string;
   message: string;
   requestDate: Date;
   responseDate?: Date;
@@ -34,6 +37,20 @@ const courseAccessRequestSchema = new Schema<ICourseAccessRequest>({
     type: String,
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
+  },batch:{
+    type: Number,
+    required: [true, 'Batch is required']
+  },
+  semester: {
+    type: String,
+    required: [true, 'Semester is required'],
+    enum: ['Spring', 'Summer', 'Fall']
+  },
+  section: {
+    type: String,
+    required: [true, 'Section is required'],
+    trim: true,
+    maxlength: [50, 'Section must be less than 50 characters']
   },
   message: {
     type: String,

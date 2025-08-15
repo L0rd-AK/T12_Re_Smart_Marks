@@ -131,6 +131,11 @@ export const updateProfileSchema = z.object({
       .max(10, 'Initial must be less than 10 characters')
       .trim()
       .optional(),
+    department: z
+      .string()
+      .max(50, 'Department must be less than 50 characters')
+      .trim()
+      .optional(),
     avatar: z
       .string()
       .url('Avatar must be a valid URL')
