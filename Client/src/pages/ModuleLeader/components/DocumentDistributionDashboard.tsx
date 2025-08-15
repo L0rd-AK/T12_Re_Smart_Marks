@@ -150,7 +150,7 @@ const DocumentDistributionDashboard: React.FC = () => {
 
   // Upload files to distribution
   const handleUploadFiles = async () => {
-    if (!selectedDistribution || selectedFiles.length === 0) return;
+    if (!selectedDistribution || selectedFiles?.length === 0) return;
 
     try {
       await uploadFiles({
@@ -681,7 +681,7 @@ const DocumentDistributionDashboard: React.FC = () => {
                 />
               </div>
 
-              {selectedFiles.length > 0 && (
+              {selectedFiles?.length > 0 && (
                 <div className="mb-4">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Files:</h4>
                   <ul className="text-sm text-gray-600">
@@ -704,7 +704,7 @@ const DocumentDistributionDashboard: React.FC = () => {
                 </button>
                 <button
                   onClick={handleUploadFiles}
-                  disabled={selectedFiles.length === 0}
+                  disabled={selectedFiles?.length === 0}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
                   Upload Files

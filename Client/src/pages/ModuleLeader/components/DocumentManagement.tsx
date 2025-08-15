@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { GoogleDriveService } from '../../../services/googleDriveService';
 import { useGetDepartmentCoursesQuery } from '../../../redux/api/courseAccessApi';
+import { 
+  useGetDocumentDistributionsQuery,
+  type DocumentDistribution 
+} from '../../../redux/api/documentDistributionApi';
 
 interface Document {
   id: string;
@@ -29,31 +33,70 @@ interface Teacher {
 const PARENT_FOLDER_ID = '1D-y0Ck0_0ArHmxv4xPwWTIjrhVWT1INR';
 
 const DocumentManagement: React.FC = () => {
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: '1',
-      name: 'Course Syllabus - Computer Science',
-      type: 'syllabus',
-      description: 'Updated syllabus for the current semester',
-      targetAudience: ['all-teachers'],
-      priority: 'high',
-      dueDate: '2025-08-01',
-      status: 'published',
-      createdAt: '2025-07-20',
-      distributedTo: ['teacher1', 'teacher2', 'teacher3'],
-    },
-    {
-      id: '2',
-      name: 'Assignment Guidelines',
-      type: 'assignment',
-      description: 'Guidelines for creating and grading assignments',
-      targetAudience: ['subject-teachers'],
-      priority: 'medium',
-      status: 'draft',
-      createdAt: '2025-07-22',
-      distributedTo: [],
-    },
-  ]);
+  // Fetch document distributions from backend
+  const { 
+    data: documentDistributionsData, 
+    isLoading: documentsLoading, 
+    isError: documentsError,
+    refetch: refetchDocuments 
+  } = useGetDocumentDistributionsQuery({});
+
+  // Transform API data to match component's Document interface
+  const transformDocumentDistribution = (dist: DocumentDistribution): Document => {
+    // Add safety checks for all nested properties
+    if (!dist || !dist._id) {
+      console.warn('Invalid distribution data:', dist);
+      return {
+        id: 'unknown',
+        name: 'Unknown Document',
+        type: 'other',
+        description: '',
+        targetAudience: ['all-teachers'],
+        priority: 'medium',
+        dueDate: '',
+        status: 'draft',
+        createdAt: '',
+        distributedTo: [],
+      };
+    }
+
+    return {
+      id: dist._id,
+      name: dist.title || 'Untitled Document',
+      type: dist.category === 'lecture-notes' ? 'lecture-notes' : 
+            dist.category === 'assignments' ? 'assignment' :
+            dist.category === 'syllabus' ? 'syllabus' :
+            dist.category === 'reading-material' ? 'reading-material' : 'other',
+      description: dist.description || '',
+      fileUrl: dist.files && dist.files.length > 0 ? dist.files[0]?.liveViewLink : undefined,
+      targetAudience: dist.permissions?.teachers?.specificTeachers || ['all-teachers'],
+      priority: dist.priority === 'urgent' ? 'high' : (dist.priority || 'medium'),
+      dueDate: dist.distributionStatus?.expiresAt?.split('T')[0] || '',
+      status: dist.distributionStatus?.status === 'distributed' ? 'published' :
+              dist.distributionStatus?.status === 'pending' ? 'draft' : 'archived',
+      createdAt: dist.createdAt?.split('T')[0] || '',
+      distributedTo: dist.accessTracking?.uniqueViewers || [],
+    };
+  };
+
+  // Transform the fetched data and combine with local documents
+  const apiDocuments = React.useMemo(() => {
+    try {
+      if (documentDistributionsData?.data) {
+        console.log('Raw API data:', documentDistributionsData.data);
+      }
+      return documentDistributionsData?.data?.map(transformDocumentDistribution) || [];
+    } catch (error) {
+      console.error('Error transforming document distributions:', error);
+      return [];
+    }
+  }, [documentDistributionsData?.data]);
+  
+  // Keep local documents state for new documents before they're saved to backend
+  const [localDocuments, setLocalDocuments] = useState<Document[]>([]);
+  
+  // Combine API documents with local documents
+  const documents = [...apiDocuments, ...localDocuments];
 
   const [teachers] = useState<Teacher[]>([
     { id: 'teacher1', name: 'Dr. Smith', email: 'smith@university.edu', subjects: ['Mathematics'], status: 'active' },
@@ -284,6 +327,9 @@ const DocumentManagement: React.FC = () => {
       
       toast.success(`Successfully uploaded ${files.length} file(s) to ${folderName}`);
       
+      // Refresh the documents list to show the newly created distribution
+      refetchDocuments();
+      
       // Reset form
       setDriveUpload({
         year: '',
@@ -339,7 +385,8 @@ const DocumentManagement: React.FC = () => {
       distributedTo: [],
     };
 
-    setDocuments(prev => [...prev, document]);
+    // Add to local documents (temporary until backend implementation)
+    setLocalDocuments(prev => [...prev, document]);
     setNewDocument({
       name: '',
       type: 'assignment',
@@ -356,6 +403,9 @@ const DocumentManagement: React.FC = () => {
     } else {
       toast.success('Document created successfully');
     }
+    
+    // TODO: Implement API call to create document distribution
+    // This would replace the local state update with an API call and refetch
   };
 
   const handleDistribute = () => {
@@ -364,7 +414,8 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
-    setDocuments(prev => prev.map(doc => 
+    // Update local documents (temporary until backend implementation)
+    setLocalDocuments(prev => prev.map(doc => 
       doc.id === selectedDocument.id 
         ? { ...doc, distributedTo: [...new Set([...doc.distributedTo, ...selectedTeachers])], status: 'published' as const }
         : doc
@@ -374,6 +425,9 @@ const DocumentManagement: React.FC = () => {
     setSelectedDocument(null);
     setSelectedTeachers([]);
     toast.success('Document distributed successfully');
+    
+    // TODO: Implement API call to update document distribution status
+    // This would replace the local state update with an API call and refetch
   };
 
   const filteredDocuments = documents.filter(doc => {
@@ -402,17 +456,51 @@ const DocumentManagement: React.FC = () => {
 
   return (
     <div className="p-6">
+      {/* Loading State */}
+      {documentsLoading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600">Loading documents...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {documentsError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <span className="text-red-600 mr-2">⚠️</span>
+            <span className="text-red-800">Failed to load documents. Please try again.</span>
+            <button 
+              onClick={() => refetchDocuments()}
+              className="ml-4 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Document Distribution</h2>
           <p className="text-gray-600 mt-1">Distribute academic materials and documents to teachers</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
-        >
-          Create Document
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => refetchDocuments()}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center"
+            disabled={documentsLoading}
+          >
+            <span className="mr-2">🔄</span>
+            {documentsLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            Create Document
+          </button>
+        </div>
       </div>
 
       {/* Statistics */}
