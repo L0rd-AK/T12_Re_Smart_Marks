@@ -45,7 +45,7 @@ app.use("/api/teacher-requests", teacherRequestsRoutes);
 app.use("/api/courses", coursesRoutes);
 app.use("/api/document-distribution", documentDistributionRoutes);
 
-// Global error handler
+// Global error Handler 
 app.use(errorHandler);
 
 app.use((req: Request, res: Response) => {
