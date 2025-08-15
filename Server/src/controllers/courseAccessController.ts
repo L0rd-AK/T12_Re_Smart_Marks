@@ -4,6 +4,7 @@ import { Course, Section } from '../models/Academic';
 import User from '../models/User';
 import { body, param, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
+import CourseAccess from '../models/CourseAccess';
 
 // Validation rules
 export const createRequestValidation = [
@@ -12,11 +13,32 @@ export const createRequestValidation = [
     .withMessage('Course ID is required')
     .isMongoId()
     .withMessage('Invalid course ID'),
-  body('message')
+  body('data.semester')
+    .notEmpty()
+    .withMessage('Semester is required')
+    .isString()
+    .withMessage('Semester must be a string'),
+  body('data.batch')
+    .notEmpty()
+    .withMessage('Batch is required')
+    .isInt({ min: 1 })
+    .withMessage('Batch must be a positive integer'),
+  body('data.message')
     .notEmpty()
     .withMessage('Message is required')
     .isLength({ min: 10, max: 1000 })
-    .withMessage('Message must be between 10 and 1000 characters')
+    .withMessage('Message must be between 10 and 1000 characters'),
+  body('data.moduleLeaderId')
+    .notEmpty()
+    .withMessage('Module Leader ID is required')
+    .isMongoId()
+    .withMessage('Invalid Module Leader ID'),
+  body('data.section')
+    .notEmpty()
+    .withMessage('Section is required')
+    .isString()
+    .withMessage('Section must be a string')
+
 ];
 
 export const respondToRequestValidation = [
@@ -45,11 +67,11 @@ export const createAccessRequest = async (req: Request, res: Response): Promise<
       return;
     }
 
-    const { courseId, message } = req.body;
+    const { courseId, data } = req.body;
     const teacherId = (req as any).user?._id;
 
     // Check if course exists
-    const course = await Course.findById(courseId).populate('department');
+    const course = await Course.findById(courseId).populate('department').populate('moduleLeader');
     if (!course) {
       res.status(404).json({
         success: false,
@@ -58,37 +80,12 @@ export const createAccessRequest = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Find module leader for this course (look for sections with this course)
-    const section = await Section.findOne({ 
-      course: courseId, 
-      moduleLeader: { $exists: true, $ne: null } 
-    }).populate('moduleLeader');
-
-    if (!section || !section.moduleLeader) {
-      res.status(400).json({
-        success: false,
-        message: 'No module leader assigned to this course'
-      });
-      return;
-    }
-
-    // Check if teacher already has access to this course
-    const existingSection = await Section.findOne({
-      course: courseId,
-      instructor: teacherId
-    });
-
-    if (existingSection) {
-      res.status(400).json({
-        success: false,
-        message: 'You already have access to this course'
-      });
-      return;
-    }
-
     // Check if there's already a pending request
     const existingRequest = await CourseAccessRequest.findOne({
       course: courseId,
+      batch: data.batch,
+      semester: data.semester,
+      section: data.section,
       teacher: teacherId,
       status: 'pending'
     });
@@ -105,8 +102,11 @@ export const createAccessRequest = async (req: Request, res: Response): Promise<
     const accessRequest = new CourseAccessRequest({
       course: courseId,
       teacher: teacherId,
-      moduleLeader: section.moduleLeader._id,
-      message
+      semester: data.semester,
+      batch: data.batch,
+      section: data.section,
+      moduleLeader: course.moduleLeader._id,
+      message: data.message,
     });
 
     await accessRequest.save();
@@ -153,9 +153,9 @@ export const getPendingRequests = async (req: Request, res: Response): Promise<v
   try {
     const moduleLeaderId = (req as any).user?._id;
 
-    const requests = await CourseAccessRequest.find({ 
+    const requests = await CourseAccessRequest.find({
       moduleLeader: moduleLeaderId,
-      status: 'pending' 
+      status: 'pending'
     }).sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -177,8 +177,8 @@ export const getAllRequestsForModuleLeader = async (req: Request, res: Response)
   try {
     const moduleLeaderId = (req as any).user?._id;
 
-    const requests = await CourseAccessRequest.find({ 
-      moduleLeader: moduleLeaderId 
+    const requests = await CourseAccessRequest.find({
+      moduleLeader: moduleLeaderId
     }).sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -223,7 +223,7 @@ export const respondToRequest = async (req: Request, res: Response): Promise<voi
     }
 
     // Verify the current user is the module leader for this request
-    if (request.moduleLeader.toString() !== moduleLeaderId.toString()) {
+    if (request.moduleLeader._id.toString() !== moduleLeaderId.toString()) {
       res.status(403).json({
         success: false,
         message: 'You are not authorized to respond to this request'
@@ -249,31 +249,66 @@ export const respondToRequest = async (req: Request, res: Response): Promise<voi
     await request.save();
 
     // If approved, add teacher to course section
+    // if (status === 'approved') {
+
+
+    //   const isSameExist = await CourseAccess.findOne({
+    //     course: request.course,
+    //     teachers: request.teacher,
+    //     semester: request.semester,
+    //     year: new Date().getFullYear(),
+    //     batch: request.batch
+    //   });
+
+
+    //   if (isSameExist) {
+    //     await CourseAccess.updateOne(
+    //       { course: request.course, semester: request.semester, year: new Date().getFullYear() },
+    //       { $addToSet: { teachers: request.teacher } }
+    //     );
+    //   } else {
+    //     const courseAccess = new CourseAccess({
+    //       semester: request.semester,
+    //       year: new Date().getFullYear(),
+    //       course: request.course,
+    //       teachers: [request.teacher],
+    //       batch: request.batch,
+    //       moduleLeader: request.moduleLeader
+    //     });
+    //     await courseAccess.save();
+    //   }
+    // }
     if (status === 'approved') {
-      // Find a section for this course that the module leader manages
-      const section = await Section.findOne({
+      const existingAccess = await CourseAccess.findOne({
         course: request.course,
-        moduleLeader: moduleLeaderId
+        semester: request.semester,
+        year: new Date().getFullYear(),
+        batch: request.batch
       });
 
-      if (section && !section.instructor) {
-        // Assign teacher as instructor if no instructor is assigned
-        section.instructor = request.teacher;
-        await section.save();
-      } else {
-        // Create a new section for this teacher if needed
-        const course = await Course.findById(request.course);
-        const newSection = new Section({
-          name: `Section-${Date.now()}`, // Generate unique section name
-          batch: section?.batch, // Use existing batch or you might need to handle this differently
+      if (!existingAccess) {
+        // Create new course access
+        const courseAccess = new CourseAccess({
+          semester: request.semester,
+          year: new Date().getFullYear(),
           course: request.course,
-          instructor: request.teacher,
-          moduleLeader: moduleLeaderId,
-          maxStudents: 50, // Default value
-          createdBy: moduleLeaderId
+          teachers: [request.teacher],
+          batch: request.batch,
+          moduleLeader: request.moduleLeader,
+          sections: [request.section]
         });
-        
-        await newSection.save();
+        await courseAccess.save();
+      } else {
+        // Update existing: add teacher and section if not already present
+        await CourseAccess.updateOne(
+          { _id: existingAccess._id },
+          {
+            $addToSet: {
+              teachers: request.teacher,
+              sections: request.section
+            }
+          }
+        );
       }
     }
 
@@ -296,48 +331,22 @@ export const respondToRequest = async (req: Request, res: Response): Promise<voi
 export const getAccessibleCourses = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).user?._id;
-    const userRole = (req as any).user?.role;
+    // const userRole = (req as any).user?.role;
 
-    let sections;
 
-    if (userRole === 'module-leader') {
-      // Module leaders can see all sections they manage
-      sections = await Section.find({ moduleLeader: userId })
-        .populate({
-          path: 'course',
-          populate: { path: 'department', select: 'name code' }
-        })
-        .populate('batch')
-        .populate('instructor', 'name email employeeId');
-    } else {
-      // Teachers can see sections they instruct
-      sections = await Section.find({ instructor: userId })
-        .populate({
-          path: 'course',
-          populate: { path: 'department', select: 'name code' }
-        })
-        .populate('batch')
-        .populate('moduleLeader', 'name email employeeId');
-    }
-
-    // Format the response to match the frontend expectations
-    const courses = sections.map(section => ({
-      id: (section.course as any)._id,
-      code: (section.course as any).code,
-      title: (section.course as any).name,
-      department: (section.course as any).department?.name || 'Unknown',
-      semester: `${(section.batch as any)?.semester || 'Unknown'} ${(section.batch as any)?.year || ''}`,
-      creditHours: (section.course as any).creditHours,
-      moduleLeader: (section.moduleLeader as any)?.name || 'Not Assigned',
-      moduleLeaderEmail: (section.moduleLeader as any)?.email || '',
-      enrolledTeachers: (section.instructor as any) ? [(section.instructor as any).name] : [],
-      status: section.isActive ? 'active' : 'inactive',
-      documentProgress: Math.floor(Math.random() * 100), // Placeholder - replace with actual progress calculation
-      sectionId: section._id,
-      sectionName: section.name,
-      maxStudents: section.maxStudents,
-      currentStudents: section.currentStudents
-    }));
+    // Teachers can see only they instruct
+    const courses = await CourseAccess.find({
+      teachers: userId, status: 'ongoing',
+    })
+      .populate({
+        path: 'course',
+        populate:[
+          { path: 'moduleLeader' },
+          { path: 'department' }
+        ]
+      })
+      .lean()
+      .then(courseAccesses => courseAccesses.map(access => ({ ...access.course, status: access.status, semester: access.semester, year: access.year, batch: access.batch,sections: access.sections })));
 
     res.status(200).json({
       success: true,
@@ -356,75 +365,18 @@ export const getAccessibleCourses = async (req: Request, res: Response): Promise
 // Get all courses in user's department
 export const getDepartmentCourses = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user?._id;
-    
-    // Get user's department through sections they're associated with
-    const userSections = await Section.find({
-      $or: [
-        { instructor: userId },
-        { moduleLeader: userId }
-      ]
-    }).populate({
-      path: 'course',
-      populate: { path: 'department', select: 'name code' }
-    });
 
-    if (userSections.length === 0) {
-      res.status(200).json({
-        success: true,
-        data: []
-      });
-      return;
-    }
-
-    // Get department from first section (assuming user belongs to one department)
-    const department = (userSections[0].course as any).department;
+    const department = (req as any).user?.department;
 
     // Get all courses in the department
-    const courses = await Course.find({ department: department._id })
-      .populate('department', 'name code');
+    const allCourses = await Course.find()
+      .populate('department', 'name code').populate('moduleLeader');
 
-    // Get sections for each course to determine access
-    const coursesWithAccess = await Promise.all(
-      courses.map(async (course) => {
-        const sections = await Section.find({ course: course._id })
-          .populate('instructor', 'name email')
-          .populate('moduleLeader', 'name email')
-          .populate('batch', 'semester year');
-
-        const hasAccess = sections.some(section => 
-          (section.instructor as any)?._id.toString() === userId.toString() ||
-          (section.moduleLeader as any)?._id.toString() === userId.toString()
-        );
-
-        const moduleLeader = sections.find(s => s.moduleLeader)?.moduleLeader;
-        const instructors = sections
-          .filter(s => s.instructor)
-          .map(s => (s.instructor as any)?.name)
-          .filter(name => name);
-
-        const batch = sections[0]?.batch;
-
-        return {
-          id: course._id,
-          code: course.code,
-          title: course.name,
-          department: (course.department as any).name,
-          semester: batch ? `${(batch as any).semester} ${(batch as any).year}` : 'Not Scheduled',
-          creditHours: course.creditHours,
-          moduleLeader: (moduleLeader as any)?.name || 'Not Assigned',
-          moduleLeaderEmail: (moduleLeader as any)?.email || '',
-          enrolledTeachers: instructors,
-          status: course.isActive ? 'active' : 'inactive',
-          documentProgress: Math.floor(Math.random() * 100), // Placeholder
-          hasAccess
-        };
-      })
-    );
+    // const courses = allCourses.filter(course => course.department?.name === department)
 
     res.status(200).json({
       success: true,
-      data: coursesWithAccess
+      data: allCourses
     });
 
   } catch (error) {
