@@ -81,8 +81,8 @@ export const createDocumentDistribution = async (req: Request, res: Response) =>
       files: [],
       totalFileSize: 0,
       fileCount: 0,
-      googleDriveFolderId,
-      googleDriveFolderPath,
+      ...(googleDriveFolderId && { googleDriveFolderId }),
+      ...(googleDriveFolderPath && { googleDriveFolderPath }),
       folderStructure,
       course: {
         courseId: course._id,
