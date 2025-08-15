@@ -8,15 +8,13 @@ export interface Department {
   description?: string;
   head?: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     email: string;
   };
   isActive: boolean;
   createdBy: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -35,8 +33,7 @@ export interface Course {
   };
   moduleLeader?: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     email: string;
     role: string;
   };
@@ -48,8 +45,7 @@ export interface Course {
   isActive: boolean;
   createdBy: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -70,8 +66,7 @@ export interface Batch {
   isActive: boolean;
   createdBy: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -94,14 +89,12 @@ export interface Section {
   };
   instructor?: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     email: string;
   };
   moduleLeader?: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     email: string;
   };
   maxStudents: number;
@@ -115,8 +108,7 @@ export interface Section {
   isActive: boolean;
   createdBy: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -239,16 +231,14 @@ export interface AssignModuleLeaderInput {
 // User Management Types
 export interface User {
   _id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
-  role:  'admin' | 'teacher' | 'module-leader' | 'user';
+  role: 'admin' | 'teacher' | 'module-leader' | 'user';
   isBlocked: boolean;
   blockedAt?: string;
   blockedBy?: {
     _id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     email: string;
   };
   blockReason?: string;
