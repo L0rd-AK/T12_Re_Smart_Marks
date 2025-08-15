@@ -17,18 +17,19 @@ const Profile: React.FC = () => {
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
 
   // Extract user from the API response
-  const user = userResponse?.user;
+  const user = userResponse?.user as User | undefined;
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({
-    name: user?.name || currentUser?.name || 'Mehedi Hasan',
-    email: user?.email || currentUser?.email || '',
-    employeeId: user?.employeeId || currentUser?.employeeId || '342353',
-    designation: user?.designation || currentUser?.designation || 'Lecturer',
-    emailId: user?.emailId || currentUser?.emailId || 'mehedi15-4680@diu.edu.bd',
-    mobileNumber: user?.mobileNumber || currentUser?.mobileNumber || '+8801767705251',
-    roomNumber: user?.roomNumber || currentUser?.roomNumber || '810',
-    initial: user?.initial || currentUser?.initial || 'ADS',
+    name: user?.name || currentUser?.name,
+    email: user?.email || currentUser?.email,
+    employeeId: user?.employeeId || currentUser?.employeeId,
+    designation: user?.designation || currentUser?.designation,
+    emailId: user?.emailId || currentUser?.emailId,
+    mobileNumber: user?.mobileNumber || currentUser?.mobileNumber,
+    roomNumber: user?.roomNumber || currentUser?.roomNumber,
+    initial: user?.initial || currentUser?.initial,
+    department: user?.department || currentUser?.department,
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -39,14 +40,15 @@ const Profile: React.FC = () => {
     if (user || currentUser) {
       const userData = user || currentUser;
       setFormData({
-        name: userData?.name || 'Mehedi Hasan',
-        email: userData?.email || '',
-        employeeId: userData?.employeeId || '342353',
-        designation: userData?.designation || 'Lecturer',
-        emailId: userData?.emailId || 'mehedi15-4680@diu.edu.bd',
-        mobileNumber: userData?.mobileNumber || '+8801767705251',
-        roomNumber: userData?.roomNumber || '810',
-        initial: userData?.initial || 'ADS',
+        name: userData?.name,
+        email: userData?.email,
+        employeeId: userData?.employeeId,
+        designation: userData?.designation,
+        emailId: userData?.emailId,
+        mobileNumber: userData?.mobileNumber,
+        roomNumber: userData?.roomNumber,
+        initial: userData?.initial,
+        department: userData?.department,
       });
     }
   }, [user, currentUser]);
@@ -83,6 +85,7 @@ const Profile: React.FC = () => {
         mobileNumber: formData.mobileNumber,
         roomNumber: formData.roomNumber,
         initial: formData.initial,
+        department: formData.department,
       };
 
       if (avatarFile && avatarPreview) {
@@ -102,6 +105,7 @@ const Profile: React.FC = () => {
         mobileNumber: formData.mobileNumber,
         roomNumber: formData.roomNumber,
         initial: formData.initial,
+        department: formData.department,
         ...(avatarPreview && { avatar: avatarPreview })
       }));
 
@@ -130,6 +134,7 @@ const Profile: React.FC = () => {
       mobileNumber: userData?.mobileNumber || '+8801767705251',
       roomNumber: userData?.roomNumber || '',
       initial: userData?.initial || '',
+      department: userData?.department || '',
     });
   };
 
@@ -217,9 +222,9 @@ const Profile: React.FC = () => {
 
                 {/* Role Badge */}
                 <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
-                  {userData.role === 'admin' ? 'Administrator' : 
-                   userData.role === 'teacher' ? 'Teacher' :
-                   userData.role === 'module-leader' ? 'Module Leader' : 'Student'}
+                  {userData.role === 'admin' ? 'Administrator' :
+                    userData.role === 'teacher' ? 'Teacher' :
+                      userData.role === 'module-leader' ? 'Module Leader' : 'Student'}
                 </div>
 
                 {/* Email Verification Status */}
@@ -265,6 +270,10 @@ const Profile: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="font-semibold text-gray-700">Room Number:</span>
                     <span className="font-bold text-gray-900">{userData.roomNumber || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-gray-700">Department:</span>
+                    <span className="font-bold text-gray-900">{userData.department || '-'}</span>
                   </div>
                 </div>
               </div>
@@ -320,7 +329,7 @@ const Profile: React.FC = () => {
 
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name
+                    Name
                   </label>
                   <input
                     type="text"
@@ -450,6 +459,24 @@ const Profile: React.FC = () => {
                     id="roomNumber"
                     name="roomNumber"
                     value={formData.roomNumber}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
+                      ? 'border-gray-300 bg-white text-gray-900'
+                      : 'border-gray-200 bg-gray-50 text-gray-500'
+                      }`}
+                  />
+                </div>
+                {/* Department */}
+                <div className="">
+                  <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    id="department"
+                    name="department"
+                    value={formData.department}
                     onChange={handleInputChange}
                     disabled={!isEditing}
                     className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${isEditing
