@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { CourseAccessRequest } from '../models/CourseAccessRequest';
-import { Course, Section } from '../models/Academic';
+import Course from '../models/Course';
+import Section from '../models/Section';
 import User from '../models/User';
 import { body, param, validationResult } from 'express-validator';
 import mongoose from 'mongoose';

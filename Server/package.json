@@ -4,7 +4,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "create-test-data": "ts-node src/utils/createTestData.ts",
+    "debug-db": "ts-node src/utils/debugDatabase.ts",
+    "fix-module-leaders": "ts-node src/utils/fixModuleLeaderAssignments.ts",
+    "simple-fix": "ts-node src/utils/simpleFix.ts"
   },
   "keywords": [],
   "author": "",
