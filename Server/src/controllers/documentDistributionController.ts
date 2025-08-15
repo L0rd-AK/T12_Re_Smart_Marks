@@ -54,13 +54,21 @@ export const createDocumentDistribution = async (req: Request, res: Response) =>
       subFolder: category
     };
 
-    // Create Google Drive folder
-    const googleDriveFolderId = await GoogleDriveService.createFolder(
-      `${academicYear}/${semester}/${batch}/${course.code}/${category}`,
-      PARENT_FOLDER_ID
-    );
-
-    const googleDriveFolderPath = `${academicYear}/${semester}/${batch}/${course.code}/${category}`;
+    // Create Google Drive folder (optional - handle failures gracefully)
+    let googleDriveFolderId = null;
+    let googleDriveFolderPath = null;
+    
+    try {
+      googleDriveFolderId = await GoogleDriveService.createFolder(
+        `${academicYear}/${semester}/${batch}/${course.code}/${category}`,
+        PARENT_FOLDER_ID
+      );
+      googleDriveFolderPath = `${academicYear}/${semester}/${batch}/${course.code}/${category}`;
+      console.log('✅ Google Drive folder created successfully');
+    } catch (driveError) {
+      console.warn('⚠️ Google Drive folder creation failed, continuing without Drive integration:', driveError.message);
+      // Continue without Google Drive integration
+    }
 
     // Create document distribution record
     const documentDistribution = new DocumentDistribution({
