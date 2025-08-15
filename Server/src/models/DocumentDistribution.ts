@@ -85,8 +85,8 @@ export interface IDocumentDistribution extends Document {
   fileCount: number;
   
   // Google Drive integration
-  googleDriveFolderId: string;
-  googleDriveFolderPath: string;
+  googleDriveFolderId?: string;
+  googleDriveFolderPath?: string;
   folderStructure: {
     year: string;
     semester: string;
@@ -339,11 +339,11 @@ const documentDistributionSchema = new Schema<IDocumentDistribution>({
   // Google Drive integration
   googleDriveFolderId: {
     type: String,
-    required: true
+    required: false
   },
   googleDriveFolderPath: {
     type: String,
-    required: true
+    required: false
   },
   folderStructure: {
     year: {
