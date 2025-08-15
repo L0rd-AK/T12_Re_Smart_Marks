@@ -5,3 +5,4 @@ Client/dist
 Server/node_modules
 Server/.env
 Server/dist
+Server/google-service-account.json
