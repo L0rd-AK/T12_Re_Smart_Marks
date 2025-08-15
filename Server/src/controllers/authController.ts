@@ -222,18 +222,18 @@ export class AuthController {
         sameSite: 'lax'
       });
 
-      res.json({ 
+      res.json({
         success: true,
-        message: 'Logout successful' 
+        message: 'Logout successful'
       });
     } catch (error) {
       console.error('Logout error:', error);
       // Even if there's an error, clear cookies and respond successfully
       res.clearCookie('accessToken');
       res.clearCookie('refreshToken');
-      res.json({ 
+      res.json({
         success: true,
-        message: 'Logout successful' 
+        message: 'Logout successful'
       });
     }
   });
@@ -402,15 +402,15 @@ export class AuthController {
 
   // Update profile
   static updateProfile = asyncHandler(async (req: Request, res: Response) => {
-    const { 
-      name, 
-      employeeId, 
-      designation, 
-      emailId, 
-      mobileNumber, 
-      roomNumber, 
+    const {
+      name,
+      employeeId,
+      designation,
+      emailId,
+      mobileNumber,
+      roomNumber,
       initial,
-      avatar 
+      avatar, department
     } = req.body;
     const user = req.user!;
 
@@ -422,7 +422,7 @@ export class AuthController {
     if (roomNumber !== undefined) user.roomNumber = roomNumber;
     if (initial !== undefined) user.initial = initial;
     if (avatar !== undefined) user.avatar = avatar;
-
+    if (department !== undefined) user.department = department;
     await user.save();
 
     res.json({
