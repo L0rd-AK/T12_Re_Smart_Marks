@@ -106,7 +106,7 @@ export const createAccessRequest = async (req: Request, res: Response): Promise<
       semester: data.semester,
       batch: data.batch,
       section: data.section,
-      moduleLeader: course.moduleLeader._id,
+      moduleLeader: course?.moduleLeader?._id,
       message: data.message,
     });
 
@@ -371,7 +371,8 @@ export const getDepartmentCourses = async (req: Request, res: Response): Promise
     // For now, return all active courses since users don't have department field
     // In the future, this can be enhanced to filter by department
     const allCourses = await Course.find({ isActive: true })
-      .populate('department', 'name code');
+      .populate('department', 'name code')
+      .populate('moduleLeader', 'name email initial');
 
     // Get sections for each course to determine access
     const coursesWithAccess = await Promise.all(

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { GoogleDriveService } from '../../../services/googleDriveService';
+import { useGetDepartmentCoursesQuery } from '../../../redux/api/courseAccessApi';
 
 interface Document {
   id: string;
@@ -82,10 +83,15 @@ const DocumentManagement: React.FC = () => {
     year: '',
     semester: '',
     batch: '',
-    term: '',
+    courseName: '',
+    courseCode: '',
     files: null as FileList | null,
     isUploading: false,
   });
+
+  // Get courses data
+  const { data: coursesData, isLoading: coursesLoading, isError: coursesError } = useGetDepartmentCoursesQuery();
+  const courses = coursesData?.data || [];
 
   // Initialize Google Drive Service on component mount
   useEffect(() => {
@@ -103,16 +109,16 @@ const DocumentManagement: React.FC = () => {
 
   // Generate folder name from selections
   const generateFolderName = () => {
-    if (!driveUpload.year || !driveUpload.semester || !driveUpload.batch || !driveUpload.term) {
+    if (!driveUpload.year || !driveUpload.semester || !driveUpload.batch || !driveUpload.courseCode) {
       return '';
     }
-    return `${driveUpload.year}_${driveUpload.semester}_${driveUpload.batch}-${driveUpload.term}`;
+    return `${driveUpload.year}_${driveUpload.semester}_${driveUpload.batch}-${driveUpload.courseCode}`;
   };
 
   // Check if upload can be performed
   const canUpload = () => {
     return driveUpload.year && driveUpload.semester && driveUpload.batch && 
-           driveUpload.term && driveUpload.files && driveUpload.files.length > 0 && 
+           driveUpload.courseCode && driveUpload.files && driveUpload.files.length > 0 && 
            !driveUpload.isUploading && GoogleDriveService.isSignedIn();
   };
 
@@ -212,7 +218,8 @@ const DocumentManagement: React.FC = () => {
         year: '',
         semester: '',
         batch: '',
-        term: '',
+        courseName: '',
+        courseCode: '',
         files: null,
         isUploading: false,
       });
@@ -443,7 +450,7 @@ const DocumentManagement: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
           {/* Year Dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
@@ -496,20 +503,45 @@ const DocumentManagement: React.FC = () => {
             </select>
           </div>
 
-          {/* Term Dropdown */}
+          {/* Course Selection Dropdown */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Term</label>
-            <select
-              value={driveUpload.term}
-              onChange={(e) => setDriveUpload(prev => ({ ...prev, term: e.target.value }))}
-              className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              title="Select term"
-            >
-              <option value="">Select Term</option>
-              <option value="T1">T1</option>
-              <option value="T2">T2</option>
-              <option value="T3">T3</option>
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Course {!coursesLoading && !coursesError && courses.length > 0 && (
+                <span className="text-xs text-gray-500 font-normal ml-2">
+                  ({courses.length} available)
+                </span>
+              )}
+            </label>
+            {coursesLoading ? (
+              <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500">
+                Loading courses...
+              </div>
+            ) : coursesError ? (
+              <div className="w-full border border-red-300 rounded-lg px-3 py-2 bg-red-50 text-red-600">
+                Error loading courses. Please try again.
+              </div>
+            ) : (
+              <select
+                value={driveUpload.courseCode}
+                onChange={(e) => {
+                  const selectedCourse = courses.find(course => course.code === e.target.value);
+                  setDriveUpload(prev => ({ 
+                    ...prev, 
+                    courseCode: e.target.value,
+                    courseName: selectedCourse ? selectedCourse.name : ''
+                  }));
+                }}
+                className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                title="Select a course"
+              >
+                <option value="">Select a Course</option>
+                {courses.map((course) => (
+                  <option key={course._id} value={course.code}>
+                    {course.name} ({course.code})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
@@ -598,7 +630,7 @@ const DocumentManagement: React.FC = () => {
               title={
                 !isGoogleDriveReady() 
                   ? 'Google Drive not connected - please connect to Google Drive first' 
-                  : !driveUpload.year || !driveUpload.semester || !driveUpload.batch || !driveUpload.term
+                  : !driveUpload.year || !driveUpload.semester || !driveUpload.batch || !driveUpload.courseCode
                   ? 'Please select all dropdown fields'
                   : !driveUpload.files || driveUpload.files.length === 0
                   ? 'Please select files to upload'
