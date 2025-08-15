@@ -116,13 +116,13 @@ export interface IDocumentDistribution extends Document {
   };
   
   // Module leader information
-  moduleLeader: {
-    userId: mongoose.Types.ObjectId;
-    name: string;
-    email: string;
-    employeeId: string;
-    department: string;
-  };
+     moduleLeader: {
+     userId: mongoose.Types.ObjectId;
+     name: string;
+     email: string;
+     employeeId?: string;
+     department?: string;
+   };
   
   // Access control and permissions
   permissions: IPermissionSettings;
@@ -435,14 +435,14 @@ const documentDistributionSchema = new Schema<IDocumentDistribution>({
       type: String,
       required: true
     },
-    employeeId: {
-      type: String,
-      required: true
-    },
-    department: {
-      type: String,
-      required: true
-    }
+         employeeId: {
+       type: String,
+       required: false
+     },
+     department: {
+       type: String,
+       required: false
+     }
   },
   
   // Access control and permissions
