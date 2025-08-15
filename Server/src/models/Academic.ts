@@ -283,7 +283,7 @@ sectionSchema.pre('save', function(next) {
   }
 });
 
-export const Department = mongoose.model<IDepartment>('Department', departmentSchema);
-export const Course = mongoose.model<ICourse>('Course', courseSchema);
-export const Batch = mongoose.model<IBatch>('Batch', batchSchema);
-export const Section = mongoose.model<ISection>('Section', sectionSchema);
+export const Department = mongoose.models.Department || mongoose.model<IDepartment>('Department', departmentSchema);
+export const Course = mongoose.models.Course || mongoose.model<ICourse>('Course', courseSchema);
+export const Batch = mongoose.models.Batch || mongoose.model<IBatch>('Batch', batchSchema);
+export const Section = mongoose.models.Section || mongoose.model<ISection>('Section', sectionSchema);
