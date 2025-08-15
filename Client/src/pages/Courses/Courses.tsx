@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react"
 import {
     BookOpen,
@@ -9,8 +10,8 @@ import {
     Clock,
 } from "lucide-react"
 import CourseDetailsPage from "../CourseDetails/CourseDetails"
-import { 
-    useGetMyCoursesQuery, 
+import {
+    useGetMyCoursesQuery,
     useGetDepartmentCoursesQuery,
     useGetMyRequestsQuery,
     useGetPendingRequestsQuery,
@@ -21,6 +22,7 @@ import {
 } from "../../redux/api/courseAccessApi"
 import { useAppSelector } from "../../redux/hooks"
 import LoadingSpinner from "../../components/LoadingSpinner"
+import { toast } from "sonner"
 
 
 export default function CoursesPage() {
@@ -33,7 +35,9 @@ export default function CoursesPage() {
     const [showResponseModal, setShowResponseModal] = useState(false)
     const [selectedRequest, setSelectedRequest] = useState<CourseAccessRequest | null>(null)
     const [responseMessage, setResponseMessage] = useState("")
-
+    const [section, setSection] = useState<string>("")
+    const [semester, setSemester] = useState<"Spring" | "Fall" | "Summer" | "">("")
+    const [batch, setBatch] = useState<number>()
     // Get user info from Redux store
     const user = useAppSelector((state) => state.auth.user)
 
@@ -42,7 +46,7 @@ export default function CoursesPage() {
     const { data: departmentCoursesData, isLoading: departmentCoursesLoading } = useGetDepartmentCoursesQuery()
     const { data: myRequestsData, isLoading: myRequestsLoading } = useGetMyRequestsQuery()
     const { data: pendingRequestsData, isLoading: pendingRequestsLoading } = useGetPendingRequestsQuery(
-        undefined, 
+        undefined,
         { skip: user?.role !== 'module-leader' }
     )
 
@@ -53,32 +57,38 @@ export default function CoursesPage() {
     const departmentCourses = departmentCoursesData?.data || []
     const myRequests = myRequestsData?.data || []
     const pendingRequests = pendingRequestsData?.data || []
-
+    console.log("myCourses", myCourses)
     const handleRequestAccess = (course: Course) => {
         setSelectedCourse(course)
         setShowRequestModal(true)
     }
 
     const submitAccessRequest = async () => {
-        if (!selectedCourse || !requestMessage.trim()) return
+        if (!selectedCourse || !requestMessage.trim() || !batch || !section) return
 
         try {
             await createAccessRequest({
-                courseId: selectedCourse.id,
-                message: requestMessage
+                courseId: selectedCourse?._id,
+                data: {
+                    message: requestMessage,
+                    moduleLeaderId: selectedCourse?.moduleLeader?._id ?? "",
+                    batch: batch,
+                    section: section,
+                    semester: semester
+                }
             }).unwrap()
 
             setShowRequestModal(false)
             setRequestMessage("")
             setSelectedCourse(null)
-            
+
             // Show success message
-            alert('Access request sent successfully!')
+            toast.success('Access request sent successfully!')
         } catch (error: unknown) {
-            const errorMessage = error && typeof error === 'object' && 'data' in error 
+            const errorMessage = error && typeof error === 'object' && 'data' in error
                 ? (error.data as { message?: string })?.message || 'Failed to send request'
                 : 'Failed to send request'
-            alert(errorMessage)
+            toast.error(errorMessage)
         }
     }
 
@@ -91,25 +101,32 @@ export default function CoursesPage() {
         if (!selectedRequest) return
 
         try {
+            console.log({
+                requestId: selectedRequest._id,
+                status,
+                responseMessage: responseMessage
+
+            })
             await respondToRequest({
                 requestId: selectedRequest._id,
                 data: {
                     status,
-                    responseMessage: responseMessage || undefined
+                    responseMessage: responseMessage
                 }
+
             }).unwrap()
 
             setShowResponseModal(false)
             setResponseMessage("")
             setSelectedRequest(null)
-            
+
             // Show success message
-            alert(`Request ${status} successfully!`)
+            toast.success(`Request ${status} successfully!`)
         } catch (error: unknown) {
-            const errorMessage = error && typeof error === 'object' && 'data' in error 
+            const errorMessage = error && typeof error === 'object' && 'data' in error
                 ? (error.data as { message?: string })?.message || 'Failed to respond to request'
                 : 'Failed to respond to request'
-            alert(errorMessage)
+            toast.error(errorMessage)
         }
     }
 
@@ -131,15 +148,15 @@ export default function CoursesPage() {
 
     if (showCourseDetails && user) {
         return (
-            <CourseDetailsPage 
-                courseId={selectedCourseId} 
+            <CourseDetailsPage
+                courseId={selectedCourseId}
                 userInfo={{
                     name: user.name,
                     email: user.email,
                     role: user.role,
                     department: user.department || 'Unknown'
-                }} 
-                onBack={() => setShowCourseDetails(false)} 
+                }}
+                onBack={() => setShowCourseDetails(false)}
             />
         )
     }
@@ -170,7 +187,7 @@ export default function CoursesPage() {
                     <div role="tablist" className="tabs tabs-boxed bg-gray-100 backdrop-blur-sm shadow-lg grid grid-cols-4 justify-center items-center">
                         <button
                             role="tab"
-                            className={`tab flex items-center gap-2 ${activeTab === "all-courses" ? "tab-active !bg-indigo-600 !text-white" : "!text-gray-700 hover:!bg-indigo-100"}`}
+                            className={`tab flex-1 flex items-center gap-2 ${activeTab === "all-courses" ? "tab-active !bg-indigo-600 !text-white" : "!text-gray-700 hover:!bg-indigo-100"}`}
                             onClick={() => setActiveTab("all-courses")}
                         >
                             <BookOpen className="w-4 h-4" />
@@ -179,7 +196,7 @@ export default function CoursesPage() {
 
                         <button
                             role="tab"
-                            className={`tab flex items-center gap-2 ${activeTab === "my-courses" ? "tab-active !bg-green-600 !text-white" : "!text-gray-700 hover:!bg-green-100"}`}
+                            className={`tab flex-1 flex items-center gap-2 ${activeTab === "my-courses" ? "tab-active !bg-green-600 !text-white" : "!text-gray-700 hover:!bg-green-100"}`}
                             onClick={() => setActiveTab("my-courses")}
                         >
                             <Users className="w-4 h-4" />
@@ -188,7 +205,7 @@ export default function CoursesPage() {
 
                         <button
                             role="tab"
-                            className={`tab flex items-center gap-2 ${activeTab === "requests" ? "tab-active !bg-purple-600 !text-white" : "!text-gray-700 hover:!bg-purple-100"}`}
+                            className={`tab flex-1 flex items-center gap-2 ${activeTab === "requests" ? "tab-active !bg-purple-600 !text-white" : "!text-gray-700 hover:!bg-purple-100"}`}
                             onClick={() => setActiveTab("requests")}
                         >
                             <Send className="w-4 h-4" />
@@ -198,7 +215,7 @@ export default function CoursesPage() {
                         {user?.role === 'module-leader' && (
                             <button
                                 role="tab"
-                                className={`tab flex items-center gap-2 ${activeTab === "pending-requests" ? "tab-active !bg-orange-600 !text-white" : "!text-gray-700 hover:!bg-orange-100"}`}
+                                className={`tab flex-1 flex items-center gap-2 ${activeTab === "pending-requests" ? "tab-active !bg-orange-600 !text-white" : "!text-gray-700 hover:!bg-orange-100"}`}
                                 onClick={() => setActiveTab("pending-requests")}
                             >
                                 <Clock className="w-4 h-4" />
@@ -237,36 +254,33 @@ export default function CoursesPage() {
                                                 </thead>
                                                 <tbody>
                                                     {departmentCourses.map((course, idx) => {
-                                                        const hasAccess = course.hasAccess;
                                                         return (
                                                             <tr
-                                                                key={course.id}
+                                                                key={idx}
                                                                 className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-indigo-50/60"} hover:bg-indigo-100/70`}
                                                             >
-                                                                <td className={`font-medium text-indigo-700 ${!hasAccess ? "opacity-70" : ""}`}>{course.code}</td>
-                                                                <td className={`${!hasAccess ? "text-gray-400" : "text-gray-900"}`}>{course.title}</td>
-                                                                <td className={`${!hasAccess ? "text-gray-400" : "text-gray-900"}`}>{course.creditHours}</td>
-                                                                <td className={`${!hasAccess ? "text-gray-400" : "text-gray-900"}`}>{course.moduleLeader}</td>
+                                                                <td className={`font-medium text-indigo-700 `}>{course.code}</td>
+                                                                <td className={`text-gray-900`}>{course.name}</td>
+                                                                <td className={`text-gray-900`}>{course.creditHours}</td>
+                                                                <td className={`text-gray-900`}>{course?.moduleLeader?.name}</td>
                                                                 <td>
                                                                     <div className="flex gap-2">
-                                                                        {hasAccess && (
-                                                                            <button
-                                                                                onClick={() => handleViewCourseDetails(course.id)}
+                                                                        {
+                                                                            myCourses.some(c => c._id === course._id) ? (<button
+                                                                                onClick={() => handleViewCourseDetails(course._id)}
                                                                                 className="btn btn-sm border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white px-5"
                                                                             >
                                                                                 <ExternalLink className="w-4 h-4 mr-2" />
                                                                                 View Details
-                                                                            </button>
-                                                                        )}
-                                                                        {!hasAccess && (
-                                                                            <button
+                                                                            </button>) : (<button
                                                                                 onClick={() => handleRequestAccess(course)}
                                                                                 className="btn btn-sm border-indigo-600 bg-indigo-600 hover:bg-indigo-700 text-white"
                                                                             >
                                                                                 <Send className="w-4 h-4 mr-2" />
                                                                                 Request Access
-                                                                            </button>
-                                                                        )}
+                                                                            </button>)
+                                                                        }
+
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -297,38 +311,44 @@ export default function CoursesPage() {
                                                     <tr className="bg-emerald-100/80">
                                                         <th className="font-semibold text-emerald-900">Course Code</th>
                                                         <th className="font-semibold text-emerald-900">Course Title</th>
+                                                        <th className="font-semibold text-indigo-900">Credit Hours</th>
                                                         <th className="font-semibold text-emerald-900">Role</th>
+                                                        <th className="font-semibold text-emerald-900">Semester</th>
+                                                        <th className="font-semibold text-emerald-900">Batch</th>
+                                                        <th className="font-semibold text-emerald-900">Module Leader</th>
                                                         <th className="font-semibold text-emerald-900">Status</th>
                                                         <th className="font-semibold text-emerald-900">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {myCourses.map((course, idx) => (
+                                                    {myCourses.map((course: any, idx) => (
                                                         <tr
-                                                            key={course.id}
+                                                            key={idx}
                                                             className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-emerald-50/60"} hover:bg-emerald-100/70`}
                                                         >
                                                             <td className="font-medium text-emerald-700">{course.code}</td>
-                                                            <td className="text-gray-900">{course.title}</td>
+                                                            <td className="text-gray-900">{course.name}</td>
+                                                            <td className={`text-gray-900`}>{course.creditHours}</td>
                                                             <td>
-                                                                {course.moduleLeader === user?.name ? (
+                                                                {course?.moduleLeader?.name === user?.name ? (
                                                                     <span className="badge bg-purple-600/10 text-purple-800 border border-purple-300">Module Leader</span>
                                                                 ) : (
                                                                     <span className="badge bg-indigo-600/10 text-indigo-800 border border-indigo-300">Teacher</span>
                                                                 )}
                                                             </td>
+                                                            <td className="text-gray-900">{course.semester}-{course.year}</td>
+                                                            <td className="text-gray-900">{course.batch}</td>
+                                                            <td className="text-gray-900">{course.moduleLeader.name}({course.moduleLeader.initial})</td>
                                                             <td>
-                                                                {course.documentProgress >= 90 ? (
-                                                                    <span className="badge bg-emerald-600/10 text-emerald-800 border border-emerald-300">Complete</span>
-                                                                ) : course.documentProgress >= 50 ? (
-                                                                    <span className="badge bg-yellow-400/10 text-yellow-800 border border-yellow-300">In Progress</span>
+                                                                {course.status == "ongoing" ? (
+                                                                    <span className="badge bg-emerald-600/10 text-emerald-800 border border-emerald-300">Ongoing</span>
                                                                 ) : (
-                                                                    <span className="badge bg-rose-600/10 text-rose-800 border border-rose-300">Incomplete</span>
+                                                                    <span className="badge bg-yellow-400/10 text-yellow-800 border border-yellow-300">Completed</span>
                                                                 )}
                                                             </td>
                                                             <td>
                                                                 <button
-                                                                    onClick={() => handleViewCourseDetails(course.id)}
+                                                                    onClick={() => handleViewCourseDetails(course._id)}
                                                                     className="btn btn-sm border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white"
                                                                 >
                                                                     <ExternalLink className="w-4 h-4 mr-2" />
@@ -359,8 +379,8 @@ export default function CoursesPage() {
                                         {myRequests.length === 0 ? (
                                             <p className="text-gray-500 text-center py-8">No requests sent</p>
                                         ) : (
-                                            myRequests.map((request) => (
-                                                <div key={request._id} className="border border-purple-200 rounded-lg p-4 space-y-3 bg-purple-50/30">
+                                            myRequests.map((request, idx) => (
+                                                <div key={idx} className="border border-purple-200 rounded-lg p-4 space-y-3 bg-purple-50/30">
                                                     <div className="flex justify-between items-start">
                                                         <div>
                                                             <h4 className="font-medium text-purple-600">{request.course.name}</h4>
@@ -399,8 +419,8 @@ export default function CoursesPage() {
                                         {pendingRequests.length === 0 ? (
                                             <p className="text-gray-500 text-center py-8">No pending requests</p>
                                         ) : (
-                                            pendingRequests.map((request) => (
-                                                <div key={request._id} className="border border-orange-200 rounded-lg p-4 space-y-3 bg-orange-50/30">
+                                            pendingRequests.map((request, idx) => (
+                                                <div key={idx} className="border border-orange-200 rounded-lg p-4 space-y-3 bg-orange-50/30">
                                                     <div className="flex justify-between items-start">
                                                         <div>
                                                             <h4 className="font-medium text-orange-600">{request.course.name}</h4>
@@ -412,7 +432,7 @@ export default function CoursesPage() {
                                                     </div>
                                                     <p className="text-sm text-gray-700">{request.message}</p>
                                                     <p className="text-xs text-gray-500">Requested: {new Date(request.requestDate).toLocaleDateString()}</p>
-                                                    
+
                                                     <div className="flex gap-2 mt-4">
                                                         <button
                                                             onClick={() => handleRespondToRequest(request)}
@@ -445,12 +465,69 @@ export default function CoursesPage() {
                 {/* Access Request Modal */}
                 {showRequestModal && (
                     <div className="modal modal-open">
-                        <div className="modal-box bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-md">
+                        <div className="modal-box bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-lg">
                             <h3 className="font-bold text-xl text-gray-900">Request Course Access</h3>
                             <p className="text-gray-700 mb-4">
-                                Send a request to join <span className="font-medium">{selectedCourse?.code}</span> - {selectedCourse?.title}
+                                Send a request to join <span className="font-medium">{selectedCourse?.code}</span> - {selectedCourse?.name}
                             </p>
+                            {/* Module Leader information */}
+                            <div className="mb-4 p-3 bg-indigo-50 rounded-lg ">
+                                <span className="font-semibold text-indigo-700">Module Leader Information:</span>
+                                <div>
+                                    <p className="text-gray-600 text-sm"><strong>Name:</strong> {selectedCourse?.moduleLeader?.name || "Unknown"}</p>
+                                    <p className="text-sm text-gray-600"><strong>Email:</strong> {selectedCourse?.moduleLeader?.email || "No email"}</p>
+                                    <p className="text-sm text-gray-600"><strong>Phone:</strong> {selectedCourse?.moduleLeader?.mobileNumber || "No phone number"}</p>
+                                </div>
+                            </div>
+                            <div className="sm:flex sm:justify-between sm:items-center mb-4 gap-4">
+                                {/* batch dropdown */}
+                                <div className="mb-4 flex-1 ">
+                                    <label htmlFor="batch" className="block text-sm font-medium text-gray-700 mb-2">Batch</label>
+                                    <select
+                                        id="batch"
+                                        value={batch || ""}
+                                        onChange={(e) => setBatch(Number(e.target.value))}
+                                        className="select select-bordered w-full focus:border-indigo-500 focus:ring-indigo-500 bg-white text-black drop-shadow-sm"
+                                    >
+                                        <option value="" disabled>Select Batch</option>
+                                        {[1, 2, 3, 4, 5].map((b) => (
+                                            <option key={b} value={b}>{b}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
+                                {/* Semester dropdown */}
+                                <div className="mb-4 flex-1 ">
+                                    <label htmlFor="semester" className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
+                                    <select
+                                        id="semester"
+                                        value={semester}
+                                        onChange={(e) => setSemester(e.target.value as "Spring" | "Fall" | "Summer")}
+                                        className="select select-bordered w-full focus:border-indigo-500 focus:ring-indigo-500 bg-white text-black drop-shadow-sm"
+                                    >
+                                        <option value="">Select Semester</option>
+                                        <option value="Spring">Spring</option>
+                                        <option value="Summer">Summer</option>
+                                        <option value="Fall">Fall</option>
+                                    </select>
+                                </div>
+                                {/* Section dropdown */}
+                                <div className="mb-4 flex-1 ">
+                                    <label htmlFor="section" className="block text-sm font-medium text-gray-700 mb-2">Section</label>
+                                    <select
+                                        id="section"
+                                        value={section}
+                                        onChange={(e) => setSection(e.target.value)}
+                                        className="select select-bordered w-full focus:border-indigo-500 focus:ring-indigo-500 bg-white text-black drop-shadow-sm"
+                                    >
+                                        <option value="">Select Section</option>
+                                        <option value="S">S</option>
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                        <option value="C">C</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label htmlFor="message" className="text-sm font-medium text-gray-700 block">
@@ -460,7 +537,7 @@ export default function CoursesPage() {
                                         id="message"
                                         value={requestMessage}
                                         onChange={(e) => setRequestMessage(e.target.value)}
-                                        placeholder="Explain why you want to teach this course..."
+                                        placeholder="If anything want to say write here..."
                                         className="textarea textarea-bordered w-full min-h-[100px] focus:border-indigo-500 focus:ring-indigo-500 bg-white text-black drop-shadow-sm"
                                     ></textarea>
                                 </div>
