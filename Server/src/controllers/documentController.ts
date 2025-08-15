@@ -4,10 +4,51 @@ import { asyncHandler, createError } from '../middleware/errorHandler';
 import mongoose from 'mongoose';
 
 export class DocumentController {
+  // Utility function to clean up duplicate submissions
+  static cleanupDuplicateSubmissions = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!._id;
+
+    // Find all submissions grouped by course
+    const submissions = await DocumentSubmission.find({ userId }).sort({ createdAt: -1 });
+
+    const groupedByCourse: { [key: string]: any[] } = {};
+
+    submissions.forEach(submission => {
+      const key = `${submission.courseInfo.courseCode}-${submission.courseInfo.courseSection}-${submission.courseInfo.semester}`;
+      if (!groupedByCourse[key]) {
+        groupedByCourse[key] = [];
+      }
+      groupedByCourse[key].push(submission);
+    });
+
+    let deletedCount = 0;
+
+    // For each course, keep only the most recent submission
+    for (const courseKey in groupedByCourse) {
+      const courseSubmissions = groupedByCourse[courseKey];
+      if (courseSubmissions.length > 1) {
+        // Sort by createdAt (most recent first)
+        courseSubmissions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        // Keep the first (most recent) and delete the rest
+        for (let i = 1; i < courseSubmissions.length; i++) {
+          await DocumentSubmission.findByIdAndDelete(courseSubmissions[i]._id);
+          deletedCount++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Cleaned up ${deletedCount} duplicate submissions`,
+      deletedCount
+    });
+  });
+
   // Get all document submissions for the current user
   static getDocumentSubmissions = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!._id;
-    
+
     const submissions = await DocumentSubmission.find({ userId })
       .populate('reviewedBy', 'name email')
       .sort({ createdAt: -1 });
@@ -27,9 +68,9 @@ export class DocumentController {
       throw createError('Invalid submission ID', 400);
     }
 
-    const submission = await DocumentSubmission.findOne({ 
-      _id: id, 
-      userId 
+    const submission = await DocumentSubmission.findOne({
+      _id: id,
+      userId
     }).populate('reviewedBy', 'name email');
 
     if (!submission) {
@@ -154,17 +195,40 @@ export class DocumentController {
       throw createError('Document submission not found', 404);
     }
 
+    // Force recalculation of completion percentage by triggering pre-save middleware
+    // This ensures we have the latest completion status before checking
+    const allDocuments = [...submission.documents.theory, ...submission.documents.lab];
+    const completedDocuments = allDocuments.filter(doc => doc.status === 'yes');
+    const totalDocuments = allDocuments.length;
+
+    const currentCompletionPercentage = totalDocuments > 0 ? Math.round((completedDocuments.length / totalDocuments) * 100) : 0;
+
+    console.log(`📊 Submission completion check: ${completedDocuments.length}/${totalDocuments} documents completed (${currentCompletionPercentage}%)`);
+
     // Check if submission is complete
-    if (submission.completionPercentage < 100) {
+    if (currentCompletionPercentage < 100) {
+      console.log(`❌ Submission incomplete: ${currentCompletionPercentage}% < 100%`);
       throw createError('Cannot submit incomplete submission. Please complete all required documents.', 400);
     }
+
+    console.log('✅ Submission is complete, proceeding with submission...');
 
     submission.submissionStatus = 'submitted';
     submission.submittedAt = new Date();
     submission.overallStatus = 'pending';
 
-    await submission.save();
-
+    // await submission.save();
+    await DocumentSubmission.findOneAndUpdate({
+      _id: submissionId,
+      userId
+    }, {
+      submissionStatus: 'submitted',
+      submittedAt: new Date(),
+      overallStatus: 'pending'
+    }, {
+      new: true,
+      runValidators: true
+    });
     res.json({
       success: true,
       message: 'Document submission submitted successfully',
@@ -175,9 +239,9 @@ export class DocumentController {
   // Get current draft or create new submission for a course
   static getCurrentOrCreateSubmission = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!._id;
-    const { 
-      courseCode, 
-      courseSection, 
+    const {
+      courseCode,
+      courseSection,
       semester,
       courseTitle,
       creditHours,
@@ -190,17 +254,16 @@ export class DocumentController {
       throw createError('Course code, section, and semester are required', 400);
     }
 
-    // Try to find existing draft or partial submission for this course
+    // Try to find existing submission for this course (any status)
     let submission = await DocumentSubmission.findOne({
       userId,
       'courseInfo.courseCode': courseCode,
       'courseInfo.courseSection': courseSection,
-      'courseInfo.semester': semester,
-      submissionStatus: { $in: ['draft', 'partial'] }
-    });
+      'courseInfo.semester': semester
+    }).sort({ createdAt: -1 }); // Get the most recent submission
 
     if (!submission) {
-      // Create a new draft submission with default documents
+      // Create a new draft submission only if no submission exists for this course
       const defaultTheoryDocuments: IDocumentItem[] = [
         {
           id: 'course-outline',
@@ -397,9 +460,9 @@ export class DocumentController {
   // Get all submissions for review (Admin/Module Leader)
   static getAllSubmissionsForReview = asyncHandler(async (req: Request, res: Response) => {
     const { status, courseCode, department, page = 1, limit = 10 } = req.query;
-    
+
     const filter: any = { submissionStatus: 'submitted' };
-    
+
     if (status && status !== 'all') {
       filter.overallStatus = status;
     }

@@ -11,6 +11,9 @@ router.use(authenticate);
 // Get all submissions for the current user
 router.get('/submissions', DocumentController.getDocumentSubmissions);
 
+// Clean up duplicate submissions
+router.post('/submissions/cleanup-duplicates', DocumentController.cleanupDuplicateSubmissions);
+
 // Get current or create new submission for a course
 router.get('/submissions/current', DocumentController.getCurrentOrCreateSubmission);
 

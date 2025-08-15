@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import type { TeacherCourseRequest, ModuleLeaderDocumentSubmission } from '../../../types/types';
 import {
   useGetCourseRequestsQuery,
   useUpdateCourseRequestStatusMutation,

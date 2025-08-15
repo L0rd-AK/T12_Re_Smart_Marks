@@ -4,6 +4,7 @@ import { setCredentials, clearCredentials, updateUser } from '../features/authSl
 import { triggerGlobalLogout } from '../../hooks/useAuthPersistence';
 
 export interface User {
+  _id?: string;
   id: string;
   name: string;
   email: string;
@@ -14,6 +15,7 @@ export interface User {
   mobileNumber?: string;
   roomNumber?: string;
   initial?: string;
+  department?: string;
   isEmailVerified: boolean;
   role: 'admin' | 'teacher' | 'module-leader';
   createdAt: string;

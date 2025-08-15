@@ -54,7 +54,7 @@ router.get('/users', asyncHandler(async (req: Request, res: Response) => {
   const [users, total] = await Promise.all([
     User.find(filter)
       .select('-password -refreshTokens -emailVerificationToken -passwordResetToken')
-      .populate('blockedBy', 'firstName lastName email')
+      .populate('blockedBy', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit)),
@@ -255,26 +255,26 @@ router.get('/dashboard/stats', asyncHandler(async (req: Request, res: Response) 
   // Get recent data
   const [recentDepartments, recentCourses, recentBatches, recentSections] = await Promise.all([
     Department.find({ isActive: true })
-      .populate('head', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName')
+      .populate('head', 'name email')
+      .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
       .limit(5),
     Course.find({ isActive: true })
       .populate('department', 'name code')
-      .populate('createdBy', 'firstName lastName')
+      .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
       .limit(5),
     Batch.find({ isActive: true })
       .populate('department', 'name code')
-      .populate('createdBy', 'firstName lastName')
+      .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
       .limit(5),
     Section.find({ isActive: true })
       .populate('batch', 'name year semester')
       .populate('course', 'name code creditHours')
-      .populate('instructor', 'firstName lastName email')
-      .populate('moduleLeader', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName')
+      .populate('instructor', 'name email')
+      .populate('moduleLeader', 'name email')
+      .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
       .limit(5)
   ]);
@@ -295,8 +295,8 @@ router.get('/dashboard/stats', asyncHandler(async (req: Request, res: Response) 
 // Department Routes
 router.get('/departments', asyncHandler(async (req: Request, res: Response) => {
   const departments = await Department.find()
-    .populate('head', 'firstName lastName email')
-    .populate('createdBy', 'firstName lastName')
+    .populate('head', 'name email')
+    .populate('createdBy', 'name')
     .sort({ createdAt: -1 });
 
   res.json(departments);
@@ -310,8 +310,8 @@ router.get('/departments/:id', asyncHandler(async (req: Request, res: Response) 
   }
 
   const department = await Department.findById(id)
-    .populate('head', 'firstName lastName email')
-    .populate('createdBy', 'firstName lastName');
+    .populate('head', 'name email')
+    .populate('createdBy', 'name');
 
   if (!department) {
     throw createError('Department not found', 404);
@@ -357,8 +357,8 @@ router.post('/departments', validateRequest(createDepartmentSchema), asyncHandle
 
   await department.save();
   await department.populate([
-    { path: 'head', select: 'firstName lastName email' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'head', select: 'name email' },
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.status(201).json({
@@ -415,8 +415,8 @@ router.put('/departments/:id', validateRequest(updateDepartmentSchema), asyncHan
 
   await department.save();
   await department.populate([
-    { path: 'head', select: 'firstName lastName email' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'head', select: 'name email' },
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.json({
@@ -461,9 +461,9 @@ router.get('/courses', asyncHandler(async (req: Request, res: Response) => {
 
   const courses = await Course.find(filter)
     .populate('department', 'name code')
-    .populate('moduleLeader', 'firstName lastName email role')
+    .populate('moduleLeader', 'name email role')
     .populate('prerequisites', 'name code')
-    .populate('createdBy', 'firstName lastName')
+    .populate('createdBy', 'name')
     .sort({ createdAt: -1 });
 
   res.json(courses);
@@ -478,9 +478,9 @@ router.get('/courses/:id', asyncHandler(async (req: Request, res: Response) => {
 
   const course = await Course.findById(id)
     .populate('department', 'name code')
-    .populate('moduleLeader', 'firstName lastName email role')
+    .populate('moduleLeader', 'name email role')
     .populate('prerequisites', 'name code')
-    .populate('createdBy', 'firstName lastName');
+    .populate('createdBy', 'name');
 
   if (!course) {
     throw createError('Course not found', 404);
@@ -549,9 +549,9 @@ router.post('/courses', validateRequest(createCourseSchema), asyncHandler(async 
   await course.save();
   await course.populate([
     { path: 'department', select: 'name code' },
-    { path: 'moduleLeader', select: 'firstName lastName email role' },
+    { path: 'moduleLeader', select: 'name email role' },
     { path: 'prerequisites', select: 'name code' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.status(201).json({
@@ -631,9 +631,9 @@ router.put('/courses/:id', validateRequest(updateCourseSchema), asyncHandler(asy
   await course.save();
   await course.populate([
     { path: 'department', select: 'name code' },
-    { path: 'moduleLeader', select: 'firstName lastName email role' },
+    { path: 'moduleLeader', select: 'name email role' },
     { path: 'prerequisites', select: 'name code' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.json({
@@ -764,9 +764,9 @@ router.post('/courses/:id/assign-module-leader', asyncHandler(async (req: Reques
   await course.save();
   await course.populate([
     { path: 'department', select: 'name code' },
-    { path: 'moduleLeader', select: 'firstName lastName email role' },
+    { path: 'moduleLeader', select: 'name email role' },
     { path: 'prerequisites', select: 'name code' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'createdBy', select: 'name' }
   ]);
 
   // Populate the assignment details
@@ -806,7 +806,7 @@ router.get('/courses/available-module-leaders', asyncHandler(async (req: Request
   console.log('Filter:', filter);
 
   const teachers = await User.find(filter)
-    .select('firstName lastName email role')
+    .select('name email role')
     .sort({ firstName: 1, lastName: 1 })
     .limit(parseInt(limit));
 
@@ -826,7 +826,7 @@ router.get('/batches', asyncHandler(async (req: Request, res: Response) => {
 
   const batches = await Batch.find(filter)
     .populate('department', 'name code')
-    .populate('createdBy', 'firstName lastName')
+    .populate('createdBy', 'name')
     .sort({ createdAt: -1 });
 
   res.json(batches);
@@ -841,7 +841,7 @@ router.get('/batches/:id', asyncHandler(async (req: Request, res: Response) => {
 
   const batch = await Batch.findById(id)
     .populate('department', 'name code')
-    .populate('createdBy', 'firstName lastName');
+    .populate('createdBy', 'name');
 
   if (!batch) {
     throw createError('Batch not found', 404);
@@ -907,7 +907,7 @@ router.post('/batches', validateRequest(createBatchSchema), asyncHandler(async (
   await batch.save();
   await batch.populate([
     { path: 'department', select: 'name code' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.status(201).json({
@@ -985,7 +985,7 @@ router.put('/batches/:id', validateRequest(updateBatchSchema), asyncHandler(asyn
   await batch.save();
   await batch.populate([
     { path: 'department', select: 'name code' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.json({
@@ -1030,9 +1030,9 @@ router.get('/sections', asyncHandler(async (req: Request, res: Response) => {
   const sections = await Section.find(filter)
     .populate('batch', 'name year semester')
     .populate('course', 'name code creditHours')
-    .populate('instructor', 'firstName lastName email')
-    .populate('moduleLeader', 'firstName lastName email')
-    .populate('createdBy', 'firstName lastName')
+    .populate('instructor', 'name email')
+    .populate('moduleLeader', 'name email')
+    .populate('createdBy', 'name')
     .sort({ createdAt: -1 });
 
   res.json(sections);
@@ -1048,9 +1048,9 @@ router.get('/sections/:id', asyncHandler(async (req: Request, res: Response) => 
   const section = await Section.findById(id)
     .populate('batch', 'name year semester')
     .populate('course', 'name code creditHours')
-    .populate('instructor', 'firstName lastName email')
-    .populate('moduleLeader', 'firstName lastName email')
-    .populate('createdBy', 'firstName lastName');
+    .populate('instructor', 'name email')
+    .populate('moduleLeader', 'name email')
+    .populate('createdBy', 'name');
 
   if (!section) {
     throw createError('Section not found', 404);
@@ -1162,9 +1162,9 @@ router.post('/sections', validateRequest(createSectionSchema), asyncHandler(asyn
   await section.populate([
     { path: 'batch', select: 'name year semester' },
     { path: 'course', select: 'name code creditHours' },
-    { path: 'instructor', select: 'firstName lastName email' },
-    { path: 'moduleLeader', select: 'firstName lastName email' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'instructor', select: 'name email' },
+    { path: 'moduleLeader', select: 'name email' },
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.status(201).json({
@@ -1288,9 +1288,9 @@ router.put('/sections/:id', validateRequest(updateSectionSchema), asyncHandler(a
   await section.populate([
     { path: 'batch', select: 'name year semester' },
     { path: 'course', select: 'name code creditHours' },
-    { path: 'instructor', select: 'firstName lastName email' },
-    { path: 'moduleLeader', select: 'firstName lastName email' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'instructor', select: 'name email' },
+    { path: 'moduleLeader', select: 'name email' },
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.json({
@@ -1349,9 +1349,9 @@ router.post('/sections/assign-module-leader', asyncHandler(async (req: Request, 
   await section.populate([
     { path: 'batch', select: 'name year semester' },
     { path: 'course', select: 'name code creditHours' },
-    { path: 'instructor', select: 'firstName lastName email' },
-    { path: 'moduleLeader', select: 'firstName lastName email' },
-    { path: 'createdBy', select: 'firstName lastName' }
+    { path: 'instructor', select: 'name email' },
+    { path: 'moduleLeader', select: 'name email' },
+    { path: 'createdBy', select: 'name' }
   ]);
 
   res.json({

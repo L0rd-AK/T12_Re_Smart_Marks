@@ -85,14 +85,15 @@ export interface MarkEntryState {
 }
 
 export interface ProfileFormData {
-  name: string;
-  email: string;
+  name?: string;
+  email?: string;
   employeeId?: string;
   designation?: string;
   emailId?: string;
   mobileNumber?: string;
   roomNumber?: string;
   initial?: string;
+  department?: string; // Added department field
 }
 
 export interface TeacherCourseRequest {

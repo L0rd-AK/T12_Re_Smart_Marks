@@ -22,7 +22,7 @@ router.use(authenticate);
 
 // Teacher routes
 router.post('/request', createRequestValidation, requireRole(['teacher']), createAccessRequest);
-router.get('/my-requests', requireRole(['teacher']), getMyRequests);
+router.get('/my-requests', requireRole(['teacher','module-leader']), getMyRequests);
 router.get('/my-courses', requireRole(['teacher', 'module-leader']), getAccessibleCourses);
 router.get('/department-courses', requireRole(['teacher', 'module-leader']), getDepartmentCourses);
 

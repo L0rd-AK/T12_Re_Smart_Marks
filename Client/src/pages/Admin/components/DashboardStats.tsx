@@ -105,11 +105,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         {/* Recent Courses */}
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Courses</h3>
-          {stats.recent.courses.length === 0 ? (
+          {stats.recent?.courses?.length === 0 ? (
             <p className="text-gray-500 text-sm">No courses created yet</p>
           ) : (
             <div className="space-y-3">
-              {stats.recent.courses.map((course) => (
+              {stats?.recent?.courses?.map((course) => (
                 <div key={course._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                   <div>
                     <p className="font-medium text-gray-900">{course.name}</p>
@@ -127,11 +127,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         {/* Recent Batches */}
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Batches</h3>
-          {stats.recent.batches.length === 0 ? (
+          {stats.recent?.batches?.length === 0 ? (
             <p className="text-gray-500 text-sm">No batches created yet</p>
           ) : (
             <div className="space-y-3">
-              {stats.recent.batches.map((batch) => (
+              {stats.recent.batches?.map((batch) => (
                 <div key={batch._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                   <div>
                     <p className="font-medium text-gray-900">{batch.name}</p>
@@ -157,7 +157,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
                 <div key={section._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                   <div>
                     <p className="font-medium text-gray-900">Section {section.name}</p>
-                    <p className="text-sm text-gray-500">{section.course.name} • Batch: {section.batch.name}</p>
+                    <p className="text-sm text-gray-500">{section?.course?.name} • Batch: {section.batch.name}</p>
                   </div>
                   <div className="text-xs text-gray-400">
                     {new Date(section.createdAt).toLocaleDateString()}

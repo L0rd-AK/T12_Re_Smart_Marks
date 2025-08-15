@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
     useGetCurrentOrCreateSubmissionQuery,
     useUpdateDocumentStatusMutation,
     useSubmitDocumentSubmissionMutation
@@ -7,10 +7,14 @@ import {
 import toast from 'react-hot-toast';
 import { toast as sonnerToast } from 'sonner';
 import GoogleDriveConnection from '../../components/GoogleDriveConnection';
+import SharedDriveStatus from '../../components/SharedDriveStatus';
+import PDFGenerator from '../../components/PDFGenerator';
 import { GoogleDriveService } from '../../services/googleDriveService';
+import { SharedDriveService } from '../../services/sharedDriveService';
 import { useGetCurrentUserQuery } from '../../redux/api/authApi';
 import { useAppSelector } from '../../redux/hooks';
 import SectionInformation from '../../components/SectionInformation';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 
 interface CourseInfo {
@@ -45,6 +49,13 @@ const DocumentSubmission: React.FC = () => {
     const [submitDocumentSubmission] = useSubmitDocumentSubmissionMutation();
     const [theoryFolderId, setTheoryFolderId] = useState<string | null>(null);
     const [labFolderId, setLabFolderId] = useState<string | null>(null);
+
+    // Track upload results for dual drive system
+    const [uploadResults, setUploadResults] = useState<{
+        personal: boolean;
+        shared: boolean;
+        errors: string[];
+    }[]>([]);
 
     // Initialize documents with database data if available
     const getInitialDocuments = () => {
@@ -188,7 +199,7 @@ const DocumentSubmission: React.FC = () => {
 
     const initialDocuments = useMemo(() => getInitialDocuments(), []);
     const { isSubmitted, courseCode, courseTitle, section, semester, year, courseCredit, noOfClassConducted, batch, department } = useAppSelector((state) => state.sectionInformation);
-    
+
     // Get current submission from database
     const submissionParams = courseCode && section && semester && year ? {
         courseCode,
@@ -200,7 +211,7 @@ const DocumentSubmission: React.FC = () => {
         batch: batch || 'Not Specified',
         department: department || 'Not Specified'
     } : null;
-    
+
     const { data: currentSubmission, isLoading: submissionLoading, refetch: refetchSubmission } = useGetCurrentOrCreateSubmissionQuery(
         submissionParams!,
         {
@@ -236,6 +247,11 @@ const DocumentSubmission: React.FC = () => {
 
     const [theoryDocuments, setTheoryDocuments] = useState<DocumentItem[]>([]);
     const [labDocuments, setLabDocuments] = useState<DocumentItem[]>([]);
+    const [isSyncingDocuments, setIsSyncingDocuments] = useState(false);
+    const documentsInitialized = useRef(false);
+    const isSubmittingRef = useRef(false); // Track submission state
+    const lastSubmissionStatusRef = useRef<string>(''); // Track last known submission status
+    const preservedDocumentsRef = useRef<{ theory: DocumentItem[], lab: DocumentItem[] } | null>(null); // Preserve documents when submitted
 
     // Update documents when submission data changes or initial documents change
     useEffect(() => {
@@ -268,16 +284,75 @@ const DocumentSubmission: React.FC = () => {
             return { theory, lab };
         };
 
-        const updatedDocs = getDocsFromSubmission();
-        setTheoryDocuments(updatedDocs.theory);
-        setLabDocuments(updatedDocs.lab);
-        
-        // Update folder IDs from submission
+        const currentStatus = currentSubmission?.data?.submissionStatus || '';
+        const statusChanged = lastSubmissionStatusRef.current !== currentStatus;
+        const justSubmitted = statusChanged && currentStatus === 'submitted';
+        lastSubmissionStatusRef.current = currentStatus;
+
+        // If documents just got submitted, preserve the current state
+        if (justSubmitted && !preservedDocumentsRef.current) {
+            console.log('💾 Preserving document state after submission');
+            preservedDocumentsRef.current = {
+                theory: theoryDocuments.length > 0 ? [...theoryDocuments] : [],
+                lab: labDocuments.length > 0 ? [...labDocuments] : []
+            };
+        }
+
+        // If submission is complete and we have preserved documents, use them
+        if (currentStatus === 'submitted' && preservedDocumentsRef.current &&
+            (preservedDocumentsRef.current.theory.length > 0 || preservedDocumentsRef.current.lab.length > 0)) {
+            console.log('🔄 Using preserved document state');
+            setTheoryDocuments(preservedDocumentsRef.current.theory);
+            setLabDocuments(preservedDocumentsRef.current.lab);
+            return; // Early return to prevent any other document updates
+        }
+
+        // Prevent document updates if we're currently submitting or already submitted
+        if (isSubmittingRef.current || currentStatus === 'submitted') {
+            console.log('🚫 Prevented document update - submission in progress or completed');
+            return;
+        }
+
+        // Only update documents if this is the first load or documents are empty
+        const shouldUpdateDocuments = !documentsInitialized.current ||
+            (theoryDocuments.length === 0 && labDocuments.length === 0);
+
+        if (shouldUpdateDocuments) {
+            console.log('📋 Updating documents from submission data');
+            const updatedDocs = getDocsFromSubmission();
+            setTheoryDocuments(updatedDocs.theory);
+            setLabDocuments(updatedDocs.lab);
+            documentsInitialized.current = true;
+        }
+
+        // Update folder IDs from submission (this is safe to always update)
         if (currentSubmission?.data?.googleDriveFolders) {
             setTheoryFolderId(currentSubmission.data.googleDriveFolders.theoryFolderId || null);
             setLabFolderId(currentSubmission.data.googleDriveFolders.labFolderId || null);
         }
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentSubmission, initialDocuments]);
+
+    // Separate effect to preserve documents when they're completed and about to be submitted
+    useEffect(() => {
+        const currentStatus = currentSubmission?.data?.submissionStatus || '';
+
+        // Preserve current document state when all documents are completed (before submission)
+        const allCompleted = theoryDocuments.every(doc => doc.status === 'yes') &&
+            labDocuments.every(doc => doc.status === 'yes') &&
+            theoryDocuments.length > 0 && labDocuments.length > 0;
+
+        if (allCompleted && currentStatus !== 'submitted' && !preservedDocumentsRef.current) {
+            console.log('💾 Pre-preserving document state (all documents completed)');
+            preservedDocumentsRef.current = {
+                theory: [...theoryDocuments],
+                lab: [...labDocuments]
+            };
+        }
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentSubmission?.data?.submissionStatus]);
 
     // If course information is not available, show the section information form
     if (!submissionParams) {
@@ -308,15 +383,15 @@ const DocumentSubmission: React.FC = () => {
 
     // Save to database instead of localStorage when documents change
     const updateDocumentInDatabase = async (
-        documentId: string, 
-        category: 'theory' | 'lab', 
-        status: 'yes' | 'no' | 'pending', 
+        documentId: string,
+        category: 'theory' | 'lab',
+        status: 'yes' | 'no' | 'pending',
         uploadedFiles?: Record<string, { name: string; size: number; type: string; lastModified: number; googleDriveId?: string; url?: string }>
     ) => {
         if (!submissionParams) {
             return;
         }
-        
+
         try {
             console.log('🔄 Updating document status in database:', {
                 submissionId: currentSubmission?.data._id,
@@ -325,7 +400,7 @@ const DocumentSubmission: React.FC = () => {
                 status,
                 hasUploadedFiles: !!uploadedFiles
             });
-            
+
             const result = await updateDocumentStatus({
                 submissionId: currentSubmission?.data._id || '',
                 documentId,
@@ -333,9 +408,9 @@ const DocumentSubmission: React.FC = () => {
                 status,
                 uploadedFiles
             }).unwrap();
-            
+
             console.log('✅ Document status updated, new completion:', result.data.completionPercentage);
-            
+
             // Refetch submission to get updated data
             await refetchSubmission();
             console.log('🔄 Submission data refetched');
@@ -370,7 +445,7 @@ const DocumentSubmission: React.FC = () => {
         };
 
         // Check if all required files are now uploaded (check both local files and uploaded files)
-        const allFilesUploaded = doc.fileTypes.every(ft => 
+        const allFilesUploaded = doc.fileTypes.every(ft =>
             doc.files?.[ft] || updatedFileMetadata[ft] || doc.uploadedFiles?.[ft]
         );
         const newStatus = allFilesUploaded ? 'yes' : doc.status;
@@ -409,9 +484,10 @@ const DocumentSubmission: React.FC = () => {
         }
 
         try {
-            // Upload to Google Drive if available
+            // Dual upload to personal and shared Google Drive
             let googleDriveId = undefined;
             let url = undefined;
+            let uploadResult = { personal: false, shared: false, errors: [] as string[] };
 
             if (GoogleDriveService.isSignedIn()) {
                 const targetFolderId = category === 'theory' ? theoryFolderId : labFolderId;
@@ -422,18 +498,65 @@ const DocumentSubmission: React.FC = () => {
                     return;
                 }
 
-                console.log(`📤 Uploading ${fileType} to Google Drive (${category} folder: ${targetFolderId})...`);
+                console.log(`📤 Starting dual upload for ${fileType}...`);
 
                 const fileName = `${fileType}_${file.name}`;
-                const uploadedFile = await GoogleDriveService.uploadFile(file, fileName, targetFolderId);
-                
-                googleDriveId = uploadedFile.id;
-                url = uploadedFile.webViewLink;
 
-                console.log(`✅ File uploaded to Google Drive:`, uploadedFile);
-                sonnerToast.success(`${fileType} uploaded to Google Drive ${category} folder successfully!`);
+                // Generate shared folder path
+                const courseInfo = {
+                    semester: submissionParams?.semester || '',
+                    courseCode: submissionParams?.courseCode || '',
+                    courseSection: submissionParams?.courseSection || '',
+                    batch: submissionParams?.batch,
+                    department: submissionParams?.department
+                };
+                const sharedFolderPath = SharedDriveService.generateSharedFolderPath(
+                    courseInfo,
+                    category === 'theory' ? 'Theory' : 'Lab'
+                );
+
+                // Upload to both drives
+                const dualUploadResult = await SharedDriveService.uploadToPersonalAndShared(
+                    file,
+                    fileName,
+                    targetFolderId,
+                    sharedFolderPath
+                );
+
+                uploadResult = {
+                    personal: dualUploadResult.personal !== null,
+                    shared: dualUploadResult.shared !== null,
+                    errors: dualUploadResult.errors
+                };
+
+                // Use personal drive file for database storage
+                if (dualUploadResult.personal) {
+                    googleDriveId = dualUploadResult.personal.id;
+                    url = dualUploadResult.personal.webViewLink;
+                }
+
+                // Update upload results state
+                setUploadResults(prev => [...prev, uploadResult]);
+
+                // Show appropriate success/error messages
+                if (dualUploadResult.success) {
+                    if (uploadResult.personal && uploadResult.shared) {
+                        sonnerToast.success(`${fileType} uploaded to both personal and shared drives successfully!`);
+                    } else if (uploadResult.personal) {
+                        sonnerToast.warning(`${fileType} uploaded to personal drive only. Shared drive upload failed.`);
+                    } else if (uploadResult.shared) {
+                        sonnerToast.warning(`${fileType} uploaded to shared drive only. Personal drive upload failed.`);
+                    }
+                } else {
+                    sonnerToast.error(`Failed to upload ${fileType} to Google Drive.`);
+                    console.error('Dual upload errors:', dualUploadResult.errors);
+                }
+
+                console.log(`✅ Dual upload completed:`, dualUploadResult);
             } else {
                 console.log('ℹ️ Google Drive not connected, file stored locally only');
+                uploadResult.errors.push('Google Drive not connected');
+                setUploadResults(prev => [...prev, uploadResult]);
             }
 
             // Update database with file metadata including Google Drive info
@@ -460,7 +583,7 @@ const DocumentSubmission: React.FC = () => {
         } catch (error) {
             console.error('❌ Error uploading to Google Drive or updating database:', error);
             sonnerToast.error('File saved locally, but failed to upload to Google Drive or save to database.');
-            
+
             // Revert local state on error
             if (category === 'theory') {
                 setTheoryDocuments(prev =>
@@ -570,14 +693,128 @@ const DocumentSubmission: React.FC = () => {
             return;
         }
 
+        // Check if all documents are completed before submission
+        if (!isAllDocumentsCompleted()) {
+            toast.error('Please complete all required documents before submitting');
+            return;
+        }
+
         try {
+            isSubmittingRef.current = true; // Mark as submitting to prevent document updates
+            setIsSyncingDocuments(true); // Show syncing status
+            console.log('🚀 Starting final submission process...');
+
+            // Debug current document statuses
+            debugDocumentStatuses();
+
+            // Force update all document statuses to ensure database is in sync
+            console.log('🔄 Syncing document statuses with database...');
+            const syncPromises: Promise<void>[] = [];
+
+            // Sync theory documents that are marked as 'yes'
+            theoryDocuments.forEach(doc => {
+                if (doc.status === 'yes') {
+                    console.log(`📋 Syncing theory document: ${doc.name} (${doc.id})`);
+                    syncPromises.push(
+                        updateDocumentInDatabase(doc.id, 'theory', 'yes', doc.uploadedFiles)
+                    );
+                }
+            });
+
+            // Sync lab documents that are marked as 'yes'
+            labDocuments.forEach(doc => {
+                if (doc.status === 'yes') {
+                    console.log(`📋 Syncing lab document: ${doc.name} (${doc.id})`);
+                    syncPromises.push(
+                        updateDocumentInDatabase(doc.id, 'lab', 'yes', doc.uploadedFiles)
+                    );
+                }
+            });
+
+            // Wait for all sync operations to complete
+            if (syncPromises.length > 0) {
+                console.log(`⏳ Waiting for ${syncPromises.length} document sync operations...`);
+                await Promise.all(syncPromises);
+                console.log('✅ All document statuses synced with database');
+
+                // Wait a moment for the database to update completion percentage
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Refetch submission to get the latest completion percentage
+                console.log('🔄 Refetching submission data...');
+                await refetchSubmission();
+            }
+
+            setIsSyncingDocuments(false); // Hide syncing status
+
+            // Now attempt submission
+            console.log('📤 Attempting final submission...');
             await submitDocumentSubmission(currentSubmission.data._id).unwrap();
+
+            console.log('✅ Submission successful');
             toast.success('Documents submitted successfully for review!');
-            refetchSubmission(); // Refresh submission data
+
+            // Keep the submission flag true to prevent any document resets
+            // It will be cleared when the component unmounts or reloads
+
         } catch (error) {
             console.error('Failed to submit documents:', error);
-            toast.error('Failed to submit documents. Please try again.');
+
+            // Provide more detailed error message
+            if (error && typeof error === 'object' && 'data' in error) {
+                const errorData = error.data as { message?: string };
+                if (errorData.message) {
+                    toast.error(`Submission failed: ${errorData.message}`);
+                    console.error('Server error details:', errorData);
+                } else {
+                    toast.error('Failed to submit documents. Please try again.');
+                }
+            } else {
+                toast.error('Failed to submit documents. Please try again.');
+            }
+
+            setIsSyncingDocuments(false); // Hide syncing status on error
+            isSubmittingRef.current = false; // Reset flag on error
         }
+    };
+
+    // Function to check if all documents are completed
+    const isAllDocumentsCompleted = (): boolean => {
+        const allTheoryCompleted = theoryDocuments.every(doc => doc.status === 'yes');
+        const allLabCompleted = labDocuments.every(doc => doc.status === 'yes');
+        return allTheoryCompleted && allLabCompleted;
+    };
+
+    // Debug function to check document statuses
+    const debugDocumentStatuses = () => {
+        console.log('🔍 Current document statuses:');
+        console.log('Theory documents:', theoryDocuments.map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            status: doc.status,
+            hasFiles: Object.keys(doc.uploadedFiles || {}).length > 0
+        })));
+        console.log('Lab documents:', labDocuments.map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            status: doc.status,
+            hasFiles: Object.keys(doc.uploadedFiles || {}).length > 0
+        })));
+        console.log('All completed:', isAllDocumentsCompleted());
+    };
+
+    // Calculate completion stats
+    const getCompletionStats = () => {
+        const totalDocuments = theoryDocuments.length + labDocuments.length;
+        const completedDocuments = [...theoryDocuments, ...labDocuments].filter(doc => doc.status === 'yes').length;
+        const pendingDocuments = totalDocuments - completedDocuments;
+
+        return {
+            total: totalDocuments,
+            completed: completedDocuments,
+            pending: pendingDocuments,
+            percentage: totalDocuments > 0 ? Math.round((completedDocuments / totalDocuments) * 100) : 0
+        };
     };
 
     // const handleSubmit = async (e: React.FormEvent) => {
@@ -658,7 +895,8 @@ const DocumentSubmission: React.FC = () => {
     //         toast.error('Failed to submit documents. Please try again.');
     //     }
     // };
-
+console.log(currentSubmission?.data?.submissionStatus)
+console.log(currentSubmission)
     const renderDocumentTable = (documents: DocumentItem[], category: 'theory' | 'lab', title: string) => (
         <div className="mb-8">
             <h3 className="text-xl font-semibold mb-4 text-gray-800 bg-orange-100 p-3 rounded-t-lg border">
@@ -739,12 +977,24 @@ const DocumentSubmission: React.FC = () => {
                                         title='Select status'
                                         value={doc.status}
                                         onChange={(e) => handleStatusChange(doc.id, e.target.value as 'yes' | 'no', category)}
-                                        className="w-20 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                                        className={`w-20 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white ${doc.status === 'yes' ? 'bg-green-50 border-green-300' :
+                                            doc.status === 'no' ? 'bg-red-50 border-red-300' :
+                                                'bg-yellow-50 border-yellow-300'
+                                            }`}
                                     >
                                         <option value="pending">-</option>
                                         <option value="yes">Yes</option>
                                         <option value="no">No</option>
                                     </select>
+                                    {doc.status === 'yes' && (
+                                        <div className="text-xs text-green-600 mt-1 font-medium">✓ Complete</div>
+                                    )}
+                                    {doc.status === 'no' && (
+                                        <div className="text-xs text-red-600 mt-1 font-medium">✗ Not submitted</div>
+                                    )}
+                                    {doc.status === 'pending' && (
+                                        <div className="text-xs text-yellow-600 mt-1 font-medium">⚠ Pending</div>
+                                    )}
                                 </td>
 
                                 {/* File Completion Checkboxes */}
@@ -819,6 +1069,38 @@ const DocumentSubmission: React.FC = () => {
                         OBE File Submission System
                     </h1>
 
+                    {/* Dual Upload System Information */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-8">
+                        <div className="flex items-start space-x-4">
+                            <div className="flex-shrink-0">
+                                <svg className="h-8 w-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                                    Enhanced Dual Upload System
+                                </h3>
+                                <div className="text-blue-800 space-y-2">
+                                    <p>
+                                        <strong>📁 Personal Drive:</strong> Files are saved to your personal Google Drive in organized course folders for easy access.
+                                    </p>
+                                    <p>
+                                        <strong>🏛️ Institutional Shared Drive:</strong> Files are simultaneously uploaded to the shared institutional drive for administrative oversight and backup.
+                                    </p>
+                                    <p>
+                                        <strong>🔄 Automatic Organization:</strong> Files are organized by Year/Semester/Course/Category structure in both drives.
+                                    </p>
+                                    <div className="bg-blue-100 rounded-lg p-3 mt-3">
+                                        <p className="text-sm">
+                                            <strong>Note:</strong> Even if one upload fails, the other will continue. You'll be notified of the status of both uploads.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Loading State */}
                     {submissionLoading && (
                         <div className="flex justify-center items-center py-12">
@@ -838,6 +1120,12 @@ const DocumentSubmission: React.FC = () => {
                                 semester: courseInfo.semester,
                             }}
                             onFoldersCreated={handleFoldersCreated}
+                        />
+
+                        {/* Shared Drive Status */}
+                        <SharedDriveStatus
+                            isConnected={GoogleDriveService.isSignedIn()}
+                            uploadResults={uploadResults}
                         />
                     </div>}
                     {!isSubmitted &&
@@ -945,13 +1233,13 @@ const DocumentSubmission: React.FC = () => {
                                         <div className="flex justify-between items-center">
                                             <span className="text-blue-700">Completion Status:</span>
                                             <span className="font-semibold text-blue-800">
-                                                {currentSubmission.data.completionPercentage}%
+                                                {getCompletionStats().completed}/{getCompletionStats().total} documents ({getCompletionStats().percentage}%)
                                             </span>
                                         </div>
                                         <div className="w-full bg-blue-200 rounded-full h-2">
-                                            <div 
+                                            <div
                                                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                                style={{ width: `${currentSubmission.data.completionPercentage}%` }}
+                                                style={{ width: `${getCompletionStats().percentage}%` }}
                                             ></div>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
@@ -962,11 +1250,26 @@ const DocumentSubmission: React.FC = () => {
                                                 Last Modified: {new Date(currentSubmission.data.lastModifiedAt).toLocaleDateString()}
                                             </span>
                                         </div>
+                                        {!isAllDocumentsCompleted() && (
+                                            <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mt-3">
+                                                <p className="text-yellow-800 text-sm">
+                                                    <strong>Note:</strong> Submit button will be enabled only when all documents are marked as "Yes".
+                                                    Please complete all required document uploads and mark them as submitted.
+                                                    <br />
+                                                    <strong>Remaining:</strong> {getCompletionStats().pending} document(s) need to be completed.
+                                                </p>
+                                            </div>
+                                        )}
+                                        {isAllDocumentsCompleted() && currentSubmission.data.submissionStatus !== 'submitted' && (
+                                            <div className="bg-green-50 border border-green-200 rounded p-3 mt-3">
+                                                <p className="text-green-800 text-sm">
+                                                    <strong>🎉 All documents completed!</strong> You can now submit your documents for review.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            )}
-
-                            {/* Theory Documents */}
+                            )}                            {/* Theory Documents */}
                             {renderDocumentTable(theoryDocuments, 'theory', 'OBE File Submission Checklist (Theory)')}
 
                             {/* Lab Documents */}
@@ -975,40 +1278,71 @@ const DocumentSubmission: React.FC = () => {
                             {/* Final Submit Button */}
                             {currentSubmission?.data && currentSubmission.data.submissionStatus !== 'submitted' && (
                                 <div className="mt-8 text-center">
+                                    {isSyncingDocuments && (
+                                        <div className="mb-4 p-4 bg-blue-100 border border-blue-300 rounded-lg">
+                                            <div className="flex items-center justify-center">
+                                                <LoadingSpinner />
+                                                <span className="ml-2 text-blue-700 font-medium">
+                                                    Syncing document statuses with database...
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <button
                                         onClick={handleFinalSubmit}
-                                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200"
-                                        disabled={submissionLoading}
+                                        className={`font-bold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 ${isAllDocumentsCompleted() && !submissionLoading && !isSyncingDocuments
+                                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                                            : 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                                            }`}
+                                        disabled={!isAllDocumentsCompleted() || submissionLoading || isSyncingDocuments}
                                     >
-                                        {submissionLoading ? 'Submitting...' : 'Submit All Documents for Review'}
+                                        {submissionLoading || isSyncingDocuments ? (
+                                            <span className="flex items-center">
+                                                <LoadingSpinner />
+                                                <span className="ml-2">
+                                                    {isSyncingDocuments ? 'Syncing...' : 'Submitting...'}
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            'Submit All Documents for Review'
+                                        )}
                                     </button>
                                     <p className="text-sm text-gray-600 mt-2">
-                                        Once submitted, documents will be sent for review and cannot be modified.
+                                        {!isAllDocumentsCompleted()
+                                            ? `Complete all documents to enable submission. Current progress: ${getCompletionStats().completed}/${getCompletionStats().total} (${getCompletionStats().percentage}%)`
+                                            : 'Once submitted, documents will be sent for review and cannot be modified.'
+                                        }
                                     </p>
                                 </div>
                             )}
 
                             {/* Submission Status */}
                             {currentSubmission?.data?.submissionStatus === 'submitted' && (
-                                <div className="mt-8 text-center bg-green-50 border border-green-200 rounded-lg p-6">
-                                    <div className="text-green-800">
-                                        <svg className="w-12 h-12 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                        <h3 className="text-xl font-semibold mb-2">Documents Submitted Successfully!</h3>
-                                        <p className="text-green-700">
-                                            Your documents have been submitted for review on{' '}
-                                            {currentSubmission.data.submittedAt ? 
-                                                new Date(currentSubmission.data.submittedAt).toLocaleDateString() : 
-                                                'Unknown date'
-                                            }
-                                        </p>
-                                        {currentSubmission.data.completionPercentage !== undefined && (
-                                            <p className="text-green-700 mt-2">
-                                                Completion: {currentSubmission.data.completionPercentage}%
+                                <div className="mt-8">
+                                    <div className="text-center bg-green-50 border border-green-200 rounded-lg p-6">
+                                        <div className="text-green-800">
+                                            <svg className="w-12 h-12 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                            </svg>
+                                            <h3 className="text-xl font-semibold mb-2">Documents Submitted Successfully!</h3>
+                                            <p className="text-green-700">
+                                                Your documents have been submitted for review on{' '}
+                                                {currentSubmission.data.submittedAt ?
+                                                    new Date(currentSubmission.data.submittedAt).toLocaleDateString() :
+                                                    'Unknown date'
+                                                }
                                             </p>
-                                        )}
+                                            {currentSubmission.data.completionPercentage !== undefined && (
+                                                <p className="text-green-700 mt-2">
+                                                    Completion: {currentSubmission.data.completionPercentage}%
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
+                                    
+                                    {/* PDF Generator */}
+                                    <PDFGenerator submissionData={currentSubmission.data} />
                                 </div>
                             )}
 
