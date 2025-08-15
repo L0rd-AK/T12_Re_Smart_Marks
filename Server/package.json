@@ -8,7 +8,8 @@
     "create-test-data": "ts-node src/utils/createTestData.ts",
     "debug-db": "ts-node src/utils/debugDatabase.ts",
     "fix-module-leaders": "ts-node src/utils/fixModuleLeaderAssignments.ts",
-    "simple-fix": "ts-node src/utils/simpleFix.ts"
+    "simple-fix": "ts-node src/utils/simpleFix.ts",
+    "test-courses": "ts-node src/utils/testCourses.ts"
   },
   "keywords": [],
   "author": "",
