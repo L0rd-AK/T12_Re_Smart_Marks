@@ -18,7 +18,7 @@ export const teacherRequestsApi = baseApi.injectEndpoints({
     // Get all course requests for module leader
     getCourseRequests: builder.query<{ success: boolean; data: TeacherCourseRequest[] }, void>({
       query: () => ({
-        url: '/module-leader/course-requests',
+        url: '/teacher-requests',
         method: 'GET',
       }),
       providesTags: ['DocumentSubmission'],
@@ -30,7 +30,7 @@ export const teacherRequestsApi = baseApi.injectEndpoints({
       UpdateCourseRequestStatusRequest
     >({
       query: (data) => ({
-        url: `/module-leader/course-requests/${data.requestId}/status`,
+        url: `/teacher-requests/${data.requestId}/status`,
         method: 'PATCH',
         body: {
           status: data.status,
@@ -46,7 +46,7 @@ export const teacherRequestsApi = baseApi.injectEndpoints({
       void
     >({
       query: () => ({
-        url: '/module-leader/document-submissions',
+        url: '/documents',
         method: 'GET',
       }),
       providesTags: ['DocumentSubmission'],
@@ -58,7 +58,7 @@ export const teacherRequestsApi = baseApi.injectEndpoints({
       UpdateDocumentSubmissionStatusRequest
     >({
       query: (data) => ({
-        url: `/module-leader/document-submissions/${data.submissionId}/status`,
+        url: `/documents/${data.submissionId}/status`,
         method: 'PATCH',
         body: {
           status: data.status,
