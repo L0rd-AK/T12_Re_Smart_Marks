@@ -91,3 +91,6 @@ export const requireRole = (roles: string[]) => {
     next();
   };
 };
+
+// Export authenticateToken as an alias for authenticate
+export const authenticateToken = authenticate;

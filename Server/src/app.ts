@@ -12,6 +12,7 @@ import teacherRequestsRoutes from "./routes/teacherRequests";
 import { errorHandler } from "./middleware/errorHandler";
 import templatesRoutes from "./routes/templates";
 import coursesRoutes from "./routes/courses";
+import documentDistributionRoutes from "./routes/documentDistribution";
 const app: Application = express();
 
 // Security middleware
@@ -42,6 +43,7 @@ app.use("/api/templates", templatesRoutes);
 app.use("/api/course-access", courseAccessRoutes);
 app.use("/api/teacher-requests", teacherRequestsRoutes);
 app.use("/api/courses", coursesRoutes);
+app.use("/api/document-distribution", documentDistributionRoutes);
 
 // Global error handler
 app.use(errorHandler);

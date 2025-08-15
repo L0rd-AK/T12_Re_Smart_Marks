@@ -338,7 +338,7 @@ export default function CoursesPage() {
                                                             </td>
                                                             <td className="text-gray-900">{course.semester}-{course.year}</td>
                                                             <td className="text-gray-900">{course.batch}</td>
-                                                            <td className="text-gray-900">{course.moduleLeader.name}({course.moduleLeader.initial})</td>
+                                                            <td className="text-gray-900">{course?.moduleLeader.name}({course?.moduleLeader.initial})</td>
                                                             <td>
                                                                 {course.status == "ongoing" ? (
                                                                     <span className="badge bg-emerald-600/10 text-emerald-800 border border-emerald-300">Ongoing</span>
