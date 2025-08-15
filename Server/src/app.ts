@@ -8,6 +8,7 @@ import googleDriveRoutes from "./routes/googleDrive";
 import adminRoutes from "./routes/admin";
 import documentRoutes from "./routes/documents";
 import courseAccessRoutes from "./routes/courseAccess";
+import teacherRequestsRoutes from "./routes/teacherRequests";
 import { errorHandler } from "./middleware/errorHandler";
 import templatesRoutes from "./routes/templates";
 import coursesRoutes from "./routes/courses";
@@ -39,7 +40,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/templates", templatesRoutes);
 app.use("/api/course-access", courseAccessRoutes);
+app.use("/api/teacher-requests", teacherRequestsRoutes);
 app.use("/api/courses", coursesRoutes);
+
 // Global error handler
 app.use(errorHandler);
 
