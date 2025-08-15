@@ -1,3 +1,5 @@
+import type { Department } from './adminApi';
+import type { User } from './authApi';
 import { baseApi } from './baseApi';
 
 export interface CourseAccessRequest {
@@ -29,6 +31,8 @@ export interface CourseAccessRequest {
     };
     status: 'pending' | 'approved' | 'rejected';
     message: string;
+    batch: number;
+    semester: string;
     requestDate: string;
     responseDate?: string;
     responseMessage?: string;
@@ -42,27 +46,30 @@ export interface CourseAccessRequest {
 }
 
 export interface Course {
-    id: string;
+    _id: string;
     code: string;
-    title: string;
-    department: string;
-    semester: string;
+    name: string;
+    description: string;
+    department: Department;
     creditHours: number;
-    moduleLeader: string;
-    moduleLeaderEmail: string;
-    enrolledTeachers: string[];
-    status: 'active' | 'inactive';
-    documentProgress: number;
-    hasAccess?: boolean;
-    sectionId?: string;
-    sectionName?: string;
-    maxStudents?: number;
-    currentStudents?: number;
+    moduleLeader: User;
+    prerequisites: string[];
+    isActive: boolean;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    __v?: number;
 }
 
 export interface CreateAccessRequestData {
     courseId: string;
-    message: string;
+    data: {
+        semester: string;
+        batch: number;
+        message: string;
+        section: string;
+        moduleLeaderId: string;
+    }
 }
 
 export interface RespondToRequestData {
@@ -73,7 +80,7 @@ export interface RespondToRequestData {
 export const courseAccessApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
         // Teacher endpoints
-        createAccessRequest: builder.mutation<{ success: boolean; message: string; data: CourseAccessRequest },CreateAccessRequestData>({
+        createAccessRequest: builder.mutation<{ success: boolean; message: string; data: CourseAccessRequest }, CreateAccessRequestData>({
             query: (data) => ({
                 url: '/course-access/request',
                 method: 'POST',
@@ -92,23 +99,23 @@ export const courseAccessApi = baseApi.injectEndpoints({
             providesTags: ['Course'],
         }),
 
-        getDepartmentCourses: builder.query<{ success: boolean; data: Course[] },void>({
+        getDepartmentCourses: builder.query<{ success: boolean; data: Course[] }, void>({
             query: () => '/course-access/department-courses',
             providesTags: ['Course'],
         }),
 
         // Module leader endpoints
-        getPendingRequests: builder.query<{ success: boolean; data: CourseAccessRequest[] },void>({
+        getPendingRequests: builder.query<{ success: boolean; data: CourseAccessRequest[] }, void>({
             query: () => '/course-access/pending-requests',
             providesTags: ['Course'],
         }),
 
-        getAllRequests: builder.query<{ success: boolean; data: CourseAccessRequest[] },void>({
+        getAllRequests: builder.query<{ success: boolean; data: CourseAccessRequest[] }, void>({
             query: () => '/course-access/all-requests',
             providesTags: ['Course'],
         }),
 
-        respondToRequest: builder.mutation< { success: boolean; message: string; data: CourseAccessRequest },{ requestId: string; data: RespondToRequestData }>({
+        respondToRequest: builder.mutation<{ success: boolean; message: string; data: CourseAccessRequest }, { requestId: string; data: RespondToRequestData }>({
             query: ({ requestId, data }) => ({
                 url: `/course-access/respond/${requestId}`,
                 method: 'PATCH',
