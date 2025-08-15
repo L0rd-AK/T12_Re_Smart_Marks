@@ -359,35 +359,14 @@ export const getDepartmentCourses = async (req: Request, res: Response): Promise
   try {
     const userId = (req as any).user?._id;
     
-    // Get user's department through sections they're associated with
-    const userSections = await Section.find({
-      $or: [
-        { instructor: userId },
-        { moduleLeader: userId }
-      ]
-    }).populate({
-      path: 'course',
-      populate: { path: 'department', select: 'name code' }
-    });
-
-    if (userSections.length === 0) {
-      res.status(200).json({
-        success: true,
-        data: []
-      });
-      return;
-    }
-
-    // Get department from first section (assuming user belongs to one department)
-    const department = (userSections[0].course as any).department;
-
-    // Get all courses in the department
-    const courses = await Course.find({ department: department._id })
+    // For now, return all active courses since users don't have department field
+    // In the future, this can be enhanced to filter by department
+    const allCourses = await Course.find({ isActive: true })
       .populate('department', 'name code');
 
     // Get sections for each course to determine access
     const coursesWithAccess = await Promise.all(
-      courses.map(async (course) => {
+      allCourses.map(async (course) => {
         const sections = await Section.find({ course: course._id })
           .populate('instructor', 'name email')
           .populate('moduleLeader', 'name email')
@@ -423,10 +402,7 @@ export const getDepartmentCourses = async (req: Request, res: Response): Promise
       })
     );
 
-    res.status(200).json({
-      success: true,
-      data: coursesWithAccess
-    });
+
 
   } catch (error) {
     console.error('Error fetching department courses:', error);
