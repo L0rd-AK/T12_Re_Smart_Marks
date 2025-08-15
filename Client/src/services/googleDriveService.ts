@@ -50,7 +50,7 @@ export interface GoogleDriveUploadProgress {
 }
 
 export class GoogleDriveService {
-  private static readonly SCOPES = 'https://www.googleapis.com/auth/drive.file';
+  private static readonly SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file';
   private static readonly STORAGE_KEY = 'google_drive_access_token';
   private static readonly TOKEN_EXPIRY_KEY = 'google_drive_token_expiry';
   private static isInitialized = false;
@@ -82,10 +82,10 @@ export class GoogleDriveService {
 
     try {
       await this.loadScript('https://accounts.google.com/gsi/client');
-      
+
       // Check for existing valid token in localStorage
       this.loadStoredToken();
-      
+
       this.isInitialized = true;
       console.log('🔄 Google Drive Service initialized. Token available:', !!this.accessToken);
     } catch (error) {
@@ -102,11 +102,11 @@ export class GoogleDriveService {
     try {
       const storedToken = localStorage.getItem(this.STORAGE_KEY);
       const expiryTime = localStorage.getItem(this.TOKEN_EXPIRY_KEY);
-      
+
       if (storedToken && expiryTime) {
         const now = Date.now();
         const expiry = parseInt(expiryTime, 10);
-        
+
         if (now < expiry) {
           this.accessToken = storedToken;
           console.log('✅ Restored Google Drive access token from storage');
@@ -129,7 +129,7 @@ export class GoogleDriveService {
       // Google access tokens typically expire in 1 hour (3600 seconds)
       // We'll set expiry to 55 minutes to be safe
       const expiryTime = Date.now() + (55 * 60 * 1000);
-      
+
       localStorage.setItem(this.STORAGE_KEY, token);
       localStorage.setItem(this.TOKEN_EXPIRY_KEY, expiryTime.toString());
       console.log('💾 Google Drive access token stored successfully');
@@ -155,7 +155,7 @@ export class GoogleDriveService {
    */
   static async signIn(): Promise<void> {
     await this.initialize();
-    
+
     return new Promise((resolve, reject) => {
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
       if (!clientId) {
@@ -169,23 +169,23 @@ export class GoogleDriveService {
         client_id: clientId,
         scope: this.SCOPES,
         callback: (tokenResponse: TokenResponse) => {
-          console.log('📝 Token response received:', { 
+          console.log('📝 Token response received:', {
             hasAccessToken: !!tokenResponse.access_token,
-            error: tokenResponse.error 
+            error: tokenResponse.error
           });
-          
+
           if (tokenResponse.error) {
             console.error('❌ Google sign-in error:', tokenResponse.error_description);
             reject(new Error(`Google sign-in error: ${tokenResponse.error_description}`));
             return;
           }
-          
+
           if (!tokenResponse.access_token) {
             console.error('❌ No access token received');
             reject(new Error('No access token received from Google'));
             return;
           }
-          
+
           this.accessToken = tokenResponse.access_token;
           this.storeToken(tokenResponse.access_token);
           console.log('✅ Access token stored successfully');
@@ -203,7 +203,7 @@ export class GoogleDriveService {
    */
   static async signOut(): Promise<void> {
     if (this.accessToken) {
-      google.accounts.oauth2.revoke(this.accessToken, () => {});
+      google.accounts.oauth2.revoke(this.accessToken, () => { });
       this.accessToken = null;
       this.clearStoredToken();
       console.log('🔐 Google Drive sign out completed and token cleared');
@@ -215,13 +215,13 @@ export class GoogleDriveService {
    */
   static isSignedIn(): boolean {
     if (!this.accessToken) return false;
-    
+
     // Check if token has expired
     const expiryTime = localStorage.getItem(this.TOKEN_EXPIRY_KEY);
     if (expiryTime) {
       const now = Date.now();
       const expiry = parseInt(expiryTime, 10);
-      
+
       if (now >= expiry) {
         console.log('⏰ Google Drive token has expired');
         this.accessToken = null;
@@ -229,8 +229,15 @@ export class GoogleDriveService {
         return false;
       }
     }
-    
+
     return true;
+  }
+
+  /**
+   * Get the current access token (for shared drive operations)
+   */
+  static getAccessToken(): string | null {
+    return this.accessToken;
   }
 
   /**
@@ -238,19 +245,19 @@ export class GoogleDriveService {
    */
   static async validateToken(): Promise<boolean> {
     if (!this.accessToken) return false;
-    
+
     try {
       const response = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
         headers: { Authorization: `Bearer ${this.accessToken}` }
       });
-      
+
       if (!response.ok) {
         console.log('🔍 Google Drive token validation failed, clearing token');
         this.accessToken = null;
         this.clearStoredToken();
         return false;
       }
-      
+
       console.log('✅ Google Drive token is valid');
       return true;
     } catch (error) {
@@ -265,11 +272,11 @@ export class GoogleDriveService {
    * Make an authenticated API request with automatic token validation
    */
   private static async makeAuthenticatedRequest(
-    url: string, 
+    url: string,
     options: RequestInit = {}
   ): Promise<Response> {
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to make API requests');
     }
@@ -301,12 +308,12 @@ export class GoogleDriveService {
    */
   static async getCurrentUserProfile(): Promise<GoogleUserProfile | null> {
     if (!this.isSignedIn()) return null;
-    
+
     try {
       const response = await this.makeAuthenticatedRequest(
         'https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,photos'
       );
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch user profile');
       }
@@ -322,13 +329,13 @@ export class GoogleDriveService {
    * Upload a file to Google Drive with progress tracking
    */
   static async uploadFile(
-    file: File, 
+    file: File,
     fileName?: string,
     folderId?: string,
     onProgress?: (progress: GoogleDriveUploadProgress) => void
   ): Promise<GoogleDriveFile> {
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to upload files');
     }
@@ -341,7 +348,7 @@ export class GoogleDriveService {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const form = new FormData();
-      
+
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
       form.append('file', file);
 
@@ -377,7 +384,7 @@ export class GoogleDriveService {
         reject(new Error('User not signed in or access token is missing.'));
         return;
       }
-      
+
       xhr.open('POST', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart');
       xhr.setRequestHeader('Authorization', `Bearer ${this.accessToken}`);
       xhr.send(form);
@@ -389,15 +396,15 @@ export class GoogleDriveService {
    */
   static async createFolder(name: string, parentId?: string): Promise<GoogleDriveFile> {
     console.log(`📁 Creating folder: "${name}" with parent: ${parentId || 'root'}`);
-    
+
     const body = JSON.stringify({
       name,
       mimeType: 'application/vnd.google-apps.folder',
       parents: parentId ? [parentId] : undefined
     });
-    
+
     console.log('📝 Request body:', body);
-    
+
     const resp = await this.makeAuthenticatedRequest('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
@@ -405,15 +412,15 @@ export class GoogleDriveService {
       },
       body
     });
-    
+
     console.log('📤 Response status:', resp.status, resp.statusText);
-    
+
     if (!resp.ok) {
       const errorText = await resp.text();
       console.error('❌ Failed to create folder. Response:', errorText);
       throw new Error(`Failed to create folder "${name}": ${resp.status} ${resp.statusText} - ${errorText}`);
     }
-    
+
     const result = (await resp.json()) as GoogleDriveFile;
     console.log('✅ Folder created successfully:', result);
     return result;
@@ -430,9 +437,9 @@ export class GoogleDriveService {
     semester?: string;
   }): Promise<string> {
     console.log('🏗️ GoogleDriveService.createCourseFolder called with:', courseInfo);
-    
+
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to create folders');
     }
@@ -456,11 +463,11 @@ export class GoogleDriveService {
     for (let i = 0; i < folderStructure.length; i++) {
       const folderName = folderStructure[i];
       console.log(`📂 Processing folder ${i + 1}/${folderStructure.length}: "${folderName}" (parent: ${currentParentId || 'root'})`);
-      
+
       try {
         // Check if folder already exists
         const existingFolder = await this.findFolderByName(folderName, currentParentId);
-        
+
         if (existingFolder) {
           console.log(`✅ Found existing folder: ${folderName} (${existingFolder.id})`);
           currentParentId = existingFolder.id;
@@ -489,9 +496,9 @@ export class GoogleDriveService {
     category: 'theory' | 'lab' | 'general'
   ): Promise<string> {
     console.log(`📂 Creating ${category} folder in course folder: ${courseFolderId}`);
-    
+
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to create folders');
     }
@@ -503,11 +510,11 @@ export class GoogleDriveService {
     }
 
     const folderName = category === 'theory' ? 'Theory' : 'Lab';
-    
+
     try {
       // Check if category folder already exists
       const existingFolder = await this.findFolderByName(folderName, courseFolderId);
-      
+
       if (existingFolder) {
         console.log(`✅ Found existing ${category} folder: ${existingFolder.id}`);
         return existingFolder.id;
@@ -529,7 +536,7 @@ export class GoogleDriveService {
    */
   static async findFolderByName(name: string, parentId?: string): Promise<GoogleDriveFile | null> {
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to search folders');
     }
@@ -543,10 +550,10 @@ export class GoogleDriveService {
     const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${this.accessToken}` }
     });
-    
+
     if (!resp.ok) throw new Error('Failed to search folders');
     const data = (await resp.json()) as { files: GoogleDriveFile[] };
-    
+
     return data.files.length > 0 ? data.files[0] : null;
   }
 
@@ -567,7 +574,7 @@ export class GoogleDriveService {
    */
   static async listFiles(folderId?: string): Promise<GoogleDriveFile[]> {
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to list files');
     }
@@ -587,7 +594,7 @@ export class GoogleDriveService {
    */
   static async deleteFile(fileId: string): Promise<void> {
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to delete files');
     }
@@ -604,7 +611,7 @@ export class GoogleDriveService {
    */
   static async getDownloadUrl(fileId: string): Promise<string> {
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to download files');
     }
@@ -623,7 +630,7 @@ export class GoogleDriveService {
    */
   static async shareFile(fileId: string, makePublic: boolean = false): Promise<string> {
     await this.initialize();
-    
+
     if (!this.isSignedIn()) {
       throw new Error('User must be signed in to share files');
     }
