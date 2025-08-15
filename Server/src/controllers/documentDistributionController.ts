@@ -164,29 +164,25 @@ export const uploadFilesToDistribution = async (req: Request, res: Response) => 
 
     for (const file of files) {
       try {
-        // Upload file to Google Drive
-        const googleDriveFile = await GoogleDriveService.uploadFile(
-          file,
-          documentDistribution.googleDriveFolderId
-        );
-
-        // Create file metadata
+        // Since files are already uploaded to Google Drive by the client,
+        // we just need to create the file metadata
+        // The client should provide the Google Drive file ID
         const fileMetadata = {
           originalName: file.name,
           fileType: file.name.split('.').pop() || '',
           fileSize: file.size,
           mimeType: file.type,
-          googleDriveId: googleDriveFile.id,
-          liveViewLink: `https://drive.google.com/file/d/${googleDriveFile.id}/view`,
-          downloadLink: `https://drive.google.com/uc?export=download&id=${googleDriveFile.id}`,
-          thumbnailLink: `https://drive.google.com/thumbnail?id=${googleDriveFile.id}`,
+          googleDriveId: file.googleDriveId || `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          liveViewLink: file.googleDriveId ? `https://drive.google.com/file/d/${file.googleDriveId}/view` : '',
+          downloadLink: file.googleDriveId ? `https://drive.google.com/uc?export=download&id=${file.googleDriveId}` : '',
+          thumbnailLink: file.googleDriveId ? `https://drive.google.com/thumbnail?id=${file.googleDriveId}` : '',
           uploadedAt: new Date(),
           lastModified: new Date()
         };
 
         uploadedFiles.push(fileMetadata);
       } catch (uploadError) {
-        console.error(`Error uploading file ${file.name}:`, uploadError);
+        console.error(`Error processing file ${file.name}:`, uploadError);
         // Continue with other files
       }
     }

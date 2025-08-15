@@ -92,6 +92,7 @@ const DocumentManagement: React.FC = () => {
   // Get courses data
   const { data: coursesData, isLoading: coursesLoading, isError: coursesError } = useGetDepartmentCoursesQuery();
   const courses = coursesData?.data || [];
+  const [selectedCourse, setSelectedCourse] = useState<{ _id: string; name: string; code: string } | null>(null);
 
   // Initialize Google Drive Service on component mount
   useEffect(() => {
@@ -196,7 +197,51 @@ const DocumentManagement: React.FC = () => {
     setDriveUpload(prev => ({ ...prev, isUploading: true }));
 
     try {
+      // First, create the document distribution record in the database
+      const distributionData = {
+        title: `Documents for ${driveUpload.courseCode} - ${driveUpload.year}/${driveUpload.semester}`,
+        description: `Document distribution for ${driveUpload.courseCode} in ${driveUpload.semester} ${driveUpload.year}`,
+        category: 'other',
+        tags: [driveUpload.courseCode, driveUpload.semester, driveUpload.year, driveUpload.batch],
+        priority: 'medium',
+        courseId: selectedCourse?._id || '',
+        academicYear: driveUpload.year,
+        semester: driveUpload.semester,
+        batch: driveUpload.batch,
+        section: '',
+        classCount: 0,
+        permissions: {
+          teachers: { canView: true, canDownload: true, canComment: true, canEdit: false },
+          students: { canView: true, canDownload: true, canComment: false, canEdit: false },
+          public: { canView: false, canDownload: false, canComment: false, canEdit: false }
+        }
+      };
+
+      // Create document distribution
+      const response = await fetch('/api/document-distribution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify(distributionData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create document distribution');
+      }
+
+      const distributionResult = await response.json();
+      const distributionId = distributionResult.data.distributionId;
+      
+      toast.success('Document distribution created successfully');
+
+      // Generate folder name
       const folderName = generateFolderName();
+      if (!folderName) {
+        throw new Error('Unable to generate folder name');
+      }
       
       // Check if folder exists, create if not
       let folderId = await findFolderByName(folderName, PARENT_FOLDER_ID);
@@ -205,11 +250,37 @@ const DocumentManagement: React.FC = () => {
         toast.success(`Created folder: ${folderName}`);
       }
 
-      // Upload all selected files
+      // Upload all selected files and capture their Google Drive IDs
       const files = Array.from(driveUpload.files!);
-      const uploadPromises = files.map(file => uploadFileToDrive(file, folderId!));
+      const uploadResults = await Promise.all(
+        files.map(async (file) => {
+          const result = await uploadFileToDrive(file, folderId!);
+          return {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            googleDriveId: result.id || result // Handle both object and string responses
+          };
+        })
+      );
       
-      await Promise.all(uploadPromises);
+      // Now upload files to the document distribution
+      const fileUploadResponse = await fetch(`/api/document-distribution/${distributionId}/files`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({
+          files: uploadResults
+        })
+      });
+
+      if (!fileUploadResponse.ok) {
+        const errorData = await fileUploadResponse.json();
+        console.warn('Failed to link files to distribution:', errorData.message);
+        // Continue anyway since files are uploaded to Drive
+      }
       
       toast.success(`Successfully uploaded ${files.length} file(s) to ${folderName}`);
       
@@ -524,11 +595,12 @@ const DocumentManagement: React.FC = () => {
               <select
                 value={driveUpload.courseCode}
                 onChange={(e) => {
-                  const selectedCourse = courses.find(course => course.code === e.target.value);
+                  const course = courses.find(course => course.code === e.target.value);
+                  setSelectedCourse(course || null);
                   setDriveUpload(prev => ({ 
                     ...prev, 
                     courseCode: e.target.value,
-                    courseName: selectedCourse ? selectedCourse.name : ''
+                    courseName: course ? course.name : ''
                   }));
                 }}
                 className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
