@@ -6,6 +6,8 @@ import User from '../models/User';
 import { body, param, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
 import CourseAccess from '../models/CourseAccess';
+import AssignedModuleLeader from '../models/AssignedModuleLeader';
+import DocumentDistribution from '../models/DocumentDistribution';
 
 // Validation rules
 export const createRequestValidation = [
@@ -52,7 +54,11 @@ export const respondToRequestValidation = [
   body('responseMessage')
     .optional()
     .isLength({ max: 1000 })
-    .withMessage('Response message must be less than 1000 characters')
+    .withMessage('Response message must be less than 1000 characters'),
+  body('selectedDocuments')
+    .optional()
+    .isArray()
+    .withMessage('Selected documents must be an array')
 ];
 
 // Create access request
@@ -210,7 +216,7 @@ export const respondToRequest = async (req: Request, res: Response): Promise<voi
     }
 
     const { requestId } = req.params;
-    const { status, responseMessage } = req.body;
+    const { status, responseMessage, selectedDocuments } = req.body;
     const moduleLeaderId = (req as any).user?._id;
 
     // Find the request
@@ -310,6 +316,50 @@ export const respondToRequest = async (req: Request, res: Response): Promise<voi
             }
           }
         );
+      }
+
+      // Add teacher to assignedTeachers in AssignedModuleLeader
+      const currentYear = new Date().getFullYear();
+      const assignedModuleLeader = await AssignedModuleLeader.findOne({
+        course: request.course,
+        academicYear: currentYear,
+        semester: request.semester,
+        isActive: true
+      });
+
+      if (assignedModuleLeader) {
+        // Add teacher to assignedTeachers if not already present
+        if (!assignedModuleLeader.assignedTeachers.includes(request.teacher)) {
+          assignedModuleLeader.assignedTeachers.push(request.teacher);
+          await assignedModuleLeader.save();
+        }
+      }
+
+      // Share selected documents with the teacher
+      if (selectedDocuments && selectedDocuments.length > 0) {
+        for (const distributionId of selectedDocuments) {
+          const documentDistribution = await DocumentDistribution.findOne({ distributionId });
+          if (documentDistribution && documentDistribution.moduleLeader.userId.toString() === moduleLeaderId.toString()) {
+            // Add teacher to specific teachers list if not already present
+            if (!documentDistribution.permissions.teachers.specificTeachers) {
+              documentDistribution.permissions.teachers.specificTeachers = [];
+            }
+            
+            if (!documentDistribution.permissions.teachers.specificTeachers.includes(request.teacher)) {
+              documentDistribution.permissions.teachers.specificTeachers.push(request.teacher);
+              
+              // Add audit trail entry
+              documentDistribution.addAuditEntry(
+                'permission-changed',
+                moduleLeaderId,
+                (req as any).user.name,
+                `Teacher ${request.teacher} added to specific teachers list`
+              );
+              
+              await documentDistribution.save();
+            }
+          }
+        }
       }
     }
 
