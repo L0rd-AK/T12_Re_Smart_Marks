@@ -48,13 +48,6 @@ interface ProcessedSubmission {
   labDocuments: DocumentDetail[];
 }
 
-interface SubmissionStats {
-  total: number;
-  completed: number;
-  pending: number;
-  overdue: number;
-}
-
 const SubmissionTracker: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
@@ -116,19 +109,6 @@ const SubmissionTracker: React.FC = () => {
 
   const submissions = submissionsData?.data ? processSubmissions(submissionsData.data) : [];
 
-  // Calculate statistics
-  const stats: SubmissionStats = {
-    total: submissions.length,
-    completed: submissions.filter(s => s.submissionStatus === 'submitted' && s.overallStatus === 'approved').length,
-    pending: submissions.filter(s => s.overallStatus === 'pending' || s.overallStatus === 'in-review').length,
-    overdue: submissions.filter(s => {
-      if (s.overallStatus !== 'pending') return false;
-      // For now, we'll consider submissions without a deadline as not overdue
-      // You can implement actual deadline logic here
-      return false;
-    }).length,
-  };
-
   // Filter submissions based on selected filters
   const filteredSubmissions = submissions.filter(submission => {
     const statusMatch = filterStatus === 'all' || submission.overallStatus === filterStatus;
@@ -136,10 +116,6 @@ const SubmissionTracker: React.FC = () => {
     const courseMatch = filterCourse === 'all' || submission.courseCode.toLowerCase().includes(filterCourse.toLowerCase());
     return statusMatch && departmentMatch && courseMatch;
   });
-
-  // Get unique departments and courses for filter options
-  const departments = [...new Set(submissions.map(s => s.department))];
-  const courses = [...new Set(submissions.map(s => s.courseCode))];
 
   const getStatusColor = (status: string) => {
     switch (status) {
