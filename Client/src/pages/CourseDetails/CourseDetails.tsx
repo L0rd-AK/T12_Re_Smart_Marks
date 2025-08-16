@@ -192,66 +192,6 @@ export default function CourseDetailsPage({ courseId, onBack }: CourseDetailsPag
     }
 
     const courseMaterials: CourseMaterial[] = [
-        {
-            id: "1",
-            name: "Course Syllabus - Database Management Systems.pdf",
-            type: "application/pdf",
-            size: 512000,
-            uploadDate: "2025-01-15",
-            uploadedBy: "Dr. Carol White",
-            category: "syllabus",
-            url: "#",
-        },
-        {
-            id: "2",
-            name: "Chapter 1 - Introduction to Databases.pdf",
-            type: "application/pdf",
-            size: 2048000,
-            uploadDate: "2025-01-18",
-            uploadedBy: "Dr. Carol White",
-            category: "lecture",
-            url: "#",
-        },
-        {
-            id: "3",
-            name: "Chapter 2 - Relational Model.pdf",
-            type: "application/pdf",
-            size: 1536000,
-            uploadDate: "2025-01-22",
-            uploadedBy: "Dr. Carol White",
-            category: "lecture",
-            url: "#",
-        },
-        {
-            id: "4",
-            name: "Assignment 1 - ER Diagram Design.pdf",
-            type: "application/pdf",
-            size: 768000,
-            uploadDate: "2025-01-25",
-            uploadedBy: "Dr. John Smith",
-            category: "assignment",
-            url: "#",
-        },
-        {
-            id: "5",
-            name: "Lab Manual - SQL Basics.pdf",
-            type: "application/pdf",
-            size: 1024000,
-            uploadDate: "2025-01-20",
-            uploadedBy: "Prof. Sarah Wilson",
-            category: "reference",
-            url: "#",
-        },
-        {
-            id: "6",
-            name: "Midterm Exam Sample Questions.pdf",
-            type: "application/pdf",
-            size: 384000,
-            uploadDate: "2025-02-10",
-            uploadedBy: "Dr. Carol White",
-            category: "exam",
-            url: "#",
-        },
     ]
 
     const teachers: Teacher[] = [
