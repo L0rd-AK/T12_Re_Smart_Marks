@@ -17,5 +17,6 @@ router.use(authenticate);
 // Module leader routes for managing teacher requests
 router.get('/', requireRole(['module-leader']), getCourseRequests);
 router.patch('/:requestId/status', updateCourseRequestStatusValidation, requireRole(['module-leader']), updateCourseRequestStatus);
+router.post('/:requestId/share-documents', requireRole(['module-leader']), shareDocumentsWithTeacher);
 
 export default router;
