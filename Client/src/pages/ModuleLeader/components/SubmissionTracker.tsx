@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { useGetAllSubmissionsForReviewQuery, useUpdateSubmissionReviewStatusMutation, DocumentSubmissionResponse } from '../../../redux/api/documentApi';
+import { useGetAllSubmissionsForReviewQuery, useUpdateSubmissionReviewStatusMutation, type DocumentSubmissionResponse } from '../../../redux/api/documentApi';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 
 interface DocumentDetail {
@@ -697,7 +697,5 @@ const SubmissionTracker: React.FC = () => {
     </div>
   );
 };
-
-export default SubmissionTracker;
 
 export default SubmissionTracker;
