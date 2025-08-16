@@ -501,7 +501,7 @@ export const deleteDocumentDistribution = async (req: Request, res: Response) =>
 };
 
 // Get documents shared with teacher
-export const getSharedDocuments = async (req: Request, res: Response) => {
+export const getSharedDocuments = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).user.id;
     const user = await User.findById(userId);
