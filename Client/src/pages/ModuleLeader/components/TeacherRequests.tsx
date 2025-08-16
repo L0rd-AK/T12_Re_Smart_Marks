@@ -19,6 +19,8 @@ const TeacherRequests: React.FC = () => {
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<{ _id: string; teacherName: string; courseCode: string; employeeId: string } | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [sharedDocuments, setSharedDocuments] = useState<DocumentDistribution[]>([]);
 
   // Extract data from API responses
   const courseRequests = courseRequestsData?.data || [];
@@ -58,6 +60,11 @@ const TeacherRequests: React.FC = () => {
       }).unwrap();
 
       toast.success(`Request approved and ${selectedDocuments.length} document(s) shared with ${selectedRequest.teacherName}`);
+      
+      // Show success notification with document details
+      setSharedDocuments(selectedDocuments);
+      setShowSuccessNotification(true);
+      
       setShowDocumentModal(false);
       setSelectedRequest(null);
     } catch (error) {
@@ -197,6 +204,17 @@ const TeacherRequests: React.FC = () => {
         teacherName={selectedRequest?.teacherName || ''}
         courseCode={selectedRequest?.courseCode || ''}
         loading={isSharing}
+      />
+
+      {/* Success Notification */}
+      <DocumentSharedNotification
+        isOpen={showSuccessNotification}
+        onClose={() => {
+          setShowSuccessNotification(false);
+          setSharedDocuments([]);
+        }}
+        teacherName={selectedRequest?.teacherName || ''}
+        sharedDocuments={sharedDocuments}
       />
     </div>
   );
