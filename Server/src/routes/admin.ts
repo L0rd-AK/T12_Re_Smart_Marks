@@ -1361,6 +1361,120 @@ router.post('/sections/assign-module-leader', asyncHandler(async (req: Request, 
 }));
 
 // Assigned Module Leaders Routes
+// Create new module leader assignment
+router.post('/assigned-module-leaders', asyncHandler(async (req: Request, res: Response) => {
+  const { teacher, course, academicYear, semester, batch, remarks } = req.body;
+  const adminUserId = (req as any).user._id;
+
+  // Validate required fields
+  if (!teacher || !course || !academicYear || !semester) {
+    throw createError('Missing required fields: teacher, course, academicYear, semester', 400);
+  }
+
+  // Validate ObjectIds
+  if (!mongoose.Types.ObjectId.isValid(teacher) || !mongoose.Types.ObjectId.isValid(course)) {
+    throw createError('Invalid teacher or course ID', 400);
+  }
+
+  if (batch && !mongoose.Types.ObjectId.isValid(batch)) {
+    throw createError('Invalid batch ID', 400);
+  }
+
+  // Validate semester
+  const validSemesters = ['Spring', 'Summer', 'Fall'];
+  if (!validSemesters.includes(semester)) {
+    throw createError('Invalid semester. Must be Spring, Summer, or Fall', 400);
+  }
+
+  // Check if teacher exists and is a teacher
+  const teacherUser = await User.findById(teacher);
+  if (!teacherUser) {
+    throw createError('Teacher not found', 404);
+  }
+
+  if (teacherUser.role !== 'teacher') {
+    throw createError('Selected user is not a teacher', 400);
+  }
+
+  // Check if course exists
+  const courseDoc = await Course.findById(course).populate('department');
+  if (!courseDoc) {
+    throw createError('Course not found', 404);
+  }
+
+  // Check if batch exists (if provided)
+  let batchDoc = null;
+  if (batch) {
+    batchDoc = await Batch.findById(batch);
+    if (!batchDoc) {
+      throw createError('Batch not found', 404);
+    }
+  }
+
+  // Check for existing active assignment for the same course-batch combination
+  const existingAssignment = await AssignedModuleLeader.findOne({
+    course,
+    batch: batch || null,
+    isActive: true
+  });
+
+  if (existingAssignment) {
+    throw createError('There is already an active module leader assignment for this course-batch combination', 400);
+  }
+
+  try {
+    // Create new assignment
+    const assignedModuleLeader = new AssignedModuleLeader({
+      course,
+      department: courseDoc.department._id,
+      batch: batch || null,
+      teacher,
+      academicYear,
+      semester,
+      assignedBy: adminUserId,
+      isActive: true,
+      remarks: remarks || `Promoted to module leader on ${new Date().toLocaleDateString()}`
+    });
+
+    console.log('Creating ModuleLeader document:', {
+      course,
+      department: courseDoc.department._id,
+      batch: batch || null,
+      teacher,
+      academicYear,
+      semester,
+      assignedBy: adminUserId
+    });
+
+    const savedAssignment = await assignedModuleLeader.save();
+    console.log('ModuleLeader document created successfully:', savedAssignment._id);
+
+    // Update teacher's role to module-leader
+    console.log('Updating teacher role from', teacherUser.role, 'to module-leader');
+    teacherUser.role = 'module-leader';
+    await teacherUser.save();
+    console.log('Teacher role updated successfully');
+
+    // Populate the assignment details
+    await savedAssignment.populate([
+      { path: 'course', select: 'name code creditHours' },
+      { path: 'department', select: 'name code' },
+      { path: 'batch', select: 'name year semester' },
+      { path: 'teacher', select: 'firstName lastName email role' },
+      { path: 'assignedBy', select: 'firstName lastName email' },
+      { path: 'assignedTeachers', select: 'firstName lastName email role' }
+    ]);
+
+    res.status(201).json({
+      message: 'Module leader promoted successfully',
+      assignment: savedAssignment
+    });
+  } catch (error) {
+    console.error('Error during module leader promotion:', error);
+    throw error;
+  }
+}));
+
 // Get all assigned module leaders with filtering
 router.get('/assigned-module-leaders', asyncHandler(async (req: Request, res: Response) => {
   const {
@@ -1421,6 +1535,10 @@ router.get('/assigned-module-leaders', asyncHandler(async (req: Request, res: Re
       path: 'assignedBy',
       select: 'firstName lastName email'
     })
+    .populate({
+      path: 'assignedTeachers',
+      select: 'firstName lastName email role'
+    })
     .sort({ assignedAt: -1 })
     .limit(parseInt(limit))
     .skip((parseInt(page) - 1) * parseInt(limit));
@@ -1465,6 +1583,10 @@ router.get('/assigned-module-leaders/teacher/:teacherId', asyncHandler(async (re
       path: 'batch',
       select: 'name year semester'
     })
+    .populate({
+      path: 'assignedTeachers',
+      select: 'firstName lastName email role'
+    })
     .sort({ assignedAt: -1 });
 
   res.json({ assignments });
@@ -1501,6 +1623,10 @@ router.get('/assigned-module-leaders/course/:courseId', asyncHandler(async (req:
       path: 'assignedBy',
       select: 'firstName lastName email'
     })
+    .populate({
+      path: 'assignedTeachers',
+      select: 'firstName lastName email role'
+    })
     .sort({ assignedAt: -1 });
 
   res.json({ assignments });
@@ -1521,7 +1647,8 @@ router.patch('/assigned-module-leaders/:id/deactivate', asyncHandler(async (req:
   ).populate([
     { path: 'course', select: 'name code' },
     { path: 'teacher', select: 'firstName lastName email' },
-    { path: 'batch', select: 'name year semester' }
+    { path: 'batch', select: 'name year semester' },
+    { path: 'assignedTeachers', select: 'firstName lastName email role' }
   ]);
 
   if (!assignment) {
@@ -1542,12 +1669,148 @@ router.get('/test/assigned-module-leaders', asyncHandler(async (req: Request, re
     .populate('batch', 'name year semester')
     .populate('teacher', 'firstName lastName email role')
     .populate('assignedBy', 'firstName lastName email')
+    .populate('assignedTeachers', 'firstName lastName email role')
     .sort({ createdAt: -1 });
 
   res.json({
     message: `Found ${assignments.length} assignments`,
     assignments,
     count: assignments.length
+  });
+}));
+
+// Test endpoint to check moduleleaders collection
+router.get('/test/moduleleaders-collection', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    // Get the database connection
+    const db = mongoose.connection.db;
+    
+    // List all collections
+    const collections = await db.listCollections().toArray();
+    const collectionNames = collections.map(col => col.name);
+    
+    // Check if moduleleaders collection exists
+    const hasModuleLeadersCollection = collectionNames.includes('moduleleaders');
+    
+    // If it exists, get the count
+    let moduleLeadersCount = 0;
+    if (hasModuleLeadersCollection) {
+      const moduleLeadersCollection = db.collection('moduleleaders');
+      moduleLeadersCount = await moduleLeadersCollection.countDocuments();
+    }
+    
+    res.json({
+      message: 'Module leaders collection check',
+      collections: collectionNames,
+      hasModuleLeadersCollection,
+      moduleLeadersCount,
+      assignedModuleLeadersCount: await AssignedModuleLeader.countDocuments()
+    });
+  } catch (error) {
+    console.error('Error checking moduleleaders collection:', error);
+    res.status(500).json({
+      error: 'Failed to check moduleleaders collection',
+      details: error.message
+    });
+  }
+}));
+
+// Add teacher to module leader's assigned teachers
+router.post('/assigned-module-leaders/:id/add-teacher', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { teacherId } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw createError('Invalid module leader assignment ID', 400);
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(teacherId)) {
+    throw createError('Invalid teacher ID', 400);
+  }
+
+  // Check if module leader assignment exists
+  const moduleLeaderAssignment = await AssignedModuleLeader.findById(id);
+  if (!moduleLeaderAssignment) {
+    throw createError('Module leader assignment not found', 404);
+  }
+
+  // Check if teacher exists and is a teacher
+  const teacher = await User.findById(teacherId);
+  if (!teacher) {
+    throw createError('Teacher not found', 404);
+  }
+
+  if (teacher.role !== 'teacher') {
+    throw createError('Selected user is not a teacher', 400);
+  }
+
+  // Check if teacher is already assigned to this module leader
+  if (moduleLeaderAssignment.assignedTeachers.includes(teacherId)) {
+    throw createError('Teacher is already assigned to this module leader', 400);
+  }
+
+  // Add teacher to assigned teachers array
+  moduleLeaderAssignment.assignedTeachers.push(teacherId);
+  await moduleLeaderAssignment.save();
+
+  // Populate the updated assignment
+  await moduleLeaderAssignment.populate([
+    { path: 'course', select: 'name code creditHours' },
+    { path: 'department', select: 'name code' },
+    { path: 'batch', select: 'name year semester' },
+    { path: 'teacher', select: 'firstName lastName email role' },
+    { path: 'assignedBy', select: 'firstName lastName email' },
+    { path: 'assignedTeachers', select: 'firstName lastName email role' }
+  ]);
+
+  res.json({
+    message: 'Teacher added to module leader successfully',
+    assignment: moduleLeaderAssignment
+  });
+}));
+
+// Remove teacher from module leader's assigned teachers
+router.delete('/assigned-module-leaders/:id/remove-teacher/:teacherId', asyncHandler(async (req: Request, res: Response) => {
+  const { id, teacherId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw createError('Invalid module leader assignment ID', 400);
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(teacherId)) {
+    throw createError('Invalid teacher ID', 400);
+  }
+
+  // Check if module leader assignment exists
+  const moduleLeaderAssignment = await AssignedModuleLeader.findById(id);
+  if (!moduleLeaderAssignment) {
+    throw createError('Module leader assignment not found', 404);
+  }
+
+  // Check if teacher is assigned to this module leader
+  if (!moduleLeaderAssignment.assignedTeachers.includes(teacherId)) {
+    throw createError('Teacher is not assigned to this module leader', 400);
+  }
+
+  // Remove teacher from assigned teachers array
+  moduleLeaderAssignment.assignedTeachers = moduleLeaderAssignment.assignedTeachers.filter(
+    teacher => teacher.toString() !== teacherId
+  );
+  await moduleLeaderAssignment.save();
+
+  // Populate the updated assignment
+  await moduleLeaderAssignment.populate([
+    { path: 'course', select: 'name code creditHours' },
+    { path: 'department', select: 'name code' },
+    { path: 'batch', select: 'name year semester' },
+    { path: 'teacher', select: 'firstName lastName email role' },
+    { path: 'assignedBy', select: 'firstName lastName email' },
+    { path: 'assignedTeachers', select: 'firstName lastName email role' }
+  ]);
+
+  res.json({
+    message: 'Teacher removed from module leader successfully',
+    assignment: moduleLeaderAssignment
   });
 }));
 

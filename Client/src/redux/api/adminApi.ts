@@ -231,7 +231,9 @@ export interface AssignModuleLeaderInput {
 // User Management Types
 export interface User {
   _id: string;
-  name: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
   email: string;
   role: 'admin' | 'teacher' | 'module-leader' | 'user';
   isBlocked: boolean;
@@ -281,6 +283,77 @@ export interface GetUsersQuery {
   search?: string;
   role?: 'admin' | 'teacher' | 'module-leader' | 'user';
   isBlocked?: boolean;
+}
+
+export interface AssignedModuleLeader {
+  _id: string;
+  course: {
+    _id: string;
+    name: string;
+    code: string;
+    creditHours: number;
+  };
+  department: {
+    _id: string;
+    name: string;
+    code: string;
+  };
+  batch?: {
+    _id: string;
+    name: string;
+    year: number;
+    semester: string;
+  };
+  teacher: {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    email: string;
+    role: string;
+  };
+  academicYear: number;
+  semester: 'Spring' | 'Summer' | 'Fall';
+  assignedAt: string;
+  assignedBy: {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    email: string;
+  };
+  isActive: boolean;
+  remarks?: string;
+  assignedTeachers: {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    email: string;
+    role: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateModuleLeaderAssignmentInput {
+  teacher: string;
+  course: string;
+  academicYear: number;
+  semester: 'Spring' | 'Summer' | 'Fall';
+  batch?: string;
+  remarks?: string;
+}
+
+export interface GetAssignedModuleLeadersQuery {
+  page?: number;
+  limit?: number;
+  teacher?: string;
+  course?: string;
+  department?: string;
+  academicYear?: number;
+  semester?: 'Spring' | 'Summer' | 'Fall';
+  isActive?: boolean;
 }
 
 // Admin API
@@ -522,6 +595,57 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'DELETE'
       }),
       invalidatesTags: ['User']
+    }),
+
+    // Module Leader Promotion
+    getAvailableTeachers: builder.query<{ teachers: User[] }, { search?: string; limit?: number }>({
+      query: (params) => ({
+        url: '/admin/courses/available-module-leaders',
+        params
+      }),
+      providesTags: ['User']
+    }),
+
+    getAssignedModuleLeaders: builder.query<{ assignments: AssignedModuleLeader[]; pagination: any }, GetAssignedModuleLeadersQuery>({
+      query: (params) => ({
+        url: '/admin/assigned-module-leaders',
+        params
+      }),
+      providesTags: ['AssignedModuleLeader']
+    }),
+
+    createModuleLeaderAssignment: builder.mutation<{ message: string; assignment: AssignedModuleLeader }, CreateModuleLeaderAssignmentInput>({
+      query: (data) => ({
+        url: '/admin/assigned-module-leaders',
+        method: 'POST',
+        body: data
+      }),
+      invalidatesTags: ['AssignedModuleLeader', 'User', 'Course']
+    }),
+
+    deactivateModuleLeaderAssignment: builder.mutation<{ message: string; assignment: AssignedModuleLeader }, string>({
+      query: (id) => ({
+        url: `/admin/assigned-module-leaders/${id}/deactivate`,
+        method: 'PATCH'
+      }),
+      invalidatesTags: ['AssignedModuleLeader', 'User', 'Course']
+    }),
+
+    addTeacherToModuleLeader: builder.mutation<{ message: string; assignment: AssignedModuleLeader }, { id: string; teacherId: string }>({
+      query: ({ id, teacherId }) => ({
+        url: `/admin/assigned-module-leaders/${id}/add-teacher`,
+        method: 'POST',
+        body: { teacherId }
+      }),
+      invalidatesTags: ['AssignedModuleLeader', 'User']
+    }),
+
+    removeTeacherFromModuleLeader: builder.mutation<{ message: string; assignment: AssignedModuleLeader }, { id: string; teacherId: string }>({
+      query: ({ id, teacherId }) => ({
+        url: `/admin/assigned-module-leaders/${id}/remove-teacher/${teacherId}`,
+        method: 'DELETE'
+      }),
+      invalidatesTags: ['AssignedModuleLeader', 'User']
     })
   }),
 });
@@ -569,5 +693,13 @@ export const {
   useUpdateUserRoleMutation,
   useBlockUserMutation,
   useUnblockUserMutation,
-  useDeleteUserMutation
+  useDeleteUserMutation,
+
+  // Module Leader Promotion
+  useGetAvailableTeachersQuery,
+  useGetAssignedModuleLeadersQuery,
+  useCreateModuleLeaderAssignmentMutation,
+  useDeactivateModuleLeaderAssignmentMutation,
+  useAddTeacherToModuleLeaderMutation,
+  useRemoveTeacherFromModuleLeaderMutation
 } = adminApi;

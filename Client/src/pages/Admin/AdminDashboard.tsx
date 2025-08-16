@@ -9,8 +9,9 @@ import CourseManagement from './components/CourseManagement';
 import BatchManagement from './components/BatchManagement';
 import SectionManagement from './components/SectionManagement';
 import UserManagement from './components/UserManagement';
+import PromoteModuleLeader from './components/PromoteModuleLeader';
 
-type TabType = 'dashboard' | 'departments' | 'courses' | 'batches' | 'sections' | 'users';
+type TabType = 'dashboard' | 'departments' | 'courses' | 'batches' | 'sections' | 'users' | 'promote-module-leader';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -37,6 +38,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'batches', label: 'Batches', icon: '👥' },
     { id: 'sections', label: 'Sections', icon: '📝' },
     { id: 'users', label: 'Users', icon: '👤' },
+    { id: 'promote-module-leader', label: 'Promote Module Leader', icon: '🎓' },
   ] as const;
 
   const renderTabContent = () => {
@@ -61,6 +63,8 @@ const AdminDashboard: React.FC = () => {
         return <SectionManagement />;
       case 'users':
         return <UserManagement />;
+      case 'promote-module-leader':
+        return <PromoteModuleLeader />;
       default:
         return <DashboardStats stats={dashboardStats} />;
     }
