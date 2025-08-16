@@ -3,7 +3,8 @@ import {
     getCourseRequests,
     updateCourseRequestStatus,
     getDocumentSubmissionRequests,
-    updateDocumentSubmissionStatus
+    updateDocumentSubmissionStatus,
+    shareDocumentsWithTeacher
 } from '../controllers/teacherRequestsController';
 import { authenticate, requireRole } from '../middleware/auth';
 import { updateCourseRequestStatusValidation, updateDocumentSubmissionStatusValidation } from '../schemas/teacherRequests';
@@ -16,5 +17,6 @@ router.use(authenticate);
 // Module leader routes for managing teacher requests
 router.get('/', requireRole(['module-leader']), getCourseRequests);
 router.patch('/:requestId/status', updateCourseRequestStatusValidation, requireRole(['module-leader']), updateCourseRequestStatus);
+router.post('/:requestId/share-documents', requireRole(['module-leader']), shareDocumentsWithTeacher);
 
 export default router;

@@ -2,15 +2,78 @@ import React, { useState } from 'react';
 import {
   useGetCourseRequestsQuery,
   useUpdateCourseRequestStatusMutation,
+  useShareDocumentsWithTeacherMutation,
 } from '../../../redux/api/teacherRequestsApi';
+import { type DocumentDistribution } from '../../../redux/api/documentDistributionApi';
+import DocumentSelectionModal from './DocumentSelectionModal';
+import DocumentSharedNotification from './DocumentSharedNotification';
+import { toast } from 'react-hot-toast';
 
 const TeacherRequests: React.FC = () => {
   // API hooks
   const { data: courseRequestsData, isLoading: courseRequestsLoading } = useGetCourseRequestsQuery();
   const [updateCourseRequestStatus] = useUpdateCourseRequestStatusMutation();
+  const [shareDocumentsWithTeacher] = useShareDocumentsWithTeacherMutation();
+
+  // Modal state
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<{ _id: string; teacherName: string; courseCode: string; employeeId: string } | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [sharedDocuments, setSharedDocuments] = useState<DocumentDistribution[]>([]);
 
   // Extract data from API responses
   const courseRequests = courseRequestsData?.data || [];
+
+  const handleApproveWithDocuments = (request: {
+    _id: string;
+    teacherName: string;
+    courseCode: string;
+    employeeId: string;
+  }) => {
+    setSelectedRequest({
+      _id: request._id,
+      teacherName: request.teacherName,
+      courseCode: request.courseCode,
+      employeeId: request.employeeId
+    });
+    setShowDocumentModal(true);
+  };
+
+  const handleDocumentSelection = async (selectedDocuments: DocumentDistribution[]) => {
+    if (!selectedRequest) return;
+
+    setIsSharing(true);
+    try {
+      // Share documents with teacher
+      await shareDocumentsWithTeacher({
+        requestId: selectedRequest._id,
+        teacherId: selectedRequest.employeeId,
+        documentDistributionIds: selectedDocuments.map(doc => doc.distributionId),
+        accessType: 'download'
+      }).unwrap();
+
+      // Update course request status to approved
+      await updateCourseRequestStatus({
+        requestId: selectedRequest._id,
+        status: 'approved',
+      }).unwrap();
+
+      toast.success(`Request approved and ${selectedDocuments.length} document(s) shared with ${selectedRequest.teacherName}`);
+      
+      // Show success notification with document details
+      setSharedDocuments(selectedDocuments);
+      setShowSuccessNotification(true);
+      
+      setShowDocumentModal(false);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error sharing documents:', error);
+      toast.error('Failed to share documents and approve request');
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const handleCourseRequestAction = async (requestId: string, action: 'approve' | 'reject') => {
     try {
@@ -108,10 +171,10 @@ const TeacherRequests: React.FC = () => {
                     {request.status === 'pending' && (
                       <div className="ml-4 flex space-x-2">
                         <button
-                          onClick={() => handleCourseRequestAction(request._id, 'approve')}
+                          onClick={() => handleApproveWithDocuments(request)}
                           className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                         >
-                          Approve
+                          Approve & Share Docs
                         </button>
                         <button
                           onClick={() => handleCourseRequestAction(request._id, 'reject')}
@@ -129,6 +192,30 @@ const TeacherRequests: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Document Selection Modal */}
+      <DocumentSelectionModal
+        isOpen={showDocumentModal}
+        onClose={() => {
+          setShowDocumentModal(false);
+          setSelectedRequest(null);
+        }}
+        onConfirm={handleDocumentSelection}
+        teacherName={selectedRequest?.teacherName || ''}
+        courseCode={selectedRequest?.courseCode || ''}
+        loading={isSharing}
+      />
+
+      {/* Success Notification */}
+      <DocumentSharedNotification
+        isOpen={showSuccessNotification}
+        onClose={() => {
+          setShowSuccessNotification(false);
+          setSharedDocuments([]);
+        }}
+        teacherName={selectedRequest?.teacherName || ''}
+        sharedDocuments={sharedDocuments}
+      />
     </div>
   );
 };

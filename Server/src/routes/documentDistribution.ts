@@ -7,7 +7,8 @@ import {
   updateDocumentDistribution,
   updateDistributionStatus,
   deleteDocumentDistribution,
-  getDistributionAnalytics
+  getDistributionAnalytics,
+  getSharedDocuments
 } from '../controllers/documentDistributionController';
 import { authenticateToken } from '../middleware/auth';
 // import { checkRole } from '../middleware/permissions';
@@ -63,6 +64,12 @@ router.delete(
   '/:distributionId',
   // checkRole(['module-leader']),
   deleteDocumentDistribution
+);
+
+// Get shared documents for teachers
+router.get(
+  '/shared/teacher',
+  getSharedDocuments
 );
 
 export default router;

@@ -500,6 +500,67 @@ export const deleteDocumentDistribution = async (req: Request, res: Response) =>
   }
 };
 
+// Get documents shared with teacher
+export const getSharedDocuments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user.id;
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Find all document distributions where the teacher has access
+    const documentDistributions = await DocumentDistribution.find({
+      $or: [
+        // Teacher is specifically listed in permissions
+        { 'permissions.teachers.specificTeachers': userId },
+        // Teacher has general access and no specific restrictions
+        {
+          'permissions.teachers.canView': true,
+          $or: [
+            { 'permissions.teachers.specificTeachers': { $exists: false } },
+            { 'permissions.teachers.specificTeachers': { $size: 0 } }
+          ]
+        }
+      ],
+      'distributionStatus.status': 'distributed'
+    })
+    .populate('course.courseId', 'name code')
+    .populate('course.department', 'name')
+    .populate('moduleLeader.userId', 'name email employeeId')
+    .sort({ createdAt: -1 });
+
+    // Transform the data to include access permissions for this teacher
+    const sharedDocuments = documentDistributions.map(distribution => ({
+      ...distribution.toObject(),
+      teacherPermissions: {
+        canView: distribution.permissions.teachers.canView,
+        canDownload: distribution.permissions.teachers.canDownload,
+        canComment: distribution.permissions.teachers.canComment,
+        canEdit: distribution.permissions.teachers.canEdit
+      }
+    }));
+
+    res.json({
+      success: true,
+      message: 'Shared documents retrieved successfully',
+      data: sharedDocuments
+    });
+
+  } catch (error) {
+    console.error('Error getting shared documents:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get shared documents',
+      error: error.message
+    });
+  }
+};
+
 // Get distribution analytics
 export const getDistributionAnalytics = async (req: Request, res: Response) => {
   try {

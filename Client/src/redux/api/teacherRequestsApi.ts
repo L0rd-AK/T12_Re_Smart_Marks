@@ -13,6 +13,13 @@ export interface UpdateDocumentSubmissionStatusRequest {
   reviewComments?: string;
 }
 
+export interface ShareDocumentsWithTeacherRequest {
+  requestId: string;
+  teacherId: string;
+  documentDistributionIds: string[];
+  accessType?: 'view' | 'download' | 'full';
+}
+
 export const teacherRequestsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Get all course requests for module leader
@@ -67,6 +74,23 @@ export const teacherRequestsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['DocumentSubmission'],
     }),
+
+    // Share documents with teacher
+    shareDocumentsWithTeacher: builder.mutation<
+      { success: boolean; message: string; data: { sharedDocuments: string[]; accessLinks: Record<string, string> } },
+      ShareDocumentsWithTeacherRequest
+    >({
+      query: (data) => ({
+        url: `/teacher-requests/${data.requestId}/share-documents`,
+        method: 'POST',
+        body: {
+          teacherId: data.teacherId,
+          documentDistributionIds: data.documentDistributionIds,
+          accessType: data.accessType || 'download',
+        },
+      }),
+      invalidatesTags: ['DocumentSubmission'],
+    }),
   }),
 });
 
@@ -75,4 +99,5 @@ export const {
   useUpdateCourseRequestStatusMutation,
   useGetDocumentSubmissionRequestsQuery,
   useUpdateDocumentSubmissionStatusMutation,
+  useShareDocumentsWithTeacherMutation,
 } = teacherRequestsApi; 
