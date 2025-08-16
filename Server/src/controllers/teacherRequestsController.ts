@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { CourseAccessRequest } from '../models/CourseAccessRequest';
 import { DocumentSubmission } from '../models/DocumentSubmission';
-import { DocumentDistribution } from '../models/DocumentDistribution';
+import DocumentDistribution from '../models/DocumentDistribution';
 import Course from '../models/Course';
 import Section from '../models/Section';
 import Batch from '../models/Batch';
