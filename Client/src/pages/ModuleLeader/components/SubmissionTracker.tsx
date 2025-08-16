@@ -337,7 +337,7 @@ const SubmissionTracker: React.FC = () => {
                     <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                       <div 
                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${submission.completionPercentage}%` } as React.CSSProperties}
+                        style={{ width: `${submission.completionPercentage}%` }}
                       ></div>
                     </div>
                     <div className="text-xs text-gray-500 mt-1">{submission.completionPercentage}% Complete</div>
