@@ -22,7 +22,12 @@ const TeacherRequests: React.FC = () => {
   // Extract data from API responses
   const courseRequests = courseRequestsData?.data || [];
 
-  const handleApproveWithDocuments = (request: any) => {
+  const handleApproveWithDocuments = (request: {
+    _id: string;
+    teacherName: string;
+    courseCode: string;
+    employeeId: string;
+  }) => {
     setSelectedRequest({
       _id: request._id,
       teacherName: request.teacherName,
