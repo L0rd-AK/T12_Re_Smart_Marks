@@ -172,18 +172,6 @@ const SubmissionTracker: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getTotalFileSize = (documents: DocumentDetail[]) => {
-    let totalSize = 0;
-    documents.forEach(doc => {
-      if (doc.uploadedFiles) {
-        Object.values(doc.uploadedFiles).forEach(file => {
-          totalSize += file.size;
-        });
-      }
-    });
-    return totalSize;
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
