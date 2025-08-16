@@ -311,6 +311,12 @@ export const documentDistributionApi = baseApi.injectEndpoints({
       providesTags: ['DocumentDistribution'],
     }),
 
+    // Get shared documents for a specific course (for teachers)
+    getCourseSharedDocuments: builder.query<DistributionsResponse, string>({
+      query: (courseId) => `/document-distribution/shared/course/${courseId}`,
+      providesTags: ['DocumentDistribution'],
+    }),
+
     // Get document distributions for a specific course (for module leaders)
     getCourseDocumentDistributions: builder.query<DistributionsResponse, string>({
       query: (courseId) => `/document-distribution/course/${courseId}`,
@@ -330,5 +336,6 @@ export const {
   useGetDistributionAnalyticsQuery,
   useDeleteDocumentDistributionMutation,
   useGetSharedDocumentsQuery,
+  useGetCourseSharedDocumentsQuery,
   useGetCourseDocumentDistributionsQuery,
 } = documentDistributionApi;

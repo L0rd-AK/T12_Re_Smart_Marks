@@ -20,7 +20,10 @@ import {
     Award,
     BarChart3,
     ExternalLink,
+    Tag,
 } from "lucide-react"
+import { useGetCourseSharedDocumentsQuery, type DocumentDistribution, type FileMetadata } from "../../redux/api/documentDistributionApi"
+import LoadingSpinner from "../../components/LoadingSpinner"
 
 interface Course {
     id: string
@@ -81,6 +84,8 @@ interface CourseMaterial {
     uploadedBy: string
     category: "syllabus" | "lecture" | "assignment" | "exam" | "reference"
     url?: string
+    downloadUrl?: string
+    isShared?: boolean
 }
 
 interface Teacher {
@@ -119,16 +124,25 @@ export default function CourseDetailsPage({ courseId, onBack }: CourseDetailsPag
     const [selectedMaterial, setSelectedMaterial] = useState<CourseMaterial | null>(null)
     const [activeTab, setActiveTab] = useState<'overview' | 'materials' | 'teachers' | 'schedule' | 'assessment' | 'announcements'>('overview')
 
+    // Fetch shared documents for this course
+    const { 
+        data: sharedDocumentsData, 
+        isLoading: sharedDocumentsLoading, 
+        error: sharedDocumentsError 
+    } = useGetCourseSharedDocumentsQuery(courseId)
+    
+    const sharedDocuments = sharedDocumentsData?.data || []
+
     // Mock course data - in real app this would come from API
     const course: Course = {
         id: courseId,
-        code: "CSE301",
-        title: "Database Management Systems",
+        code: "CS201",
+        title: "Data Structures",
         department: "Computer Science",
-        semester: "Spring 2025",
+        semester: "Summer 2025",
         creditHours: 3,
-        moduleLeader: "Dr. Carol White",
-        moduleLeaderEmail: "carol.white@university.edu",
+        moduleLeader: "amit",
+        moduleLeaderEmail: "amit@gmail.com",
         enrolledTeachers: ["Dr. John Smith", "Prof. Sarah Wilson", "Dr. Mike Davis"],
         status: "active",
         documentProgress: 92,
@@ -178,66 +192,6 @@ export default function CourseDetailsPage({ courseId, onBack }: CourseDetailsPag
     }
 
     const courseMaterials: CourseMaterial[] = [
-        {
-            id: "1",
-            name: "Course Syllabus - Database Management Systems.pdf",
-            type: "application/pdf",
-            size: 512000,
-            uploadDate: "2025-01-15",
-            uploadedBy: "Dr. Carol White",
-            category: "syllabus",
-            url: "#",
-        },
-        {
-            id: "2",
-            name: "Chapter 1 - Introduction to Databases.pdf",
-            type: "application/pdf",
-            size: 2048000,
-            uploadDate: "2025-01-18",
-            uploadedBy: "Dr. Carol White",
-            category: "lecture",
-            url: "#",
-        },
-        {
-            id: "3",
-            name: "Chapter 2 - Relational Model.pdf",
-            type: "application/pdf",
-            size: 1536000,
-            uploadDate: "2025-01-22",
-            uploadedBy: "Dr. Carol White",
-            category: "lecture",
-            url: "#",
-        },
-        {
-            id: "4",
-            name: "Assignment 1 - ER Diagram Design.pdf",
-            type: "application/pdf",
-            size: 768000,
-            uploadDate: "2025-01-25",
-            uploadedBy: "Dr. John Smith",
-            category: "assignment",
-            url: "#",
-        },
-        {
-            id: "5",
-            name: "Lab Manual - SQL Basics.pdf",
-            type: "application/pdf",
-            size: 1024000,
-            uploadDate: "2025-01-20",
-            uploadedBy: "Prof. Sarah Wilson",
-            category: "reference",
-            url: "#",
-        },
-        {
-            id: "6",
-            name: "Midterm Exam Sample Questions.pdf",
-            type: "application/pdf",
-            size: 384000,
-            uploadDate: "2025-02-10",
-            uploadedBy: "Dr. Carol White",
-            category: "exam",
-            url: "#",
-        },
     ]
 
     const teachers: Teacher[] = [
@@ -329,6 +283,30 @@ export default function CourseDetailsPage({ courseId, onBack }: CourseDetailsPag
         const i = Math.floor(Math.log(bytes) / Math.log(k))
         return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
     }
+
+    // Transform shared documents to course materials format
+    const transformSharedDocuments = () => {
+        return sharedDocuments.flatMap((doc: DocumentDistribution) => 
+            doc.files.map((file: FileMetadata, index: number) => ({
+                id: `shared-${doc.distributionId}-${index}`,
+                name: file.originalName,
+                type: file.mimeType,
+                size: file.fileSize,
+                uploadDate: new Date(file.uploadedAt).toLocaleDateString(),
+                uploadedBy: doc.moduleLeader.name,
+                category: doc.category as "syllabus" | "lecture" | "assignment" | "exam" | "reference",
+                url: file.liveViewLink,
+                downloadUrl: file.downloadLink,
+                isShared: true
+            }))
+        )
+    }
+
+    // Combine mock materials with shared documents
+    const allCourseMaterials = [
+        ...courseMaterials,
+        ...transformSharedDocuments()
+    ]
 
     const getCategoryIcon = (category: string) => {
         switch (category) {
@@ -638,63 +616,105 @@ export default function CourseDetailsPage({ courseId, onBack }: CourseDetailsPag
                             <div className="card bg-white backdrop-blur-sm shadow-xl border-0">
                                 <div className="card-body">
                                     <h2 className="card-title text-xl font-semibold text-gray-900 flex items-center gap-2">
-                                        <svg className="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="none"><path d="..." /></svg>
+                                        <FileText className="w-6 h-6 text-blue-600" />
                                         Course Materials
                                     </h2>
-                                    <p className="text-sm text-gray-600 mb-4">All uploaded course materials and resources</p>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        All uploaded course materials and shared documents ({allCourseMaterials.length} total)
+                                    </p>
 
-                                    <div className="overflow-x-auto">
-                                        <table className="table w-full border-separate border-spacing-0 rounded-lg overflow-hidden">
-                                            <thead>
-                                                <tr className="bg-blue-100/80">
-                                                    <th className="font-semibold text-blue-900">Material</th>
-                                                    <th className="font-semibold text-blue-900">Category</th>
-                                                    <th className="font-semibold text-blue-900">Size</th>
-                                                    <th className="font-semibold text-blue-900">Uploaded By</th>
-                                                    <th className="font-semibold text-blue-900">Date</th>
-                                                    <th className="font-semibold text-blue-900">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {courseMaterials.map((material, idx) => (
-                                                    <tr
-                                                        key={material.id}
-                                                        className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-blue-50/60"} hover:bg-blue-100/70`}
-                                                    >
-                                                        <td>
-                                                            <div className="flex items-center gap-3">
-                                                                {getCategoryIcon(material.category)}
-                                                                <span className="font-medium text-blue-900">{material.name}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td>{getCategoryBadge(material.category)}</td>
-                                                        <td className="text-sm text-gray-700">{formatFileSize(material.size)}</td>
-                                                        <td className="text-gray-800">{material.uploadedBy}</td>
-                                                        <td className="text-sm text-gray-700">{material.uploadDate}</td>
-                                                        <td>
-                                                            <div className="flex gap-2">
-                                                                <button
-                                                                    className="btn btn-outline btn-sm"
-                                                                    onClick={() => {
-                                                                        setSelectedMaterial(material)
-                                                                        setShowMaterialModal(true)
-                                                                    }}
-                                                                >
-                                                                    <Eye className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    className="btn btn-outline btn-sm"
-                                                                    onClick={() => window.open(material.url, "_blank")}
-                                                                >
-                                                                    <Download className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    {sharedDocumentsLoading ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <LoadingSpinner />
+                                            <span className="ml-2">Loading shared documents...</span>
+                                        </div>
+                                    ) : sharedDocumentsError ? (
+                                        <div className="text-center py-8">
+                                            <div className="text-red-600">
+                                                <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                                <p className="text-lg font-medium">Error loading shared documents</p>
+                                                <p className="text-sm mt-2">Error: {JSON.stringify(sharedDocumentsError)}</p>
+                                                <p className="text-sm mt-2">Course ID: {courseId}</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            {sharedDocuments.length > 0 && (
+                                                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                    <p className="text-green-800 text-sm">
+                                                        ✅ Found {sharedDocuments.length} shared document distribution(s) with {transformSharedDocuments().length} files
+                                                    </p>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="overflow-x-auto">
+                                                <table className="table w-full border-separate border-spacing-0 rounded-lg overflow-hidden">
+                                                    <thead>
+                                                        <tr className="bg-blue-100/80">
+                                                            <th className="font-semibold text-blue-900">Material</th>
+                                                            <th className="font-semibold text-blue-900">Category</th>
+                                                            <th className="font-semibold text-blue-900">Size</th>
+                                                            <th className="font-semibold text-blue-900">Uploaded By</th>
+                                                            <th className="font-semibold text-blue-900">Date</th>
+                                                            <th className="font-semibold text-blue-900">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {allCourseMaterials.map((material, idx) => (
+                                                            <tr
+                                                                key={material.id}
+                                                                className={`transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-blue-50/60"} hover:bg-blue-100/70`}
+                                                            >
+                                                                <td>
+                                                                    <div className="flex items-center gap-3">
+                                                                        {getCategoryIcon(material.category)}
+                                                                        <div>
+                                                                            <span className="font-medium text-blue-900">{material.name}</span>
+                                                                            {material.isShared && (
+                                                                                <span className="ml-2 badge badge-info badge-sm">Shared</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td>{getCategoryBadge(material.category)}</td>
+                                                                <td className="text-sm text-gray-700">{formatFileSize(material.size)}</td>
+                                                                <td className="text-gray-800">{material.uploadedBy}</td>
+                                                                <td className="text-sm text-gray-700">{material.uploadDate}</td>
+                                                                <td>
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            className="btn btn-outline btn-sm"
+                                                                            onClick={() => {
+                                                                                setSelectedMaterial(material)
+                                                                                setShowMaterialModal(true)
+                                                                            }}
+                                                                            title="View material"
+                                                                        >
+                                                                            <Eye className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-outline btn-sm"
+                                                                            onClick={() => window.open(material.downloadUrl || material.url, "_blank")}
+                                                                            title="Download material"
+                                                                        >
+                                                                            <Download className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                                {allCourseMaterials.length === 0 && (
+                                                    <div className="text-center py-8">
+                                                        <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No materials available</h3>
+                                                        <p className="text-gray-600">No course materials have been uploaded yet.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>}
@@ -956,7 +976,7 @@ export default function CourseDetailsPage({ courseId, onBack }: CourseDetailsPag
                                         className="btn btn-outline flex-1"
                                         onClick={() => {
                                             const link = document.createElement("a");
-                                            link.href = selectedMaterial.url || "";
+                                            link.href = selectedMaterial.downloadUrl || selectedMaterial.url || "";
                                             link.download = selectedMaterial.name;
                                             link.click();
                                         }}

@@ -9,7 +9,8 @@ import {
   deleteDocumentDistribution,
   getDistributionAnalytics,
   getSharedDocuments,
-  getCourseDocumentDistributions
+  getCourseDocumentDistributions,
+  getCourseSharedDocuments
 } from '../controllers/documentDistributionController';
 import { authenticateToken } from '../middleware/auth';
 // import { checkRole } from '../middleware/permissions';
@@ -78,6 +79,12 @@ router.delete(
 router.get(
   '/shared/teacher',
   getSharedDocuments
+);
+
+// Get shared documents for a specific course (for teachers)
+router.get(
+  '/shared/course/:courseId',
+  getCourseSharedDocuments
 );
 
 export default router;

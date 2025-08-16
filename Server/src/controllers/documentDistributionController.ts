@@ -601,6 +601,88 @@ export const getCourseDocumentDistributions = async (req: Request, res: Response
   }
 };
 
+// Get shared documents for a specific course (for teachers)
+export const getCourseSharedDocuments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { courseId } = req.params;
+    const userId = (req as any).user.id;
+    const user = await User.findById(userId);
+    
+    console.log('getCourseSharedDocuments called with:', {
+      courseId,
+      userId,
+      userExists: !!user
+    });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Find all document distributions for the specific course that are shared with teachers
+    const documentDistributions = await DocumentDistribution.find({
+      'course.courseId': courseId,
+      $or: [
+        // Teacher is specifically listed in permissions
+        { 'permissions.teachers.specificTeachers': userId },
+        // Teacher has general access and no specific restrictions
+        {
+          'permissions.teachers.canView': true,
+          $or: [
+            { 'permissions.teachers.specificTeachers': { $exists: false } },
+            { 'permissions.teachers.specificTeachers': { $size: 0 } }
+          ]
+        }
+      ],
+      $or: [
+        { 'distributionStatus.status': 'distributed' },
+        { 'distributionStatus.status': 'pending' } // Temporarily include pending for testing
+      ]
+    })
+    .populate('course.courseId', 'name code')
+    .populate('course.department', 'name')
+    .populate('moduleLeader.userId', 'name email employeeId')
+    .sort({ createdAt: -1 });
+
+    console.log('Found document distributions:', {
+      count: documentDistributions.length,
+      distributions: documentDistributions.map(d => ({
+        id: d.distributionId,
+        title: d.title,
+        status: d.distributionStatus.status,
+        fileCount: d.fileCount
+      }))
+    });
+
+    // Transform the data to include access permissions for this teacher
+    const sharedDocuments = documentDistributions.map(distribution => ({
+      ...distribution.toObject(),
+      teacherPermissions: {
+        canView: distribution.permissions.teachers.canView,
+        canDownload: distribution.permissions.teachers.canDownload,
+        canComment: distribution.permissions.teachers.canComment,
+        canEdit: distribution.permissions.teachers.canEdit
+      }
+    }));
+
+    res.json({
+      success: true,
+      message: 'Course shared documents retrieved successfully',
+      data: sharedDocuments
+    });
+
+  } catch (error) {
+    console.error('Error getting course shared documents:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get course shared documents',
+      error: error.message
+    });
+  }
+};
+
 // Get distribution analytics
 export const getDistributionAnalytics = async (req: Request, res: Response) => {
   try {
