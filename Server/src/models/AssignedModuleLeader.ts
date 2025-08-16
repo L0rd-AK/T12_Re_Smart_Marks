@@ -11,6 +11,7 @@ export interface IAssignedModuleLeader extends Document {
   assignedBy: mongoose.Types.ObjectId;
   isActive: boolean;
   remarks?: string;
+  assignedTeachers: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,7 +63,12 @@ const assignedModuleLeaderSchema = new Schema<IAssignedModuleLeader>({
   remarks: {
     type: String,
     trim: true
-  }
+  },
+  assignedTeachers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: []
+  }]
 }, {
   timestamps: true
 });
@@ -80,5 +86,6 @@ assignedModuleLeaderSchema.index(
 assignedModuleLeaderSchema.index({ teacher: 1, isActive: 1 });
 assignedModuleLeaderSchema.index({ department: 1, academicYear: 1, semester: 1 });
 assignedModuleLeaderSchema.index({ assignedAt: -1 });
+assignedModuleLeaderSchema.index({ assignedTeachers: 1 });
 
-export default mongoose.model<IAssignedModuleLeader>('AssignedModuleLeader', assignedModuleLeaderSchema);
+export default mongoose.model<IAssignedModuleLeader>('ModuleLeader', assignedModuleLeaderSchema);
