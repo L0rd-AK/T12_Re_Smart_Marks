@@ -1,88 +1,67 @@
 import React, { useState } from 'react';
 import {
-  useGetCourseRequestsQuery,
-  useUpdateCourseRequestStatusMutation,
-  useShareDocumentsWithTeacherMutation,
-} from '../../../redux/api/teacherRequestsApi';
-import { type DocumentDistribution } from '../../../redux/api/documentDistributionApi';
-import DocumentSelectionModal from './DocumentSelectionModal';
-import DocumentSharedNotification from './DocumentSharedNotification';
-import { toast } from 'react-hot-toast';
+  useGetPendingRequestsQuery,
+  useRespondToRequestMutation,
+} from '../../../redux/api/courseAccessApi';
+import {
+  useGetCourseDocumentDistributionsQuery,
+} from '../../../redux/api/documentDistributionApi';
+import { type CourseAccessRequest } from '../../../redux/api/courseAccessApi';
+import { toast } from 'sonner';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import { Check, X, Clock, ExternalLink, BookOpen } from 'lucide-react';
 
 const TeacherRequests: React.FC = () => {
   // API hooks
-  const { data: courseRequestsData, isLoading: courseRequestsLoading } = useGetCourseRequestsQuery();
-  const [updateCourseRequestStatus] = useUpdateCourseRequestStatusMutation();
-  const [shareDocumentsWithTeacher] = useShareDocumentsWithTeacherMutation();
+  const { data: pendingRequestsData, isLoading: pendingRequestsLoading } = useGetPendingRequestsQuery();
+  const [respondToRequest, { isLoading: isResponding }] = useRespondToRequestMutation();
 
-  // Modal state
-  const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<{ _id: string; teacherName: string; courseCode: string; employeeId: string } | null>(null);
-  const [isSharing, setIsSharing] = useState(false);
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
-  const [sharedDocuments, setSharedDocuments] = useState<DocumentDistribution[]>([]);
+  // State for document selection
+  const [showResponseModal, setShowResponseModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<CourseAccessRequest | null>(null);
+  const [responseMessage, setResponseMessage] = useState("");
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+
+  // Document distribution API for the selected request
+  const { data: courseDocumentsData, isLoading: courseDocumentsLoading } = useGetCourseDocumentDistributionsQuery(
+    selectedRequest?.course._id || '',
+    { skip: !selectedRequest }
+  );
 
   // Extract data from API responses
-  const courseRequests = courseRequestsData?.data || [];
+  const pendingRequests = pendingRequestsData?.data || [];
+  const courseDocuments = courseDocumentsData?.data || [];
 
-  const handleApproveWithDocuments = (request: {
-    _id: string;
-    teacherName: string;
-    courseCode: string;
-    employeeId: string;
-  }) => {
-    setSelectedRequest({
-      _id: request._id,
-      teacherName: request.teacherName,
-      courseCode: request.courseCode,
-      employeeId: request.employeeId
-    });
-    setShowDocumentModal(true);
+  const handleRespondToRequest = (request: CourseAccessRequest) => {
+    setSelectedRequest(request);
+    setShowResponseModal(true);
   };
 
-  const handleDocumentSelection = async (selectedDocuments: DocumentDistribution[]) => {
+  const submitResponse = async (status: 'approved' | 'rejected') => {
     if (!selectedRequest) return;
 
-    setIsSharing(true);
     try {
-      // Share documents with teacher
-      await shareDocumentsWithTeacher({
+      await respondToRequest({
         requestId: selectedRequest._id,
-        teacherId: selectedRequest.employeeId,
-        documentDistributionIds: selectedDocuments.map(doc => doc.distributionId),
-        accessType: 'download'
+        data: {
+          status,
+          responseMessage: responseMessage,
+          selectedDocuments: status === 'approved' ? selectedDocuments : undefined
+        }
       }).unwrap();
 
-      // Update course request status to approved
-      await updateCourseRequestStatus({
-        requestId: selectedRequest._id,
-        status: 'approved',
-      }).unwrap();
-
-      toast.success(`Request approved and ${selectedDocuments.length} document(s) shared with ${selectedRequest.teacherName}`);
-      
-      // Show success notification with document details
-      setSharedDocuments(selectedDocuments);
-      setShowSuccessNotification(true);
-      
-      setShowDocumentModal(false);
+      setShowResponseModal(false);
+      setResponseMessage("");
       setSelectedRequest(null);
-    } catch (error) {
-      console.error('Error sharing documents:', error);
-      toast.error('Failed to share documents and approve request');
-    } finally {
-      setIsSharing(false);
-    }
-  };
+      setSelectedDocuments([]);
 
-  const handleCourseRequestAction = async (requestId: string, action: 'approve' | 'reject') => {
-    try {
-      await updateCourseRequestStatus({
-        requestId,
-        status: action === 'approve' ? 'approved' : 'rejected',
-      }).unwrap();
-    } catch (error) {
-      console.error('Error updating course request status:', error);
+      // Show success message
+      toast.success(`Request ${status} successfully!`);
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'data' in error
+        ? (error.data as { message?: string })?.message || 'Failed to respond to request'
+        : 'Failed to respond to request';
+      toast.error(errorMessage);
     }
   };
 
