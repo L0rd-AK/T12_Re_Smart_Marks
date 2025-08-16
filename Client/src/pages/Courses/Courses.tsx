@@ -78,34 +78,67 @@ export default function CoursesPage() {
     const handleRequestAccess = (course: Course) => {
         setSelectedCourse(course)
         setShowRequestModal(true)
+        // Reset form fields when opening modal
+        setRequestMessage("")
+        setBatch(undefined)
+        setSection("")
+        setSemester("")
     }
 
     const submitAccessRequest = async () => {
-        if (!selectedCourse || !requestMessage.trim() || !batch || !section) return
+        if (!selectedCourse || !requestMessage.trim() || requestMessage.length < 10 || !batch || !section || !semester) return
+
+        // Validate moduleLeader exists
+        if (!selectedCourse.moduleLeader?._id) {
+            toast.error('Course module leader information is missing');
+            return;
+        }
 
         try {
-            await createAccessRequest({
-                courseId: selectedCourse?._id,
+            const requestData = {
+                courseId: selectedCourse._id,
                 data: {
                     message: requestMessage,
-                    moduleLeaderId: selectedCourse?.moduleLeader?._id ?? "",
+                    moduleLeaderId: selectedCourse.moduleLeader._id,
                     batch: batch,
                     section: section,
                     semester: semester
                 }
-            }).unwrap()
+            };
+
+            console.log('Sending request:', requestData);
+
+            await createAccessRequest(requestData).unwrap()
 
             setShowRequestModal(false)
             setRequestMessage("")
             setSelectedCourse(null)
+            setBatch(undefined)
+            setSection("")
+            setSemester("")
 
             // Show success message
             toast.success('Access request sent successfully!')
         } catch (error: unknown) {
-            const errorMessage = error && typeof error === 'object' && 'data' in error
-                ? (error.data as { message?: string })?.message || 'Failed to send request'
-                : 'Failed to send request'
-            toast.error(errorMessage)
+            console.error('Request error:', error)
+            
+            // Enhanced error handling for better debugging
+            if (error && typeof error === 'object' && 'data' in error) {
+                const errorData = error.data as any;
+                console.error('Error data:', errorData);
+                
+                if (errorData.errors && Array.isArray(errorData.errors)) {
+                    // Show validation errors
+                    const validationErrors = errorData.errors.map((err: any) => err.msg).join(', ');
+                    toast.error(`Validation failed: ${validationErrors}`);
+                } else if (errorData.message) {
+                    toast.error(errorData.message);
+                } else {
+                    toast.error('Failed to send request');
+                }
+            } else {
+                toast.error('Failed to send request');
+            }
         }
     }
 
@@ -584,11 +617,18 @@ export default function CoursesPage() {
                                     <p className="text-sm text-gray-600"><strong>Email:</strong> {selectedCourse?.moduleLeader?.email || "No email"}</p>
                                     <p className="text-sm text-gray-600"><strong>Phone:</strong> {selectedCourse?.moduleLeader?.mobileNumber || "No phone number"}</p>
                                 </div>
+                                {!selectedCourse?.moduleLeader?._id && (
+                                    <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded">
+                                        <p className="text-sm text-yellow-800">⚠️ Warning: Module leader information is incomplete. You may not be able to send the request.</p>
+                                    </div>
+                                )}
                             </div>
                             <div className="sm:flex sm:justify-between sm:items-center mb-4 gap-4">
                                 {/* batch dropdown */}
                                 <div className="mb-4 flex-1 ">
-                                    <label htmlFor="batch" className="block text-sm font-medium text-gray-700 mb-2">Batch</label>
+                                    <label htmlFor="batch" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Batch <span className="text-red-500">*</span>
+                                    </label>
                                     <select
                                         id="batch"
                                         value={batch || ""}
@@ -604,7 +644,9 @@ export default function CoursesPage() {
 
                                 {/* Semester dropdown */}
                                 <div className="mb-4 flex-1 ">
-                                    <label htmlFor="semester" className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
+                                    <label htmlFor="semester" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Semester <span className="text-red-500">*</span>
+                                    </label>
                                     <select
                                         id="semester"
                                         value={semester}
@@ -619,7 +661,9 @@ export default function CoursesPage() {
                                 </div>
                                 {/* Section dropdown */}
                                 <div className="mb-4 flex-1 ">
-                                    <label htmlFor="section" className="block text-sm font-medium text-gray-700 mb-2">Section</label>
+                                    <label htmlFor="section" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Section <span className="text-red-500">*</span>
+                                    </label>
                                     <select
                                         id="section"
                                         value={section}
@@ -637,28 +681,55 @@ export default function CoursesPage() {
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label htmlFor="message" className="text-sm font-medium text-gray-700 block">
-                                        Message to Module Leader
+                                        Message to Module Leader <span className="text-red-500">*</span>
                                     </label>
                                     <textarea
                                         id="message"
                                         value={requestMessage}
                                         onChange={(e) => setRequestMessage(e.target.value)}
-                                        placeholder="If anything want to say write here..."
-                                        className="textarea textarea-bordered w-full min-h-[100px] focus:border-indigo-500 focus:ring-indigo-500 bg-white text-black drop-shadow-sm"
+                                        placeholder="Please write your request message here (minimum 10 characters)..."
+                                        className={`textarea textarea-bordered w-full min-h-[100px] focus:border-indigo-500 focus:ring-indigo-500 bg-white text-black drop-shadow-sm ${
+                                            requestMessage.length > 0 && requestMessage.length < 10 ? 'border-red-500' : ''
+                                        }`}
                                     ></textarea>
+                                    <div className="flex justify-between items-center">
+                                        <p className={`text-xs ${
+                                            requestMessage.length < 10 ? 'text-red-500' : 'text-gray-500'
+                                        }`}>
+                                            {requestMessage.length < 10 
+                                                ? `Minimum 10 characters required (${requestMessage.length}/10)`
+                                                : `${requestMessage.length}/1000 characters`
+                                            }
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="modal-action">
                                 <button
                                     className="btn btn-outline border-gray-300 text-gray-700 hover:bg-gray-100"
-                                    onClick={() => setShowRequestModal(false)}
+                                    onClick={() => {
+                                        setShowRequestModal(false)
+                                        setRequestMessage("")
+                                        setBatch(undefined)
+                                        setSection("")
+                                        setSemester("")
+                                        setSelectedCourse(null)
+                                    }}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     className="btn bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 border-none"
-                                    disabled={!requestMessage.trim() || isCreatingRequest}
+                                    disabled={
+                                        !requestMessage.trim() || 
+                                        requestMessage.length < 10 || 
+                                        !batch || 
+                                        !section || 
+                                        !semester || 
+                                        !selectedCourse?.moduleLeader?._id ||
+                                        isCreatingRequest
+                                    }
                                     onClick={submitAccessRequest}
                                 >
                                     {isCreatingRequest ? (
