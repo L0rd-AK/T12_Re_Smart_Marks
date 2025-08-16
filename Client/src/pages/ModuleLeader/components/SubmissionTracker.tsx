@@ -473,95 +473,220 @@ const SubmissionTracker: React.FC = () => {
       {/* Details Modal */}
       {showDetailsModal && selectedSubmission && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto text-black">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Submission Details</h3>
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto text-black">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold">Document Submission Details</h3>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 text-2xl"
               >
                 ✕
               </button>
             </div>
             
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Teacher</label>
-                  <p className="text-sm text-gray-900">{selectedSubmission.teacherName}</p>
-                  <p className="text-sm text-gray-500">{selectedSubmission.teacherEmail}</p>
+            <div className="space-y-6">
+              {/* Teacher and Course Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-3">Teacher Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Name:</span> {selectedSubmission.teacherName}</div>
+                    <div><span className="font-medium">Email:</span> {selectedSubmission.teacherEmail}</div>
+                    <div><span className="font-medium">Employee ID:</span> {selectedSubmission.employeeId}</div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Document Type</label>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {selectedSubmission.documentType}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Title</label>
-                <p className="text-sm text-gray-900">{selectedSubmission.title}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
-                <p className="text-sm text-gray-900">{selectedSubmission.description}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Due Date</label>
-                  <p className="text-sm text-gray-900">{new Date(selectedSubmission.dueDate).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Priority</label>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(selectedSubmission.priority)}`}>
-                    {selectedSubmission.priority}
-                  </span>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-3">Course Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Course:</span> {selectedSubmission.courseCode} - {selectedSubmission.courseTitle}</div>
+                    <div><span className="font-medium">Section:</span> {selectedSubmission.courseSection}</div>
+                    <div><span className="font-medium">Department:</span> {selectedSubmission.department}</div>
+                    <div><span className="font-medium">Batch:</span> {selectedSubmission.batch}</div>
+                    <div><span className="font-medium">Semester:</span> {selectedSubmission.semester}</div>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedSubmission.status)}`}>
-                  {selectedSubmission.status}
-                </span>
-              </div>
+              {/* Submission Status */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-3">Submission Status</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Submission Status:</span>
+                    <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSubmissionStatusColor(selectedSubmission.submissionStatus)}`}>
+                      {selectedSubmission.submissionStatus}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Review Status:</span>
+                    <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedSubmission.overallStatus)}`}>
+                      {selectedSubmission.overallStatus}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Completion:</span>
+                    <span className="ml-2 font-medium">{selectedSubmission.completionPercentage}%</span>
+                  </div>
+                </div>
+                
+                {selectedSubmission.submittedAt && (
+                  <div className="mt-2 text-sm">
+                    <span className="font-medium">Submitted At:</span> {new Date(selectedSubmission.submittedAt).toLocaleString()}
+                  </div>
+                )}
+                
+                <div className="mt-2 text-sm">
+                  <span className="font-medium">Last Modified:</span> {new Date(selectedSubmission.lastModifiedAt).toLocaleString()}
+                </div>
 
-              {selectedSubmission.submittedAt && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Submission Details</label>
-                  <div className="text-sm text-gray-900">
-                    <p>Submitted: {new Date(selectedSubmission.submittedAt).toLocaleString()}</p>
-                    {selectedSubmission.fileName && (
-                      <p>File: {selectedSubmission.fileName} ({selectedSubmission.fileSize ? formatFileSize(selectedSubmission.fileSize) : 'Unknown size'})</p>
+                {selectedSubmission.reviewedBy && (
+                  <div className="mt-2 text-sm">
+                    <span className="font-medium">Reviewed By:</span> {selectedSubmission.reviewedBy.name}
+                    {selectedSubmission.reviewedAt && (
+                      <span className="ml-2">on {new Date(selectedSubmission.reviewedAt).toLocaleString()}</span>
                     )}
+                  </div>
+                )}
+
+                {selectedSubmission.reviewComments && (
+                  <div className="mt-2 text-sm">
+                    <span className="font-medium">Review Comments:</span>
+                    <p className="mt-1 text-gray-700 bg-white p-2 rounded border">{selectedSubmission.reviewComments}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Theory Documents */}
+              {selectedSubmission.theoryDocuments.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Theory Documents ({selectedSubmission.theoryDocuments.length})</h4>
+                  <div className="space-y-3">
+                    {selectedSubmission.theoryDocuments.map((doc, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-gray-900">{doc.name}</h5>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            doc.status === 'yes' ? 'bg-green-100 text-green-800' : 
+                            doc.status === 'no' ? 'bg-red-100 text-red-800' : 
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {doc.status === 'yes' ? 'Submitted' : doc.status === 'no' ? 'Not Submitted' : 'Pending'}
+                          </span>
+                        </div>
+                        
+                        <div className="text-sm text-gray-600 mb-2">
+                          Required file types: {doc.fileTypes.join(', ')}
+                        </div>
+
+                        {doc.uploadedFiles && Object.keys(doc.uploadedFiles).length > 0 && (
+                          <div className="mt-2">
+                            <div className="text-sm font-medium text-gray-700 mb-1">Uploaded Files:</div>
+                            <div className="space-y-1">
+                              {Object.entries(doc.uploadedFiles).map(([type, file]) => (
+                                <div key={type} className="text-xs bg-gray-50 p-2 rounded">
+                                  <div className="font-medium">{type}:</div>
+                                  <div>{file.name} ({formatFileSize(file.size)})</div>
+                                  <div className="text-gray-500">Type: {file.type}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {doc.submittedAt && (
+                          <div className="text-xs text-gray-500 mt-2">
+                            Submitted: {new Date(doc.submittedAt).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {selectedSubmission.comments && (
+              {/* Lab Documents */}
+              {selectedSubmission.labDocuments.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Comments</label>
-                  <p className="text-sm text-gray-900">{selectedSubmission.comments}</p>
+                  <h4 className="font-semibold text-gray-900 mb-3">Lab Documents ({selectedSubmission.labDocuments.length})</h4>
+                  <div className="space-y-3">
+                    {selectedSubmission.labDocuments.map((doc, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-gray-900">{doc.name}</h5>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            doc.status === 'yes' ? 'bg-green-100 text-green-800' : 
+                            doc.status === 'no' ? 'bg-red-100 text-red-800' : 
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {doc.status === 'yes' ? 'Submitted' : doc.status === 'no' ? 'Not Submitted' : 'Pending'}
+                          </span>
+                        </div>
+                        
+                        <div className="text-sm text-gray-600 mb-2">
+                          Required file types: {doc.fileTypes.join(', ')}
+                        </div>
+
+                        {doc.uploadedFiles && Object.keys(doc.uploadedFiles).length > 0 && (
+                          <div className="mt-2">
+                            <div className="text-sm font-medium text-gray-700 mb-1">Uploaded Files:</div>
+                            <div className="space-y-1">
+                              {Object.entries(doc.uploadedFiles).map(([type, file]) => (
+                                <div key={type} className="text-xs bg-gray-50 p-2 rounded">
+                                  <div className="font-medium">{type}:</div>
+                                  <div>{file.name} ({formatFileSize(file.size)})</div>
+                                  <div className="text-gray-500">Type: {file.type}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {doc.submittedAt && (
+                          <div className="text-xs text-gray-500 mt-2">
+                            Submitted: {new Date(doc.submittedAt).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {selectedSubmission.reviewedAt && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Review Details</label>
-                  <p className="text-sm text-gray-900">
-                    Reviewed by {selectedSubmission.reviewedBy} on {new Date(selectedSubmission.reviewedAt).toLocaleString()}
-                  </p>
+              {/* Action Buttons */}
+              {selectedSubmission.submissionStatus === 'submitted' && selectedSubmission.overallStatus === 'pending' && (
+                <div className="flex justify-center space-x-4 pt-4 border-t">
+                  <button
+                    onClick={() => handleUpdateStatus(selectedSubmission.id, 'in-review')}
+                    className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+                  >
+                    Mark as In Review
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(selectedSubmission.id, 'approved')}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    Approve Submission
+                  </button>
+                  <button
+                    onClick={() => {
+                      const comments = prompt('Enter rejection reason:');
+                      if (comments) {
+                        handleUpdateStatus(selectedSubmission.id, 'rejected', comments);
+                      }
+                    }}
+                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Reject Submission
+                  </button>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-end mt-6 pt-4 border-t">
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
               >
                 Close
               </button>
@@ -569,42 +694,9 @@ const SubmissionTracker: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Send Reminder Modal */}
-      {showReminderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md text-black">
-            <h3 className="text-lg font-semibold mb-4">Send Reminders</h3>
-            
-            <p className="text-sm text-gray-600 mb-4">
-              Send reminder emails to teachers with pending submissions?
-            </p>
-
-            <div className="bg-gray-50 p-3 rounded mb-4">
-              <p className="text-sm">
-                <span className="font-medium">{submissions.filter(s => s.status === 'pending').length}</span> pending submissions will receive reminders.
-              </p>
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowReminderModal(false)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={sendReminder}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-              >
-                Send Reminders
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
+};
 };
 
 export default SubmissionTracker;
