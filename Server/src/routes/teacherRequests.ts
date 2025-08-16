@@ -3,7 +3,8 @@ import {
     getCourseRequests,
     updateCourseRequestStatus,
     getDocumentSubmissionRequests,
-    updateDocumentSubmissionStatus
+    updateDocumentSubmissionStatus,
+    shareDocumentsWithTeacher
 } from '../controllers/teacherRequestsController';
 import { authenticate, requireRole } from '../middleware/auth';
 import { updateCourseRequestStatusValidation, updateDocumentSubmissionStatusValidation } from '../schemas/teacherRequests';
