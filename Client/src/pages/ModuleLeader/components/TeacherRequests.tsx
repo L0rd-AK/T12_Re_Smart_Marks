@@ -66,17 +66,13 @@ const TeacherRequests: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full';
-    
     switch (status) {
-      case 'pending':
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pending</span>;
-      case 'approved':
-        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Approved</span>;
-      case 'rejected':
-        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Rejected</span>;
+      case "approved":
+        return <span className="badge bg-green-100 text-green-800 border border-green-200">Approved</span>;
+      case "rejected":
+        return <span className="badge bg-red-100 text-red-800 border border-red-200">Rejected</span>;
       default:
-        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{status}</span>;
+        return <span className="badge bg-yellow-100 text-yellow-800 border border-yellow-200">Pending</span>;
     }
   };
 
