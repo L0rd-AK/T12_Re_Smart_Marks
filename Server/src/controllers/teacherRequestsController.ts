@@ -274,3 +274,130 @@ export const updateDocumentSubmissionStatus = async (req: Request, res: Response
     });
   }
 };
+
+// Share documents with teacher after approval
+export const shareDocumentsWithTeacher = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { requestId } = req.params;
+    const { teacherId, documentDistributionIds, accessType = 'download' } = req.body;
+    const moduleLeaderId = (req as any).user?._id;
+
+    // Find the request
+    const request = await CourseAccessRequest.findById(requestId);
+    if (!request) {
+      res.status(404).json({
+        success: false,
+        message: 'Request not found'
+      });
+      return;
+    }
+
+    // Verify the current user is the module leader for this request
+    if (request.moduleLeader.toString() !== moduleLeaderId.toString()) {
+      res.status(403).json({
+        success: false,
+        message: 'You are not authorized to share documents for this request'
+      });
+      return;
+    }
+
+    // Find the teacher
+    const teacher = await User.findOne({ employeeId: teacherId });
+    if (!teacher) {
+      res.status(404).json({
+        success: false,
+        message: 'Teacher not found'
+      });
+      return;
+    }
+
+    // Find the document distributions
+    const documentDistributions = await DocumentDistribution.find({
+      distributionId: { $in: documentDistributionIds }
+    });
+
+    if (documentDistributions.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'No documents found'
+      });
+      return;
+    }
+
+    const sharedDocuments: string[] = [];
+    const accessLinks: Record<string, string> = {};
+
+    // Update permissions for each document distribution to include the teacher
+    for (const distribution of documentDistributions) {
+      // Add teacher to specific teachers list if not already present
+      if (!distribution.permissions.teachers.specificTeachers) {
+        distribution.permissions.teachers.specificTeachers = [];
+      }
+
+      const teacherIdStr = teacher._id.toString();
+      if (!distribution.permissions.teachers.specificTeachers.includes(teacherIdStr)) {
+        distribution.permissions.teachers.specificTeachers.push(teacherIdStr);
+      }
+
+      // Update permissions based on access type
+      if (accessType === 'view') {
+        distribution.permissions.teachers.canView = true;
+        distribution.permissions.teachers.canDownload = false;
+      } else if (accessType === 'download') {
+        distribution.permissions.teachers.canView = true;
+        distribution.permissions.teachers.canDownload = true;
+      } else if (accessType === 'full') {
+        distribution.permissions.teachers.canView = true;
+        distribution.permissions.teachers.canDownload = true;
+        distribution.permissions.teachers.canComment = true;
+        distribution.permissions.teachers.canEdit = true;
+      }
+
+      // Track access
+      distribution.trackAccess(teacher._id, 'view');
+
+      // Add audit trail entry
+      distribution.addAuditEntry(
+        'permission-changed',
+        moduleLeaderId,
+        (req as any).user.name,
+        `Shared with teacher ${teacher.name} (${teacher.employeeId}) with ${accessType} access`
+      );
+
+      await distribution.save();
+
+      sharedDocuments.push(distribution.distributionId);
+      
+      // Create live view links for the files
+      if (distribution.files && distribution.files.length > 0) {
+        accessLinks[distribution.distributionId] = distribution.files.map(file => ({
+          name: file.originalName,
+          liveViewLink: file.liveViewLink,
+          downloadLink: file.downloadLink
+        }));
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully shared ${sharedDocuments.length} document(s) with ${teacher.name}`,
+      data: {
+        sharedDocuments,
+        accessLinks,
+        teacherInfo: {
+          name: teacher.name,
+          email: teacher.email,
+          employeeId: teacher.employeeId
+        },
+        accessType
+      }
+    });
+
+  } catch (error) {
+    console.error('Error sharing documents with teacher:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
