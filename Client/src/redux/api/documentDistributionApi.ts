@@ -298,6 +298,12 @@ export const documentDistributionApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['DocumentDistribution'],
     }),
+
+    // Get shared documents for teachers
+    getSharedDocuments: builder.query<DistributionsResponse, void>({
+      query: () => '/document-distribution/shared/teacher',
+      providesTags: ['DocumentDistribution'],
+    }),
   }),
 });
 
@@ -311,4 +317,5 @@ export const {
   useUploadFilesToDistributionMutation,
   useGetDistributionAnalyticsQuery,
   useDeleteDocumentDistributionMutation,
+  useGetSharedDocumentsQuery,
 } = documentDistributionApi;
