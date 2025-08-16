@@ -75,6 +75,7 @@ export interface CreateAccessRequestData {
 export interface RespondToRequestData {
     status: 'approved' | 'rejected';
     responseMessage?: string;
+    selectedDocuments?: string[]; // Array of document distribution IDs
 }
 
 export const courseAccessApi = baseApi.injectEndpoints({

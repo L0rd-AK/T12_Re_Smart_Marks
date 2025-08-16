@@ -8,7 +8,8 @@ import {
   updateDistributionStatus,
   deleteDocumentDistribution,
   getDistributionAnalytics,
-  getSharedDocuments
+  getSharedDocuments,
+  getCourseDocumentDistributions
 } from '../controllers/documentDistributionController';
 import { authenticateToken } from '../middleware/auth';
 // import { checkRole } from '../middleware/permissions';
@@ -37,6 +38,13 @@ router.get('/', getDocumentDistributions);
 
 // Get specific document distribution by ID
 router.get('/:distributionId', getDocumentDistribution);
+
+// Get document distributions for a specific course (Module Leaders only)
+router.get(
+  '/course/:courseId',
+  // checkRole(['module-leader']),
+  getCourseDocumentDistributions
+);
 
 // Get distribution analytics (Module Leaders only)
 router.get(

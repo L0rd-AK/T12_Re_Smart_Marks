@@ -125,6 +125,12 @@ export interface DocumentDistribution {
     details: string;
     previousState?: any;
   }>;
+  teacherPermissions?: {
+    canView: boolean;
+    canDownload: boolean;
+    canComment: boolean;
+    canEdit: boolean;
+  };
 }
 
 export interface CreateDocumentDistributionRequest {
@@ -304,6 +310,12 @@ export const documentDistributionApi = baseApi.injectEndpoints({
       query: () => '/document-distribution/shared/teacher',
       providesTags: ['DocumentDistribution'],
     }),
+
+    // Get document distributions for a specific course (for module leaders)
+    getCourseDocumentDistributions: builder.query<DistributionsResponse, string>({
+      query: (courseId) => `/document-distribution/course/${courseId}`,
+      providesTags: ['DocumentDistribution'],
+    }),
   }),
 });
 
@@ -318,4 +330,5 @@ export const {
   useGetDistributionAnalyticsQuery,
   useDeleteDocumentDistributionMutation,
   useGetSharedDocumentsQuery,
+  useGetCourseDocumentDistributionsQuery,
 } = documentDistributionApi;

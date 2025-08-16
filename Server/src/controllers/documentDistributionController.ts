@@ -561,6 +561,46 @@ export const getSharedDocuments = async (req: Request, res: Response): Promise<v
   }
 };
 
+// Get document distributions for a specific course (for module leaders)
+export const getCourseDocumentDistributions = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { courseId } = req.params;
+    const userId = (req as any).user.id;
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Find document distributions for the specific course
+    const documentDistributions = await DocumentDistribution.find({
+      'course.courseId': courseId,
+      'moduleLeader.userId': userId // Only module leader can see their distributions
+    })
+    .populate('course.courseId', 'name code')
+    .populate('course.department', 'name')
+    .populate('moduleLeader.userId', 'name email employeeId')
+    .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      message: 'Course document distributions retrieved successfully',
+      data: documentDistributions
+    });
+
+  } catch (error) {
+    console.error('Error getting course document distributions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get course document distributions',
+      error: error.message
+    });
+  }
+};
+
 // Get distribution analytics
 export const getDistributionAnalytics = async (req: Request, res: Response) => {
   try {

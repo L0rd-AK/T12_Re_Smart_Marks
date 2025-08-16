@@ -20,6 +20,10 @@ import {
     type Course,
     type CourseAccessRequest,
 } from "../../redux/api/courseAccessApi"
+import {
+    useGetSharedDocumentsQuery,
+    useGetCourseDocumentDistributionsQuery,
+} from "../../redux/api/documentDistributionApi"
 import { useAppSelector } from "../../redux/hooks"
 import LoadingSpinner from "../../components/LoadingSpinner"
 import { toast } from "sonner"
@@ -38,6 +42,7 @@ export default function CoursesPage() {
     const [section, setSection] = useState<string>("")
     const [semester, setSemester] = useState<"Spring" | "Fall" | "Summer" | "">("")
     const [batch, setBatch] = useState<number>()
+    const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
     // Get user info from Redux store
     const user = useAppSelector((state) => state.auth.user)
 
@@ -53,10 +58,22 @@ export default function CoursesPage() {
     const [createAccessRequest, { isLoading: isCreatingRequest }] = useCreateAccessRequestMutation()
     const [respondToRequest, { isLoading: isResponding }] = useRespondToRequestMutation()
 
+    // Document distribution APIs
+    const { data: sharedDocumentsData, isLoading: sharedDocumentsLoading } = useGetSharedDocumentsQuery(
+        undefined,
+        { skip: user?.role !== 'teacher' }
+    )
+    const { data: courseDocumentsData, isLoading: courseDocumentsLoading } = useGetCourseDocumentDistributionsQuery(
+        selectedRequest?.course._id || '',
+        { skip: !selectedRequest || user?.role !== 'module-leader' }
+    )
+
     const myCourses = myCoursesData?.data || []
     const departmentCourses = departmentCoursesData?.data || []
     const myRequests = myRequestsData?.data || []
     const pendingRequests = pendingRequestsData?.data || []
+    const sharedDocuments = sharedDocumentsData?.data || []
+    const courseDocuments = courseDocumentsData?.data || []
     console.log("myCourses", myCourses)
     const handleRequestAccess = (course: Course) => {
         setSelectedCourse(course)
@@ -104,14 +121,15 @@ export default function CoursesPage() {
             console.log({
                 requestId: selectedRequest._id,
                 status,
-                responseMessage: responseMessage
-
+                responseMessage: responseMessage,
+                selectedDocuments: selectedDocuments
             })
             await respondToRequest({
                 requestId: selectedRequest._id,
                 data: {
                     status,
-                    responseMessage: responseMessage
+                    responseMessage: responseMessage,
+                    selectedDocuments: status === 'approved' ? selectedDocuments : undefined
                 }
 
             }).unwrap()
@@ -119,6 +137,7 @@ export default function CoursesPage() {
             setShowResponseModal(false)
             setResponseMessage("")
             setSelectedRequest(null)
+            setSelectedDocuments([])
 
             // Show success message
             toast.success(`Request ${status} successfully!`)
@@ -161,7 +180,7 @@ export default function CoursesPage() {
         )
     }
 
-    const isLoading = myCoursesLoading || departmentCoursesLoading || myRequestsLoading || pendingRequestsLoading
+    const isLoading = myCoursesLoading || departmentCoursesLoading || myRequestsLoading || pendingRequestsLoading || sharedDocumentsLoading
 
     if (isLoading) {
         return (
@@ -402,6 +421,93 @@ export default function CoursesPage() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Shared Documents Section (for teachers) */}
+                                {user?.role === 'teacher' && (
+                                    <div className="card shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+                                        <div className="card-body space-y-4">
+                                            <h2 className="card-title text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                                <BookOpen className="w-5 h-5 text-blue-600" />
+                                                Shared Documents
+                                            </h2>
+                                            <p className="text-gray-700">Documents shared with you by module leaders</p>
+
+                                            {sharedDocumentsLoading ? (
+                                                <div className="flex justify-center py-8">
+                                                    <LoadingSpinner />
+                                                </div>
+                                            ) : sharedDocuments.length === 0 ? (
+                                                <p className="text-gray-500 text-center py-8">No shared documents available</p>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    {sharedDocuments.map((document, idx) => (
+                                                        <div key={idx} className="border border-blue-200 rounded-lg p-4 space-y-3 bg-blue-50/30">
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <h4 className="font-medium text-blue-600">{document.title}</h4>
+                                                                    <p className="text-sm text-gray-600">{document.course.courseCode} - {document.course.courseName}</p>
+                                                                    <p className="text-sm text-gray-600">From: {document.moduleLeader.name}</p>
+                                                                    <p className="text-sm text-gray-500">{document.description}</p>
+                                                                </div>
+                                                                <div className="flex flex-col items-end gap-2">
+                                                                    <span className="badge bg-blue-100 text-blue-800 border border-blue-200">
+                                                                        {document.category}
+                                                                    </span>
+                                                                    <span className="badge bg-green-100 text-green-800 border border-green-200">
+                                                                        {document.fileCount} file(s)
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* File list */}
+                                                            {document.files && document.files.length > 0 && (
+                                                                <div className="mt-3">
+                                                                    <h5 className="text-sm font-medium text-gray-700 mb-2">Files:</h5>
+                                                                    <div className="space-y-2">
+                                                                        {document.files.map((file, fileIdx) => (
+                                                                            <div key={fileIdx} className="flex items-center justify-between p-2 bg-white rounded border">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="text-sm text-gray-600">{file.originalName}</span>
+                                                                                    <span className="text-xs text-gray-500">({(file.fileSize / 1024 / 1024).toFixed(2)} MB)</span>
+                                                                                </div>
+                                                                                <div className="flex gap-2">
+                                                                                    {document.teacherPermissions?.canView && (
+                                                                                        <a
+                                                                                            href={file.liveViewLink}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="btn btn-xs btn-outline btn-primary"
+                                                                                        >
+                                                                                            <ExternalLink className="w-3 h-3" />
+                                                                                            View
+                                                                                        </a>
+                                                                                    )}
+                                                                                    {document.teacherPermissions?.canDownload && (
+                                                                                        <a
+                                                                                            href={file.downloadLink}
+                                                                                            download
+                                                                                            className="btn btn-xs btn-outline btn-success"
+                                                                                        >
+                                                                                            Download
+                                                                                        </a>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            <p className="text-xs text-gray-500">
+                                                                Shared: {new Date(document.createdAt).toLocaleDateString()}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -572,7 +678,7 @@ export default function CoursesPage() {
                 {/* Response Modal */}
                 {showResponseModal && selectedRequest && (
                     <div className="modal modal-open">
-                        <div className="modal-box bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-md">
+                        <div className="modal-box bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-2xl">
                             <h3 className="font-bold text-xl text-gray-900">Respond to Request</h3>
                             <p className="text-gray-700 mb-4">
                                 Request from <span className="font-medium">{selectedRequest.teacher.name}</span> for {selectedRequest.course.code}
@@ -595,12 +701,60 @@ export default function CoursesPage() {
                                         className="textarea textarea-bordered w-full min-h-[80px] focus:border-indigo-500 focus:ring-indigo-500 bg-white text-black drop-shadow-sm"
                                     ></textarea>
                                 </div>
+
+                                {/* Document Selection Section */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700 block">
+                                        Select Documents to Share (Optional)
+                                    </label>
+                                    <p className="text-xs text-gray-500 mb-3">
+                                        Choose which documents to share with the teacher when approving their request
+                                    </p>
+                                    
+                                    {courseDocumentsLoading ? (
+                                        <div className="flex justify-center py-4">
+                                            <LoadingSpinner />
+                                        </div>
+                                    ) : courseDocuments.length === 0 ? (
+                                        <p className="text-gray-500 text-center py-4">No documents available for this course</p>
+                                    ) : (
+                                        <div className="max-h-60 overflow-y-auto space-y-2">
+                                            {courseDocuments.map((document, idx) => (
+                                                <div key={idx} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`doc-${idx}`}
+                                                        checked={selectedDocuments.includes(document.distributionId)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedDocuments([...selectedDocuments, document.distributionId])
+                                                            } else {
+                                                                setSelectedDocuments(selectedDocuments.filter(id => id !== document.distributionId))
+                                                            }
+                                                        }}
+                                                        className="checkbox checkbox-primary"
+                                                    />
+                                                    <label htmlFor={`doc-${idx}`} className="flex-1 cursor-pointer">
+                                                        <div>
+                                                            <p className="font-medium text-gray-900">{document.title}</p>
+                                                            <p className="text-sm text-gray-600">{document.category} • {document.fileCount} file(s)</p>
+                                                            <p className="text-xs text-gray-500">{document.description}</p>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="modal-action">
                                 <button
                                     className="btn btn-outline border-gray-300 text-gray-700 hover:bg-gray-100"
-                                    onClick={() => setShowResponseModal(false)}
+                                    onClick={() => {
+                                        setShowResponseModal(false)
+                                        setSelectedDocuments([])
+                                    }}
                                 >
                                     Cancel
                                 </button>
