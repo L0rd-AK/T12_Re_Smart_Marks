@@ -158,10 +158,10 @@ const TeacherRequests: React.FC = () => {
                     {request.status === 'pending' && (
                       <div className="ml-4 flex space-x-2">
                         <button
-                          onClick={() => handleCourseRequestAction(request._id, 'approve')}
+                          onClick={() => handleApproveWithDocuments(request)}
                           className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                         >
-                          Approve
+                          Approve & Share Docs
                         </button>
                         <button
                           onClick={() => handleCourseRequestAction(request._id, 'reject')}
@@ -179,6 +179,19 @@ const TeacherRequests: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Document Selection Modal */}
+      <DocumentSelectionModal
+        isOpen={showDocumentModal}
+        onClose={() => {
+          setShowDocumentModal(false);
+          setSelectedRequest(null);
+        }}
+        onConfirm={handleDocumentSelection}
+        teacherName={selectedRequest?.teacherName || ''}
+        courseCode={selectedRequest?.courseCode || ''}
+        loading={isSharing}
+      />
     </div>
   );
 };
