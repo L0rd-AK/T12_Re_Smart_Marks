@@ -839,26 +839,46 @@ const DocumentManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDocuments.map((document) => (
-                <tr key={document.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 flex items-center">
-                        {document.name}
-                        {document.fileUrl && (
-                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            📎 File
-                          </span>
-                        )}
+              {filteredDocuments.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="text-gray-500">
+                      <div className="text-xl mb-2">📄</div>
+                      <div className="font-medium">No documents found</div>
+                      <div className="text-sm mt-1">
+                        {documentsLoading 
+                          ? 'Loading documents...' 
+                          : documentsError 
+                          ? 'Failed to load documents' 
+                          : documents.length === 0 
+                          ? 'Create your first document distribution to get started'
+                          : 'Try adjusting your filters'
+                        }
                       </div>
-                      <div className="text-sm text-gray-500">{document.description}</div>
-                      {document.fileUrl && (
-                        <div className="text-xs text-blue-600 mt-1">
-                          Attached: {document.fileUrl.split('/').pop()}
-                        </div>
-                      )}
                     </div>
                   </td>
+                </tr>
+              ) : (
+                filteredDocuments.map((document) => (
+                  <tr key={document.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 flex items-center">
+                          {document.name}
+                          {document.fileUrl && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              📎 File
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500">{document.description}</div>
+                        {document.fileUrl && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            Attached: {document.fileUrl.split('/').pop()}
+                          </div>
+                        )}
+                      </div>
+                    </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       {document.type}
@@ -907,7 +927,8 @@ const DocumentManagement: React.FC = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
