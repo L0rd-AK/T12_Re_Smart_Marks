@@ -697,6 +697,7 @@ const SubmissionTracker: React.FC = () => {
     </div>
   );
 };
-};
+
+export default SubmissionTracker;
 
 export default SubmissionTracker;
