@@ -6,6 +6,7 @@ import {
 } from '../../../redux/api/teacherRequestsApi';
 import { type DocumentDistribution } from '../../../redux/api/documentDistributionApi';
 import DocumentSelectionModal from './DocumentSelectionModal';
+import DocumentSharedNotification from './DocumentSharedNotification';
 import { toast } from 'react-hot-toast';
 
 const TeacherRequests: React.FC = () => {
